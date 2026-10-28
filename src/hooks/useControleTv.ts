@@ -23,6 +23,8 @@ export function useControleTv(o: {
   proximo: () => void;
   anterior: () => void;
   voltar: () => void;
+  /** Favorita (ou desfavorita) um canal pelo id. Usado no Enter longo sobre a linha do canal. */
+  favoritar?: (idDoCanal: string) => void;
   /** Multi tela ligada: setas laterais trocam o lado ativo (o do som e da lista). */
   multiTela?: boolean;
   trocarLado?: () => void;
@@ -73,6 +75,14 @@ export function useControleTv(o: {
       }, 200);
     };
 
+    // Enter longo sobre a linha de um canal favorita o canal, em vez de trocar para ele.
+    // O Enter curto (ao soltar antes do tempo) troca de canal, como o clique da linha.
+    const MS_ENTER_LONGO = 550;
+    let alvoEnter: HTMLElement | null = null;
+    let enterTimer = 0;
+    let enterLongoDisparou = false;
+    let segurandoEnter = false;
+
     const aoApertar = (e: KeyboardEvent) => {
       const s = ref.current;
       if (!s.ativo) return;
@@ -83,12 +93,40 @@ export function useControleTv(o: {
       if (codigo === 428 || codigo === 34) { consumir(); s.anterior(); mostrarControles(); return; }
       // Da lista de canais, a seta para a direita vai direto aos botões do player (multi tela,
       // fontes, áudio…): pela posição na tela o D-pad ia parar nas abas do alto da lista.
+      // A lista é fechada, pois o foco sai dela e vai para os controles do player.
       const ativo = document.activeElement as HTMLElement | null;
+      // Enter longo sobre a linha de um canal: favorita, em vez de trocar para ele. Um temporizador
+      // dispara o favoritar; se soltar antes (Enter curto) a troca de canal acontece no "keyup".
+      if (e.key === 'Enter' && ativo?.classList.contains('painel-linha-canal')) {
+        consumir();
+        if (segurandoEnter) return; // repetições do controle enquanto a tecla fica pressionada
+        segurandoEnter = true;
+        enterLongoDisparou = false;
+        alvoEnter = ativo;
+        const idDoCanal = ativo.getAttribute('data-channel-id');
+        enterTimer = window.setTimeout(() => {
+          enterLongoDisparou = true;
+          if (idDoCanal) s.favoritar?.(idDoCanal);
+        }, MS_ENTER_LONGO);
+        return;
+      }
+      // Nas pílulas de categoria (fileira horizontal que rola de lado), as setas laterais andam
+      // de uma pílula para a vizinha. Pela geometria o D-pad pulava as pílulas fora da parte
+      // visível da fileira (ficam "cortadas" à direita), saindo da área antes do fim da lista.
+      if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && ativo?.classList.contains('painel-pilula')) {
+        const pilulas = Array.from(document.querySelectorAll<HTMLElement>('.painel-pilulas-scroll .painel-pilula'))
+          .filter((b) => b.getClientRects().length > 0);
+        const i = pilulas.indexOf(ativo);
+        const vizinha = e.key === 'ArrowRight' ? pilulas[i + 1] : pilulas[i - 1];
+        if (i !== -1 && vizinha) { consumir(); setFocus(vizinha); return; }
+        // Nos extremos (primeira/última) deixa o D-pad seguir para fora da fileira.
+      }
       if (e.key === 'ArrowRight' && ativo?.classList.contains('painel-linha-canal')) {
         const botoes = Array.from(document.querySelectorAll<HTMLElement>('.video-player-container .control-btn'))
           .filter((b) => b.getClientRects().length > 0);
         if (botoes.length) {
           consumir();
+          s.fecharPainel();
           mostrarControles();
           setFocus(botoes[0]);
           return;
@@ -118,6 +156,21 @@ export function useControleTv(o: {
     };
     window.addEventListener('keydown', aoApertar, true);
 
+    const aoSoltar = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' || !segurandoEnter) return;
+      window.clearTimeout(enterTimer);
+      segurandoEnter = false;
+      const alvo = alvoEnter;
+      alvoEnter = null;
+      // Soltou antes do tempo do Enter longo: é um Enter curto, que troca para o canal.
+      if (!enterLongoDisparou && alvo) {
+        e.preventDefault();
+        e.stopPropagation();
+        alvo.click();
+      }
+    };
+    window.addEventListener('keyup', aoSoltar, true);
+
     const tirar = registerBackHandler(() => {
       const s = ref.current;
       if (!s.ativo) return false;
@@ -128,6 +181,8 @@ export function useControleTv(o: {
     });
     return () => {
       window.removeEventListener('keydown', aoApertar, true);
+      window.removeEventListener('keyup', aoSoltar, true);
+      window.clearTimeout(enterTimer);
       tirar();
     };
   }, [registerBackHandler, setFocus]);
