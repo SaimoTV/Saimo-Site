@@ -1,0 +1,36 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+.agent
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+.wrangler
+
+.claude/
+
+# Build do app desktop (Tauri)
+desktop/src-tauri/target
+desktop/src-tauri/gen/schemas
+
+# Pacotes de TV (scripts/montar_tv.sh)
+build/
+dist-tv/

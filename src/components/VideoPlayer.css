@@ -1,0 +1,1657 @@
+.video-player-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: none;
+  min-height: 0;
+  max-height: 100%;
+  /* Otimizações de performance */
+  will-change: auto;
+  contain: layout style;
+}
+
+.video-player-container.show-controls {
+  cursor: default;
+}
+
+.video-player-container.theater {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+}
+
+.video-element {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Garante que o vídeo não seja afetado por overlays */
+  position: relative;
+  z-index: 1;
+  /*
+   * O vídeo fica sempre na própria camada de composição. Sem isso o navegador
+   * tira o quadro da camada de overlay assim que um overlay aparece por cima e
+   * volta a desenhá-lo por textura, o que desloca a imagem em alguns pixels.
+   */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.video-element.mirrored {
+  transform: scaleX(-1) translateZ(0);
+}
+
+.video-element.aspect-auto {
+  object-fit: contain;
+}
+
+.video-element.aspect-16\:9 {
+  object-fit: fill;
+  aspect-ratio: 16 / 9;
+}
+
+.video-element.aspect-4\:3 {
+  object-fit: fill;
+  aspect-ratio: 4 / 3;
+}
+
+.video-element.aspect-fill {
+  object-fit: cover;
+}
+
+.aspect-ratio-hud {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 26px;
+  background: rgba(10, 10, 15, 0.88);
+  border: 1px solid rgba(79, 243, 224, 0.4);
+  border-radius: 14px;
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 600;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.65);
+  pointer-events: none;
+  z-index: 50;
+  animation: hud-in 160ms ease-out;
+}
+
+.aspect-ratio-hud svg {
+  width: 26px;
+  height: 26px;
+  color: #4ff3e0;
+}
+
+@keyframes hud-in {
+  from { opacity: 0; transform: translate(-50%, -46%) scale(0.95); }
+}
+
+/* No channel state */
+.no-channel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #0a0a0a, #1a1a1a);
+}
+
+.no-channel-content {
+  text-align: center;
+  color: #666;
+  padding: 40px;
+}
+
+.no-channel-content svg {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 24px;
+  opacity: 0.3;
+}
+
+.no-channel-content h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #888;
+  margin: 0 0 8px;
+}
+
+.no-channel-content p {
+  font-size: 14px;
+  margin: 0;
+  max-width: 300px;
+}
+
+/* Loading overlay */
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 10;
+}
+
+/* Center play/pause button for D-pad navigation */
+.center-play-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.85;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.center-play-btn svg {
+  width: 40px;
+  height: 40px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.center-play-btn:hover {
+  background: rgba(139, 92, 246, 0.7);
+  border-color: rgba(168, 85, 247, 0.6);
+  transform: translate(-50%, -50%) scale(1.12);
+  opacity: 1;
+  box-shadow: 0 12px 48px rgba(139, 92, 246, 0.4);
+}
+
+.center-play-btn:focus,
+.center-play-btn.dpad-focused,
+.center-play-btn[data-focused="true"] {
+  background: rgba(139, 92, 246, 0.85);
+  border-color: #a855f7;
+  box-shadow: 
+    0 0 0 4px rgba(168, 85, 247, 0.3),
+    0 0 48px rgba(168, 85, 247, 0.6),
+    0 12px 48px rgba(0, 0, 0, 0.4);
+  transform: translate(-50%, -50%) scale(1.18);
+  opacity: 1;
+  outline: none;
+}
+
+.loader {
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+
+.loader-ring {
+  position: absolute;
+  inset: 0;
+  border: 3px solid transparent;
+  border-top-color: #8b5cf6;
+  border-radius: 50%;
+  animation: spin 1.5s linear infinite;
+}
+
+.loader-ring:nth-child(2) {
+  inset: 8px;
+  border-top-color: #06b6d4;
+  animation-duration: 1.2s;
+  animation-direction: reverse;
+}
+
+.loader-ring:nth-child(3) {
+  inset: 16px;
+  border-top-color: #ec4899;
+  animation-duration: 0.9s;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-overlay p {
+  margin-top: 24px;
+  color: #888;
+  font-size: 14px;
+}
+
+/* Error overlay */
+.error-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 10;
+  color: #ef4444;
+}
+
+.error-overlay svg {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 16px;
+}
+
+.error-overlay p {
+  margin: 0 0 20px;
+  font-size: 16px;
+  color: #888;
+}
+
+.retry-btn {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retry-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+}
+
+/* Canal http que nem o proxy conseguiu abrir: aviso grande e a saída por
+   uma página separada. */
+.http-overlay {
+  padding: 24px;
+  text-align: center;
+  color: #f1f1f1;
+  background: rgba(8, 8, 12, 0.94);
+  z-index: 30;
+}
+
+.http-overlay svg {
+  width: 72px;
+  height: 72px;
+  color: #fbbf24;
+}
+
+.http-overlay h2 {
+  margin: 0 0 12px;
+  font-size: clamp(1.4rem, 3.2vw, 2.2rem);
+  font-weight: 800;
+  line-height: 1.2;
+  color: #fff;
+  max-width: 720px;
+}
+
+.http-overlay .http-explica {
+  max-width: 620px;
+  margin: 0 0 26px;
+  font-size: clamp(1rem, 1.8vw, 1.2rem);
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.http-overlay .http-explica strong {
+  color: #fff;
+}
+
+.http-open-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: min(560px, 100%);
+  padding: 20px 28px;
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #8b5cf6, #ec4899);
+  color: #fff;
+  font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 14px 40px -12px rgba(236, 72, 153, 0.75);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.http-open-btn svg {
+  width: 26px;
+  height: 26px;
+  margin: 0;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.http-open-btn:hover,
+.http-open-btn:focus-visible {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 18px 44px -12px rgba(236, 72, 153, 0.9);
+  outline: 3px solid rgba(255, 255, 255, 0.85);
+  outline-offset: 3px;
+}
+
+.http-overlay .http-dica {
+  max-width: 560px;
+  margin: 18px 0 16px;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.retry-btn-secundario {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Véus de degradê superior e inferior como no macOS ContentView.swift */
+.video-veu-topo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.55), transparent);
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+.video-veu-fundo {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 220px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+.video-player-container.show-controls .video-veu-topo,
+.video-player-container.show-controls .video-veu-fundo {
+  opacity: 1;
+}
+
+/* Pilha flutuante de controles do macOS */
+.video-floating-stack {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 0 22px 20px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.22s ease, padding-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+.video-floating-stack.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.cartao-container-pos {
+  align-self: flex-end;
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  pointer-events: auto;
+}
+
+/* Barra de Vidro Líquida Flutuante (ControlBar) */
+.video-glass-controlbar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px;
+  border-radius: 24px;
+  background: rgba(11, 14, 20, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  color: #fff;
+  box-sizing: border-box;
+  pointer-events: auto;
+  user-select: none;
+}
+
+.pill-channels-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pill-channels-btn svg {
+  width: 19px;
+  height: 19px;
+  transition: transform 0.2s ease;
+}
+
+.pill-channels-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: scale(1.08);
+}
+
+.pill-channels-btn.active {
+  background: rgba(79, 227, 208, 0.22);
+  border-color: #4fe3d0;
+  color: #4fe3d0;
+  box-shadow: 0 0 16px rgba(79, 227, 208, 0.35);
+}
+
+/* Efeito pulsante chamativo quando fechado */
+.pill-channels-btn.pulsing {
+  animation: canais-pulse-glow 2.4s ease-in-out infinite;
+}
+
+.pill-channels-btn .pulse-indicator {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4fe3d0;
+  box-shadow: 0 0 8px #4fe3d0;
+  animation: canais-dot-pulse 1.8s ease-in-out infinite;
+}
+
+.pill-channels-btn.active .pulse-indicator {
+  display: none;
+}
+
+@keyframes canais-pulse-glow {
+  0%, 100% {
+    border-color: rgba(79, 227, 208, 0.4);
+    box-shadow: 0 0 0 0 rgba(79, 227, 208, 0.35);
+  }
+  50% {
+    border-color: #4fe3d0;
+    box-shadow: 0 0 18px 4px rgba(79, 227, 208, 0.5);
+    transform: scale(1.04);
+  }
+}
+
+@keyframes canais-dot-pulse {
+  0%, 100% {
+    transform: scale(0.9);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 1;
+    box-shadow: 0 0 12px #4fe3d0, 0 0 20px rgba(79, 227, 208, 0.6);
+  }
+}
+
+.live-badge-mac {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  user-select: none;
+}
+
+.live-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
+  animation: liveBadgePulse 2s ease-in-out infinite;
+}
+
+@keyframes liveBadgePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+.live-badge-text {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #ff6b6b;
+}
+
+.quality-badge-mac {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.source-badge-mac {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #a8b4c0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.source-badge-mac:hover,
+.source-badge-mac.active {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border-color: #4fe3d0;
+}
+
+/* Badge Ao Vivo / Latência Zero Delay */
+.live-badge-mac {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 4px 9px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.live-badge-mac:hover {
+  background: rgba(255, 255, 255, 0.18);
+  transform: scale(1.02);
+}
+
+.live-badge-mac.on-air {
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.3);
+}
+
+.live-badge-mac.delayed {
+  color: #facc15;
+  border-color: rgba(250, 204, 21, 0.4);
+  background: rgba(250, 204, 21, 0.12);
+}
+
+.live-badge-mac.delayed:hover {
+  background: rgba(250, 204, 21, 0.22);
+  border-color: rgba(250, 204, 21, 0.6);
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  background: #4ade80;
+  box-shadow: 0 0 6px #4ade80;
+}
+
+.live-dot.green {
+  background: #4ade80;
+  box-shadow: 0 0 6px #4ade80;
+}
+
+.live-dot.yellow {
+  background: #facc15;
+  box-shadow: 0 0 6px #facc15;
+}
+
+/* Botão Zero Delay no Player */
+.control-btn.zero-delay-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 0 8px;
+  width: auto;
+  min-width: 40px;
+}
+
+.control-btn.zero-delay-btn.active-balanced {
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  background: rgba(56, 189, 248, 0.14);
+}
+
+.control-btn.zero-delay-btn.active-ultra {
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.6);
+  background: rgba(245, 158, 11, 0.2);
+  animation: zero-delay-pulse 2s infinite ease-in-out;
+}
+
+@keyframes zero-delay-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 rgba(245, 158, 11, 0);
+  }
+  50% {
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+  }
+}
+
+.zero-delay-pill-text {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+}
+
+/* Notificação Toast do Zero Delay */
+.zero-delay-toast {
+  position: absolute;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  animation: zero-delay-toast-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.zero-delay-toast svg {
+  width: 14px;
+  height: 14px;
+  color: #f59e0b;
+}
+
+@keyframes zero-delay-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.volume-control-mac {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.control-btn-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.15s;
+}
+
+.control-btn-icon:hover {
+  transform: scale(1.1);
+  color: #4fe3d0;
+}
+
+.control-btn-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.volume-slider-mac {
+  width: 80px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.volume-slider-mac::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  transition: transform 0.15s;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.volume-slider-mac::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+  background: #4fe3d0;
+}
+
+.controlbar-spacer {
+  flex: 1;
+  min-width: 8px;
+}
+
+.speed-menu-container {
+  position: relative;
+}
+
+.glass-popup-menu {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  right: 0;
+  background: rgba(18, 22, 30, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  padding: 6px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  min-width: 130px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 1050;
+  animation: contextFadeIn 0.15s ease-out;
+}
+
+.glass-popup-header {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.4);
+  padding: 6px 10px 4px;
+  text-transform: uppercase;
+}
+
+.glass-popup-item {
+  width: 100%;
+  padding: 7px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.glass-popup-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.glass-popup-item.active {
+  color: #4fe3d0;
+  font-weight: 600;
+}
+
+/* Botões da barra de controle */
+.control-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.88);
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.control-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.control-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  transform: scale(1.08);
+}
+
+.control-btn.active {
+  background: rgba(79, 243, 224, 0.18);
+  color: #4fe3d0;
+}
+
+.control-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.1), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.control-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.control-btn:hover::before {
+  opacity: 1;
+}
+
+/* D-pad focus styles for control buttons */
+.control-btn:focus,
+.control-btn.dpad-focused,
+.control-btn[data-focused="true"] {
+  background: rgba(168, 85, 247, 0.4);
+  border-color: #a855f7;
+  box-shadow: 
+    0 0 0 3px rgba(168, 85, 247, 0.4),
+    0 0 20px rgba(168, 85, 247, 0.6);
+  transform: scale(1.1);
+}
+
+.control-btn.active {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.5), rgba(6, 182, 212, 0.5));
+  border-color: rgba(139, 92, 246, 0.6);
+}
+
+/* Cast button styles */
+.control-btn.cast-btn.casting {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.5), rgba(16, 185, 129, 0.5));
+  border-color: rgba(34, 197, 94, 0.6);
+  animation: cast-pulse 2s ease-in-out infinite;
+}
+
+@keyframes cast-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 15px 5px rgba(34, 197, 94, 0.3);
+  }
+}
+
+.control-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* Volume control */
+.volume-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.volume-slider {
+  width: 0;
+  opacity: 0;
+  transition: all 0.3s ease;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.volume-control:hover .volume-slider,
+.volume-slider:focus,
+.volume-slider.dpad-focused,
+.volume-slider[data-focused="true"] {
+  width: 80px;
+  opacity: 1;
+  margin-left: 4px;
+}
+
+/* D-pad focus for volume slider */
+.volume-slider:focus,
+.volume-slider.dpad-focused,
+.volume-slider[data-focused="true"] {
+  background: linear-gradient(to right, #a855f7, rgba(255, 255, 255, 0.2));
+  box-shadow: 
+    0 0 0 2px rgba(168, 85, 247, 0.4),
+    0 0 15px rgba(168, 85, 247, 0.6);
+  outline: none;
+}
+
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.volume-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+/* Channel indicator */
+.channel-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 16px;
+  padding-left: 16px;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.live-badge {
+  padding: 4px 10px;
+  background: #ef4444;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: white;
+  animation: pulse-live 2s infinite;
+}
+
+@keyframes pulse-live {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.channel-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.channel-indicator .channel-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: white;
+  line-height: 1.2;
+}
+
+.video-resolution {
+  font-size: 11px;
+  font-weight: 600;
+  color: #06b6d4;
+  background: rgba(6, 182, 212, 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+  width: fit-content;
+  letter-spacing: 0.3px;
+}
+
+/* Responsive - Tablet */
+@media (max-width: 1024px) {
+  .video-controls {
+    padding: 16px;
+  }
+
+  .control-btn {
+    width: 42px;
+    height: 42px;
+  }
+}
+
+/* Responsive - Mobile */
+@media (max-width: 768px) {
+  .video-player-container {
+    min-height: 0;
+    flex: 1;
+  }
+
+  .video-controls {
+    padding: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .control-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .control-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .channel-indicator {
+    display: none;
+  }
+
+  .volume-control:hover .volume-slider {
+    width: 60px;
+  }
+
+  .no-channel {
+    min-height: 50vh;
+  }
+
+  .no-channel-content svg {
+    width: 80px;
+    height: 80px;
+  }
+
+  .no-channel-content h2 {
+    font-size: 18px;
+  }
+
+  .no-channel-content p {
+    font-size: 13px;
+  }
+}
+
+/* Responsive - Small Mobile */
+@media (max-width: 480px) {
+  .video-player-container {
+    min-height: 0;
+  }
+
+  .video-controls {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  .controls-left,
+  .controls-right {
+    gap: 4px;
+  }
+
+  .control-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+  }
+
+  .control-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .volume-control:hover .volume-slider {
+    width: 50px;
+  }
+
+  .no-channel-content {
+    padding: 20px;
+  }
+
+  .no-channel-content svg {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 16px;
+  }
+
+  .no-channel-content h2 {
+    font-size: 16px;
+  }
+
+  .no-channel-content p {
+    font-size: 12px;
+    max-width: 250px;
+  }
+
+  .loader {
+    width: 60px;
+    height: 60px;
+  }
+
+  .error-overlay svg {
+    width: 48px;
+    height: 48px;
+  }
+
+  .error-overlay p {
+    font-size: 14px;
+  }
+
+  .retry-btn {
+    padding: 10px 20px;
+    font-size: 13px;
+  }
+}
+
+/* Cast Message Toast */
+.cast-message {
+  position: absolute;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(145deg, rgba(139, 92, 246, 0.9), rgba(124, 58, 237, 0.9));
+  color: white;
+  padding: 12px 24px;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 150;
+  animation: castMessageIn 0.3s ease;
+  box-shadow: 0 8px 32px rgba(139, 92, 246, 0.4);
+}
+
+.cast-message svg {
+  width: 20px;
+  height: 20px;
+}
+
+@keyframes castMessageIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Cast Active Indicator */
+.cast-active-indicator {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: linear-gradient(145deg, rgba(139, 92, 246, 0.95), rgba(124, 58, 237, 0.95));
+  color: white;
+  padding: 10px 16px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 50;
+  animation: slideInRight 0.3s ease;
+  box-shadow: 0 8px 32px rgba(139, 92, 246, 0.4);
+}
+
+.cast-active-indicator svg {
+  width: 18px;
+  height: 18px;
+  animation: cast-pulse 2s ease-in-out infinite;
+}
+
+.cast-active-indicator button {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: 8px;
+  transition: background 0.2s ease;
+}
+
+.cast-active-indicator button:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Cast Modal */
+.cast-modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.cast-modal {
+  background: linear-gradient(145deg, #1a1a2e, #16162a);
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 450px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(139, 92, 246, 0.1);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cast-modal h3 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cast-modal > p {
+  margin: 0 0 20px;
+  font-size: 14px;
+  color: #888;
+}
+
+.cast-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cast-options.external-players {
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.cast-options.external-players::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cast-options.external-players::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.cast-options.external-players::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.4);
+  border-radius: 3px;
+}
+
+.cast-option {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.cast-option:hover {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.4);
+  transform: translateX(4px);
+}
+
+.cast-option svg {
+  width: 28px;
+  height: 28px;
+  color: #8b5cf6;
+  flex-shrink: 0;
+}
+
+.cast-option span {
+  flex: 1;
+  min-width: 100px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.cast-option small {
+  width: 100%;
+  font-size: 12px;
+  color: #888;
+  margin-top: -4px;
+  padding-left: 40px;
+}
+
+.cast-option.copy-url {
+  border-style: dashed;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* A fonte em uso, no seletor de fontes do canal. */
+.cast-option.active {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: #8b5cf6;
+}
+
+.cast-option.active svg {
+  color: #a78bfa;
+}
+
+.cast-modal-back {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 10px;
+  color: #8b5cf6;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cast-modal-back:hover {
+  background: rgba(139, 92, 246, 0.2);
+}
+
+.cast-modal-close {
+  width: 100%;
+  margin-top: 12px;
+  padding: 14px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  color: #888;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cast-modal-close:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+
+/* Responsive cast modal */
+@media (max-width: 480px) {
+  .cast-modal {
+    padding: 20px;
+    border-radius: 12px;
+    max-height: 85vh;
+  }
+
+  .cast-modal h3 {
+    font-size: 18px;
+  }
+
+  .cast-option {
+    padding: 12px 14px;
+  }
+
+  .cast-option svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .cast-option span {
+    font-size: 14px;
+  }
+
+  .cast-option small {
+    padding-left: 36px;
+    font-size: 11px;
+  }
+
+  .cast-message {
+    bottom: 80px;
+    font-size: 13px;
+    padding: 10px 20px;
+  }
+
+  .cast-active-indicator {
+    top: 10px;
+    right: 10px;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+}
+
+/* ========================================
+   MULTI-TELA (SPLIT-SCREEN)
+   ======================================== */
+.video-player-container.multi-screen-mode {
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.video-player-container.split-active {
+  box-shadow: inset 0 0 0 2px #4ff3e0;
+}
+
+.multi-screen-header {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  z-index: 25;
+  pointer-events: auto;
+}
+
+.multi-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: rgba(10, 10, 15, 0.75);
+  color: #888;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.multi-badge.active {
+  background: rgba(79, 243, 224, 0.2);
+  color: #4ff3e0;
+  border-color: rgba(79, 243, 224, 0.7);
+  box-shadow: 0 0 14px rgba(79, 243, 224, 0.35);
+}
+
+.multi-badge:hover {
+  transform: translateY(-1px);
+}
+
+.multi-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(10, 10, 15, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 4px 10px;
+  border-radius: 6px;
+  backdrop-filter: blur(10px);
+}
+
+.multi-close-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(15, 15, 20, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.multi-close-btn:hover {
+  background: rgba(239, 68, 68, 0.85);
+  border-color: #ef4444;
+  transform: scale(1.1);
+}
+
+/* ── Responsividade de Controles de Vídeo em Telas Menores e Celular ──── */
+@media (max-width: 768px) {
+  .video-floating-stack {
+    padding: 0 8px 8px !important;
+    padding-left: 8px !important;
+  }
+  .video-glass-controlbar {
+    padding: 6px 8px;
+    gap: 4px;
+    border-radius: 16px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .video-glass-controlbar::-webkit-scrollbar {
+    display: none;
+  }
+  .control-btn {
+    width: 32px;
+    height: 32px;
+  }
+  .control-btn svg {
+    width: 17px;
+    height: 17px;
+  }
+  .volume-control-mac .volume-slider-mac {
+    display: none;
+  }
+  .video-player-container:not(.theater-mode):not(:fullscreen) .cartao-container-pos {
+    display: none;
+  }
+}
+
+
+
+
+/* Aviso do app quando o canal passa pelo proxy do site */
+.dica-app {
+  position: absolute;
+  bottom: 96px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 24px);
+  padding: 6px 6px 6px 12px;
+  border-radius: 999px;
+  background: rgba(15, 15, 25, 0.82);
+  color: #fff;
+  font-size: 13px;
+  backdrop-filter: blur(6px);
+}
+.dica-app a {
+  color: #a5b4fc;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.dica-app button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+}
+.dica-app button svg { width: 16px; height: 16px; }

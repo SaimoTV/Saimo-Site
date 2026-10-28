@@ -1,0 +1,875 @@
+/* ============================================
+   GUIA DE PROGRAMAÇÃO
+   Mesmas cores do resto do site: fundo quase preto, violeta de destaque
+   (#8b5cf6) e vermelho só para o que está ao vivo.
+   ============================================ */
+
+.eg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.78);
+  animation: eg-surgir 0.18s ease-out;
+}
+
+@keyframes eg-surgir {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.eg {
+  --eg-fundo: #0e0e13;
+  --eg-fundo-2: #15151c;
+  --eg-borda: rgba(255, 255, 255, 0.08);
+  --eg-texto: #f1f1f1;
+  --eg-texto-2: rgba(255, 255, 255, 0.62);
+  --eg-texto-3: rgba(255, 255, 255, 0.4);
+  --eg-violeta: #8b5cf6;
+  --eg-violeta-claro: #a78bfa;
+  --eg-vermelho: #ef4444;
+
+  position: relative;
+  width: min(96vw, 1440px);
+  height: min(88vh, 960px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--eg-fundo);
+  border: 1px solid var(--eg-borda);
+  border-radius: 16px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+  color: var(--eg-texto);
+}
+
+/* ---------- Topo ---------- */
+
+.eg-topo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px 14px 20px;
+  border-bottom: 1px solid var(--eg-borda);
+  flex-shrink: 0;
+}
+
+.eg-titulo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  margin-right: auto;
+}
+
+.eg-titulo > svg {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: var(--eg-violeta-claro);
+  stroke-width: 1.8;
+}
+
+.eg-titulo h2 {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.eg-subtitulo {
+  font-size: 12px;
+  color: var(--eg-texto-3);
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.eg-busca {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 260px;
+  height: 38px;
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--eg-borda);
+  border-radius: 10px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.eg-busca:focus-within {
+  border-color: rgba(139, 92, 246, 0.6);
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.eg-busca svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: var(--eg-texto-3);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.eg-busca input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  font-size: 14px;
+  color: var(--eg-texto);
+}
+
+.eg-busca input::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+.eg .eg-busca-limpar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  border-radius: 6px;
+  color: var(--eg-texto-3);
+}
+
+.eg .eg-busca-limpar:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.eg-busca .eg-busca-limpar svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+}
+
+.eg-busca input::placeholder {
+  color: var(--eg-texto-3);
+}
+
+.eg-acoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.eg .eg-agora-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: var(--eg-violeta);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.15s ease;
+}
+
+.eg .eg-agora-btn:hover {
+  background: #7c3aed;
+}
+
+.eg-agora-btn svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.eg .eg-icone-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--eg-texto-2);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.eg .eg-icone-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.eg-icone-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* ---------- Grade ---------- */
+
+.eg-rolagem {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  outline: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+
+.eg-quadro {
+  position: relative;
+}
+
+/* Régua: presa no topo; o canto, preso também à esquerda. */
+.eg-regua {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  height: var(--eg-regua);
+  background: var(--eg-fundo-2);
+  border-bottom: 1px solid var(--eg-borda);
+}
+
+.eg-canto {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  width: var(--eg-canal);
+  padding: 0 14px;
+  background: var(--eg-fundo-2);
+  border-right: 1px solid var(--eg-borda);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--eg-violeta-claro);
+}
+
+.eg-marcas {
+  position: relative;
+  flex-shrink: 0;
+  height: 100%;
+}
+
+/* Rótulos em cima, a etiqueta do "agora" embaixo: um não cobre o outro. */
+.eg-marca {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: flex-start;
+  padding: 7px 0 0 8px;
+  border-left: 1px solid var(--eg-borda);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--eg-texto-3);
+  white-space: nowrap;
+}
+
+.eg-marca.cheia {
+  color: var(--eg-texto-2);
+  font-weight: 500;
+}
+
+.eg-marca.dia {
+  color: var(--eg-violeta-claro);
+  font-weight: 600;
+  border-left-color: rgba(139, 92, 246, 0.5);
+}
+
+.eg-agora-rotulo {
+  position: absolute;
+  bottom: 3px;
+  z-index: 1;
+  transform: translateX(-50%);
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--eg-vermelho);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+.eg-corpo {
+  display: flex;
+}
+
+/* Coluna de canais: presa à esquerda. */
+.eg-canais {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  flex-shrink: 0;
+  width: var(--eg-canal);
+  background: var(--eg-fundo);
+  border-right: 1px solid var(--eg-borda);
+  box-shadow: 6px 0 12px -8px rgba(0, 0, 0, 0.8);
+}
+
+.eg .eg-canal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: var(--eg-linha);
+  padding: 0 12px;
+  border-bottom: 1px solid var(--eg-borda);
+  text-align: left;
+  transition: background 0.12s ease;
+}
+
+.eg .eg-canal:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.eg .eg-canal.ativo {
+  background: rgba(139, 92, 246, 0.12);
+  box-shadow: inset 3px 0 0 var(--eg-violeta);
+}
+
+.eg-canal-num {
+  flex-shrink: 0;
+  width: 26px;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--eg-texto-3);
+}
+
+.eg-logo {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.eg-logo-iniciais {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--eg-texto-2);
+}
+
+.eg-canal-nome {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--eg-texto);
+}
+
+.eg-canal-ativo {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--eg-vermelho);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+/*
+ * Programas. As linhas de hora e de canal são o fundo da grade: um gradiente
+ * desenha centenas de traços sem um elemento sequer.
+ */
+.eg-grade {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, transparent calc(var(--eg-linha) - 1px), var(--eg-borda) calc(var(--eg-linha) - 1px));
+  background-size: var(--eg-hora) 100%, 100% var(--eg-linha);
+}
+
+.eg-linha {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--eg-linha);
+}
+
+.eg .eg-prog {
+  position: absolute;
+  top: 5px;
+  bottom: 6px;
+  min-width: 0;
+  min-height: 0;
+  margin-left: 1px;
+  padding: 0;
+  /* Sem overflow: um bloco que recorta vira contêiner de rolagem e o título
+     preso (sticky) passa a grudar no próprio bloco, indo parar na direita. */
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: left;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.eg .eg-prog:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.eg .eg-prog.passou {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.eg .eg-prog.passou .eg-prog-titulo {
+  color: var(--eg-texto-3);
+}
+
+.eg .eg-prog.no-ar {
+  background: rgba(139, 92, 246, 0.16);
+  border-color: rgba(139, 92, 246, 0.42);
+}
+
+.eg .eg-prog.no-ar:hover {
+  background: rgba(139, 92, 246, 0.24);
+}
+
+.eg .eg-prog.selecionado {
+  border-color: var(--eg-violeta-claro);
+  box-shadow: inset 0 0 0 1px var(--eg-violeta-claro);
+}
+
+.eg-prog-progresso {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 7px 0 0 7px;
+  background: rgba(139, 92, 246, 0.16);
+  pointer-events: none;
+}
+
+/* O título acompanha a rolagem: um filme de três horas não some da tela. */
+.eg-prog-texto {
+  position: sticky;
+  left: var(--eg-canal);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  max-width: 100%;
+  height: 100%;
+  padding: 0 10px;
+  width: max-content;
+}
+
+.eg-prog-titulo,
+.eg-prog-hora {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.eg-prog-titulo {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--eg-texto);
+}
+
+.eg-prog-hora {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--eg-texto-3);
+}
+
+.eg-prog-intervalo {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.eg .eg-prog.estreito .eg-prog-texto {
+  visibility: hidden;
+}
+
+.eg .eg-prog.no-ar.curto .eg-prog-intervalo,
+.eg .eg-prog.no-ar.mini .eg-prog-intervalo {
+  display: none;
+}
+
+.eg .eg-prog.mini .eg-ao-vivo {
+  font-size: 0;
+}
+
+.eg .eg-prog.mini .eg-prog-texto {
+  padding: 0 8px;
+}
+
+.eg-ao-vivo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #f87171;
+}
+
+.eg-ao-vivo::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--eg-vermelho);
+}
+
+.eg-vazio {
+  position: absolute;
+  top: 5px;
+  bottom: 6px;
+  left: 1px;
+  right: 1px;
+  border-radius: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.06);
+}
+
+.eg-vazio-texto {
+  position: sticky;
+  left: calc(var(--eg-canal) + 12px);
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 12px;
+  font-size: 12px;
+  color: var(--eg-texto-3);
+}
+
+.eg-vazio.carregando {
+  border: none;
+  background: rgba(255, 255, 255, 0.04);
+  animation: eg-pulsar 1.4s ease-in-out infinite;
+}
+
+@keyframes eg-pulsar {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.eg-agora-linha {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--eg-vermelho);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+  pointer-events: none;
+}
+
+.eg-nenhum {
+  position: sticky;
+  left: 0;
+  padding: 32px 20px;
+  font-size: 14px;
+  color: var(--eg-texto-2);
+}
+
+/* Foco por teclado ou controle: um anel discreto no lugar do brilho pulsante geral. */
+.eg [data-focusable="true"]:focus::before,
+.eg [data-focusable="true"].dpad-focused::before {
+  content: none;
+}
+
+.eg .eg-prog[data-focusable="true"],
+.eg .eg-canal[data-focusable="true"] {
+  position: absolute;
+}
+
+.eg .eg-prog[data-focusable="true"]:focus-visible,
+.eg .eg-prog[data-focusable="true"].dpad-focused,
+.eg .eg-canal[data-focusable="true"]:focus-visible,
+.eg .eg-canal[data-focusable="true"].dpad-focused {
+  box-shadow: inset 0 0 0 2px var(--eg-violeta-claro);
+}
+
+/* ---------- Detalhes do programa ---------- */
+
+.eg-detalhes {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  width: 380px;
+  max-height: calc(100% - 96px);
+  overflow: hidden;
+  background: #17171f;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+  animation: eg-subir 0.18s ease-out;
+}
+
+@keyframes eg-subir {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.eg-detalhes-imagem {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 180px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.eg-detalhes-corpo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  padding: 14px 16px 16px;
+  overflow-y: auto;
+}
+
+.eg-detalhes-canal {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--eg-texto-2);
+}
+
+.eg-detalhes-canal .eg-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+}
+
+.eg-detalhes-canal > span:not(.eg-logo) {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.eg .eg-detalhes-fechar {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  flex-shrink: 0;
+}
+
+.eg-detalhes-titulo {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.eg-detalhes-hora {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--eg-texto-2);
+}
+
+.eg-sep {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--eg-texto-3);
+}
+
+.eg-detalhes-barra {
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.eg-detalhes-barra span {
+  display: block;
+  height: 100%;
+  background: var(--eg-violeta);
+}
+
+.eg-detalhes-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.eg-tag {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--eg-texto-2);
+}
+
+.eg-detalhes-sinopse {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--eg-texto-2);
+}
+
+.eg-detalhes-sinopse.vazia {
+  color: var(--eg-texto-3);
+}
+
+.eg .eg-assistir {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 42px;
+  margin-top: 4px;
+  padding: 0 16px;
+  border-radius: 10px;
+  background: var(--eg-violeta);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.15s ease;
+}
+
+.eg .eg-assistir:hover {
+  background: #7c3aed;
+}
+
+.eg-assistir svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+/* ---------- Celular ---------- */
+
+@media (max-width: 768px) {
+  .eg {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    border: none;
+    border-radius: 0;
+  }
+
+  .eg-topo {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 12px;
+    padding-top: max(10px, env(safe-area-inset-top));
+  }
+
+  .eg-busca {
+    order: 3;
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .eg-titulo h2 {
+    font-size: 16px;
+  }
+
+  .eg-titulo > svg {
+    display: none;
+  }
+
+  .eg-canto {
+    padding: 0 8px;
+    font-size: 10px;
+  }
+
+  .eg .eg-canal {
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    padding: 0 6px;
+  }
+
+  .eg-canal-num {
+    display: none;
+  }
+
+  .eg-logo {
+    width: 30px;
+    height: 30px;
+  }
+
+  .eg-canal-nome {
+    flex: none;
+    width: 100%;
+    font-size: 10px;
+    text-align: center;
+  }
+
+  .eg-canal-ativo {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 6px;
+    height: 6px;
+  }
+
+  .eg-prog-titulo {
+    font-size: 12px;
+  }
+
+  .eg-detalhes {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    max-height: 78%;
+    border-radius: 16px 16px 0 0;
+    border-bottom: none;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eg-overlay,
+  .eg-detalhes,
+  .eg-vazio.carregando {
+    animation: none;
+  }
+}

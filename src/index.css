@@ -1,0 +1,166 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background: #0a0a0a;
+  color: #f1f1f1;
+  line-height: 1.5;
+  overflow-x: clip;
+  overflow-y: auto;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Focus styles for accessibility */
+:focus-visible {
+  outline: 1px solid rgba(139, 92, 246, 0.5);
+  outline-offset: 0px;
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Selection */
+::selection {
+  background: rgba(139, 92, 246, 0.3);
+  color: #fff;
+}
+
+/* Button reset */
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+/* Input reset */
+input {
+  font-family: inherit;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+input:focus {
+  outline: none;
+}
+
+/* Link reset */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Image reset */
+img,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+/* List reset */
+ul,
+ol {
+  list-style: none;
+}
+
+/* Touch device improvements */
+@media (hover: none) and (pointer: coarse) {
+  /* Larger touch targets */
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Disable hover effects on touch devices */
+  .channel-card:hover {
+    transform: none;
+  }
+
+  /* Better scrolling on mobile */
+  .channels-list,
+  .programs-grid,
+  .upcoming-programs {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+}
+
+/* Safe area for notched devices */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Prevent text selection on UI elements */
+@media (max-width: 768px) {
+  button,
+  .channel-card,
+  .filter-tab,
+  .control-btn {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Landscape orientation adjustments */
+@media (max-height: 500px) and (orientation: landscape) {
+  .video-player-container {
+    min-height: 100vh;
+  }
+
+  .video-controls {
+    padding: 8px 12px;
+  }
+
+  .control-btn {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+/* Ajuda de atalhos (tecla ?) */
+.atalhos-fundo { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 16px; }
+.atalhos-caixa { background: #14161c; color: #fff; border: 1px solid #2a2d36; border-radius: 16px; padding: 24px 28px; width: min(520px, 100%); max-height: 90vh; overflow: auto; }
+.atalhos-caixa h2 { margin: 0 0 16px; font-size: 20px; }
+.atalhos-caixa dl { margin: 0; }
+.atalhos-linha { display: flex; gap: 16px; padding: 8px 0; border-bottom: 1px solid #22252d; }
+.atalhos-linha dt { min-width: 96px; }
+.atalhos-linha dd { margin: 0; color: #b8c0cc; }
+.atalhos-caixa kbd { background: #2a2d36; border-radius: 6px; padding: 2px 8px; font-family: inherit; font-size: 13px; }
+.atalhos-caixa button { margin-top: 18px; background: #fff; color: #000; border: 0; border-radius: 8px; padding: 10px 18px; font-weight: 600; cursor: pointer; }
