@@ -1,0 +1,56 @@
+/*
+ * Convite ao aplicativo, mostrado quando o vídeo não abre no navegador.
+ *
+ * Vale para canal e para filme, e os dois players têm folha própria — daí o
+ * arquivo separado, para o convite não existir em duas versões que divergem.
+ */
+.aviso-app {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  justify-content: center;
+  text-align: left;
+  margin-top: 22px;
+  padding: 14px 18px;
+  max-width: 640px;
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  border-radius: 14px;
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.aviso-app strong {
+  display: block;
+  color: #fff;
+  font-size: 0.95rem;
+  margin-bottom: 3px;
+}
+
+.aviso-app span {
+  display: block;
+  color: #a8a8b6;
+  font-size: 0.83rem;
+  line-height: 1.45;
+  max-width: 400px;
+}
+
+.aviso-app-botao {
+  flex-shrink: 0;
+  padding: 11px 20px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.aviso-app-botao:hover { background: rgba(255, 255, 255, 0.2); }
+
+@media (max-width: 640px) {
+  .aviso-app { flex-direction: column; text-align: center; }
+  .aviso-app span { max-width: none; }
+  .aviso-app-botao { width: 100%; text-align: center; }
+}

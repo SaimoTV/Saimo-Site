@@ -1,0 +1,5 @@
+# Atalhos curtos para digitar na TV (Downloader) ou mandar para alguém.
+# /tvbox, /celular, /mac e /windows são Pages Functions (functions/*.ts): leem o
+# versao.json publicado e redirecionam, sem dono/repo escritos aqui.
+/baixar   /app  302
+/*    /index.html   200

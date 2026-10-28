@@ -1,0 +1,774 @@
+import { useState, useCallback, useEffect, useMemo, lazy, Suspense } from 'react';
+import { HashRouter, BrowserRouter, Routes, Route, useNavigate, useLocation, useParams } from 'react-router-dom';
+import { BarraTopo } from './components/BarraTopo';
+import { AdultModeContext, useAdultMode } from './contexts/adultoContexto';
+import { Inicio } from './telas/Inicio';
+import { Eventos } from './telas/Eventos';
+import { Radios } from './telas/Radios';
+import { Favoritos } from './telas/Favoritos';
+import { Busca } from './telas/Busca';
+import { parar as pararRadio } from './services/radioPlayer';
+import { Ajustes } from './telas/Ajustes';
+import { Toast } from './components/Toast';
+import { NavegacaoMobile } from './components/NavegacaoMobile';
+import { useVoltarFecha } from './hooks/useVoltarFecha';
+import { useCanais } from './hooks/useCanais';
+import { useListas } from './services/listas';
+import { SemLista } from './components/Telas';
+import type { Channel } from './types/channel';
+import type { Movie, SeriesEpisodeInfo } from './types/movie';
+import { useLocalStorage } from './hooks/useLocalStorage';
+import { DpadNavigationProvider } from './contexts/DpadContext';
+import { useControleTv } from './hooks/useControleTv';
+import './App.css';
+import { IconeMaterial } from './components/IconeMaterial';
+
+/**
+ * Celular: tela estreita, ou celular deitado. Deitado ele passa dos 768 px de
+ * largura e caía no layout de computador (menu no alto, lista ao lado e o
+ * vídeo espremido num canto); toque e pouca altura dizem que é celular.
+ */
+function ehCelular(): boolean {
+  return window.innerWidth <= 768
+    || (window.matchMedia('(pointer: coarse)').matches && window.innerHeight <= 500);
+}
+
+// Lazy loading dos componentes pesados
+const VideoPlayer = lazy(() => import('./components/VideoPlayer').then(m => ({ default: m.VideoPlayer })));
+const PainelDeCanais = lazy(() => import('./components/PainelDeCanais').then(m => ({ default: m.PainelDeCanais })));
+const MoviePlayer = lazy(() => import('./components/MoviePlayer').then(m => ({ default: m.MoviePlayer })));
+const ProgramGuide = lazy(() => import('./components/ProgramGuide').then(m => ({ default: m.ProgramGuide })));
+const VodCatalog = lazy(() => import('./components/VodCatalog').then(m => ({ default: m.VodCatalog })));
+const StreamTester = lazy(() => import('./components/StreamTester').then(m => ({ default: m.StreamTester })));
+const AppDownload = lazy(() => import('./components/AppDownload').then(m => ({ default: m.AppDownload })));
+const Novidades = lazy(() => import('./components/Novidades').then(m => ({ default: m.Novidades })));
+
+// Loading fallback
+const LoadingFallback = () => (
+  <div style={{ 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    height: '100vh',
+    background: 'var(--bg-primary, #0a0a0a)',
+    color: 'var(--text-primary, #fff)'
+  }}>
+    <div style={{ textAlign: 'center' }}>
+      <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ marginBottom: '1rem', opacity: 0.7 }} aria-hidden="true">
+        <rect x="2" y="7" width="20" height="14" rx="2" />
+        <path d="M17 2l-5 5-5-5" />
+      </svg>
+      <div>Carregando...</div>
+    </div>
+  </div>
+);
+
+interface ToastState {
+  message: string;
+  type: 'success' | 'error' | 'info';
+  id: number;
+}
+
+
+// Componente de TV
+function TVPage() {
+  const { slug } = useParams<{slug?: string}>();
+  const navigate = useNavigate();
+  const location = useLocation();
+  // O ao vivo toma o som: a rádio para ao abrir esta tela.
+  useEffect(() => { pararRadio(); }, []);
+  const [favorites, setFavorites] = useLocalStorage<string[]>('tv-favorites', []);
+  const [lastChannelId, setLastChannelId] = useLocalStorage<string | null>('tv-last-channel', null);
+  // O canal escolhido guarda junto o link (/tv/:slug) em que foi escolhido:
+  // abrir outro link passa a valer o canal dele, e escolher na lista vale até
+  // o link mudar.
+  const [escolha, setEscolha] = useState<{ canal: Channel; slug?: string } | null>(null);
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [isTheaterMode, setIsTheaterMode] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const [isMobile, setIsMobile] = useState(ehCelular);
+  const [deitado, setDeitado] = useState(() => ehCelular() && window.innerWidth > window.innerHeight);
+  const [isMultiScreen, setIsMultiScreen] = useState(false);
+  const [secondChannel, setSecondChannel] = useState<Channel | null>(null);
+  const [activeSide, setActiveSide] = useState<'primary' | 'secondary'>('primary');
+  // Canais já vêm abertos no lado ao entrar no Ao vivo
+  const [isChannelsPanelOpen, setIsChannelsPanelOpen] = useState(() => window.innerWidth > 640 || !ehCelular());
+  const [controlsVisible, setControlsVisible] = useState(true);
+
+  // Ao navegar para /tv novamente, reabre os canais
+  const [prevPath, setPrevPath] = useState(location.pathname);
+  if (prevPath !== location.pathname) {
+    setPrevPath(location.pathname);
+    if (window.innerWidth > 640 || !ehCelular()) {
+      setIsChannelsPanelOpen(true);
+    }
+  }
+
+  // A grade vem do endereço de canais que a pessoa informou (ver `useCanais`).
+  const channels = useCanais();
+  const listas = useListas();
+
+  // Sem canal escolhido nesta visita, vale o último da visita anterior — assim
+  // que a lista (que vem da rede) o trouxer. Derivado, e não copiado para o
+  // estado num efeito: a lista chegando depois não troca um canal escolhido.
+  const canalDoLink = useMemo(() => {
+    if (!slug || channels.length === 0) return null;
+    const slugLimpo = slug.replace(/-/g, '').toLowerCase();
+    return channels.find((c) => c.id.replace(/-/g, '').toLowerCase() === slugLimpo)
+      ?? channels.find((c) => c.name.replace(/[\s-]/g, '').toLowerCase() === slugLimpo)
+      ?? null;
+  }, [slug, channels]);
+  const canalEscolhido = escolha && escolha.slug === slug
+    ? (channels.find((ch) => ch.id === escolha.canal.id) ?? escolha.canal)
+    : null;
+  const canalDaEscolha = escolha
+    ? (channels.find((ch) => ch.id === escolha.canal.id) ?? escolha.canal)
+    : null;
+  const selectedChannel = canalEscolhido
+    ?? canalDoLink
+    ?? canalDaEscolha
+    ?? (lastChannelId ? channels.find((ch) => ch.id === lastChannelId) ?? null : null);
+  const setSelectedChannel = useCallback((canal: Channel | null) => {
+    setEscolha(canal ? { canal, slug } : null);
+  }, [slug]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const celular = ehCelular();
+      setIsMobile(celular);
+      setDeitado(celular && window.innerWidth > window.innerHeight);
+    };
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, []);
+
+  const showToast = useCallback((message: string, type: ToastState['type'] = 'info') => {
+    setToast({ message, type, id: Date.now() });
+    setTimeout(() => setToast(null), 3000);
+  }, []);
+
+
+
+  const handleSelectChannel = useCallback((channel: Channel) => {
+    if (isMultiScreen && activeSide === 'secondary') {
+      setSecondChannel(channel);
+      showToast(`Tela 2: ${channel.name}`, 'info');
+      return;
+    }
+    setSelectedChannel(channel);
+    setSelectedMovie(null);
+    setLastChannelId(channel.id);
+    showToast(isMultiScreen ? `Tela 1: ${channel.name}` : `Assistindo: ${channel.name}`, 'info');
+  }, [isMultiScreen, activeSide, setLastChannelId, showToast, setSelectedChannel]);
+
+  const handleToggleMultiScreen = useCallback(() => {
+    setIsMultiScreen((prev) => {
+      const next = !prev;
+      if (next) {
+        setSecondChannel(null);
+        setActiveSide('secondary');
+        setIsChannelsPanelOpen(true);
+        showToast('Multi-Tela ativada: Escolha o canal da Tela 2 na lista', 'info');
+      } else {
+        setSecondChannel(null);
+        setActiveSide('primary');
+        showToast('Multi-Tela desativada', 'info');
+      }
+      return next;
+    });
+  }, [showToast]);
+
+  const handleBackFromMovie = useCallback(() => {
+    setSelectedMovie(null);
+    navigate('/movies');
+  }, [navigate]);
+
+  const handleToggleFavorite = useCallback((channelId: string) => {
+    setFavorites((prev) => {
+      const isFav = prev.includes(channelId);
+      const channel = channels.find((ch) => ch.id === channelId);
+      if (isFav) {
+        showToast(`${channel?.name} removido dos favoritos`, 'info');
+        return prev.filter((id) => id !== channelId);
+      } else {
+        showToast(`${channel?.name} adicionado aos favoritos`, 'success');
+        return [...prev, channelId];
+      }
+    });
+  }, [setFavorites, showToast, channels]);
+
+  const handleToggleTheater = useCallback(() => {
+    setIsTheaterMode((prev) => !prev);
+  }, []);
+
+  const handleNextChannel = useCallback(() => {
+    const cur = (isMultiScreen && activeSide === 'secondary') ? secondChannel : selectedChannel;
+    const currentIndex = channels.findIndex((ch) => ch.id === cur?.id);
+    const nextIndex = (currentIndex + 1) % channels.length;
+    handleSelectChannel(channels[nextIndex]);
+  }, [selectedChannel, secondChannel, isMultiScreen, activeSide, handleSelectChannel, channels]);
+
+  const handlePrevChannel = useCallback(() => {
+    const cur = (isMultiScreen && activeSide === 'secondary') ? secondChannel : selectedChannel;
+    const currentIndex = channels.findIndex((ch) => ch.id === cur?.id);
+    const prevIndex = currentIndex <= 0 ? channels.length - 1 : currentIndex - 1;
+    handleSelectChannel(channels[prevIndex]);
+  }, [selectedChannel, secondChannel, isMultiScreen, activeSide, handleSelectChannel, channels]);
+
+  useControleTv({
+    ativo: !!selectedChannel,
+    painelAberto: isChannelsPanelOpen,
+    controlesVisiveis: controlsVisible,
+    abrirPainel: () => setIsChannelsPanelOpen(true),
+    fecharPainel: () => setIsChannelsPanelOpen(false),
+    proximo: handleNextChannel,
+    anterior: handlePrevChannel,
+    // Volta para a tela de onde veio (On Demand, Busca…); só sem histórico cai no Início.
+    multiTela: isMultiScreen,
+    trocarLado: () => setActiveSide((lado) => (lado === 'primary' ? 'secondary' : 'primary')),
+    sairDaMultiTela: () => {
+      setIsMultiScreen(false);
+      setSecondChannel(null);
+      setActiveSide('primary');
+      showToast('Multi-Tela desativada', 'info');
+    },
+    voltar: () => (((window.history.state as { idx?: number } | null)?.idx ?? 0) > 0 ? navigate(-1) : navigate('/')),
+  });
+
+  return (
+    <div className={`page-container tv-page ${isTheaterMode ? 'theater-mode' : ''} ${deitado ? 'deitado' : ''} ${deitado && (selectedMovie || selectedChannel) ? 'tocando' : ''}`}>
+      {/* Header Global com auto-hide no Live TV (aparece apenas ao passar o mouse no topo da tela) */}
+      {!isTheaterMode && <BarraTopo autoHide={true} />}
+
+      {!listas.canais && <SemLista tipo="canais" />}
+      {listas.canais && <Suspense fallback={<LoadingFallback />}>
+        {/* Celular: o vídeo fica no alto, e a lista de canais rola embaixo dele */}
+        {isMobile && (
+          <div className="mobile-content">
+            {(selectedMovie || selectedChannel) && (
+              <div className="mobile-player">
+                {selectedMovie ? (
+                  <MoviePlayer movie={selectedMovie} onBack={handleBackFromMovie} />
+                ) : (
+                  <VideoPlayer
+                    channel={selectedChannel}
+                    channelNumber={channels.findIndex((c) => c.id === selectedChannel?.id) + 1}
+                    isTheaterMode={isTheaterMode}
+                    onToggleTheater={handleToggleTheater}
+                    onOpenGuide={() => setIsGuideOpen(true)}
+                    isChannelsPanelOpen={isChannelsPanelOpen}
+                    onToggleChannelsPanel={() => setIsChannelsPanelOpen((v) => !v)}
+                    onNextChannel={handleNextChannel}
+                    onPrevChannel={handlePrevChannel}
+                    onControlsVisibilityChange={setControlsVisible}
+                  />
+                )}
+              </div>
+            )}
+            <div className="mobile-canais">
+              <PainelDeCanais
+                channels={channels}
+                activeChannelId={selectedChannel?.id || null}
+                favorites={favorites}
+                isOpen={true}
+                onClose={() => {}}
+                onSelectChannel={handleSelectChannel}
+                onToggleFavorite={handleToggleFavorite}
+                isMobileInline={true}
+              />
+            </div>
+
+            {/* Gaveta flutuante de canais quando em tela cheia ou celular deitado */}
+            {(isTheaterMode || deitado) && isChannelsPanelOpen && (
+              <PainelDeCanais
+                channels={channels}
+                activeChannelId={selectedChannel?.id || null}
+                favorites={favorites}
+                isOpen={isChannelsPanelOpen}
+                onClose={() => setIsChannelsPanelOpen(false)}
+                onSelectChannel={(ch) => {
+                  handleSelectChannel(ch);
+                  setIsChannelsPanelOpen(false);
+                }}
+                onToggleFavorite={handleToggleFavorite}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Desktop: Stage 100% idêntico ao macOS SaimoPlayer (AoVivo.swift / ContentView.swift) */}
+        {!isMobile && (
+          <div className="stage-aovivo-mac">
+            {selectedMovie ? (
+              <MoviePlayer movie={selectedMovie} onBack={handleBackFromMovie} />
+            ) : isMultiScreen ? (
+              <div className="multitela-stage-mac">
+                <div
+                  className={`multitela-lado-mac ${activeSide === 'primary' ? 'ativo' : ''}`}
+                  onClick={() => setActiveSide('primary')}
+                >
+                  <div className={`multitela-moldura-mac ${controlsVisible ? 'visivel' : ''}`}>
+                    <div className="multitela-rotulo-mac">
+                      <span className="multitela-som-icone">
+                        <IconeMaterial nome={activeSide === 'primary' || !secondChannel ? 'volumeUp' : 'volumeOff'} />
+                      </span>
+                      <span className="multitela-nome">{selectedChannel?.name || 'Tela 1'}</span>
+                      {(activeSide === 'primary' || !secondChannel) && <span className="multitela-badge">Áudio ativo</span>}
+                    </div>
+                    <button
+                      className="multitela-fechar"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsMultiScreen(false);
+                        setSecondChannel(null);
+                        setActiveSide('primary');
+                        showToast('Multi-Tela desativada', 'info');
+                      }}
+                      title="Fechar multi tela"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <VideoPlayer
+                    channel={selectedChannel}
+                    channelNumber={channels.findIndex((c) => c.id === selectedChannel?.id) + 1}
+                    isTheaterMode={false}
+                    onToggleTheater={handleToggleTheater}
+                    onOpenGuide={() => setIsGuideOpen(true)}
+                    isMultiScreen={true}
+                    onToggleMultiScreen={handleToggleMultiScreen}
+                    isSplitActive={activeSide === 'primary'}
+                    onActivateSplit={() => setActiveSide('primary')}
+                    onCloseSplit={() => {
+                      setIsMultiScreen(false);
+                      setSecondChannel(null);
+                      setActiveSide('primary');
+                      showToast('Multi-Tela desativada', 'info');
+                    }}
+                    forceMuted={isMultiScreen && Boolean(secondChannel) && activeSide !== 'primary'}
+                    splitLabel="Tela 1"
+                    isChannelsPanelOpen={isChannelsPanelOpen}
+                    onToggleChannelsPanel={() => setIsChannelsPanelOpen((v) => !v)}
+                    onNextChannel={handleNextChannel}
+                    onPrevChannel={handlePrevChannel}
+                    onControlsVisibilityChange={setControlsVisible}
+                    hideFloatingCartao={true}
+                  />
+                </div>
+                <div
+                  className={`multitela-lado-mac ${activeSide === 'secondary' ? 'ativo' : ''} ${!secondChannel ? 'vazio' : ''}`}
+                  onClick={() => {
+                    setActiveSide('secondary');
+                    if (!secondChannel) {
+                      setIsChannelsPanelOpen(true);
+                    }
+                  }}
+                >
+                  <div className={`multitela-moldura-mac ${controlsVisible || !secondChannel ? 'visivel' : ''}`}>
+                    <div className="multitela-rotulo-mac">
+                      <span className="multitela-som-icone">
+                        <IconeMaterial nome={secondChannel ? (activeSide === 'secondary' ? 'volumeUp' : 'volumeOff') : 'tv'} />
+                      </span>
+                      <span className="multitela-nome">{secondChannel ? secondChannel.name : 'Tela 2 (Escolha o canal)'}</span>
+                      {secondChannel && activeSide === 'secondary' && <span className="multitela-badge">Áudio ativo</span>}
+                      {!secondChannel && <span className="multitela-badge vazio">Aguardando canal</span>}
+                    </div>
+                    <button
+                      className="multitela-fechar"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsMultiScreen(false);
+                        setSecondChannel(null);
+                        setActiveSide('primary');
+                        showToast('Multi-Tela desativada', 'info');
+                      }}
+                      title="Fechar multi tela"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  {secondChannel ? (
+                    <VideoPlayer
+                      channel={secondChannel}
+                      channelNumber={channels.findIndex((c) => c.id === secondChannel?.id) + 1}
+                      isTheaterMode={false}
+                      onToggleTheater={handleToggleTheater}
+                      onOpenGuide={() => setIsGuideOpen(true)}
+                      isMultiScreen={true}
+                      onToggleMultiScreen={handleToggleMultiScreen}
+                      isSplitActive={activeSide === 'secondary'}
+                      onActivateSplit={() => setActiveSide('secondary')}
+                      onCloseSplit={() => {
+                        setIsMultiScreen(false);
+                        setSecondChannel(null);
+                        setActiveSide('primary');
+                        showToast('Multi-Tela desativada', 'info');
+                      }}
+                      forceMuted={activeSide !== 'secondary'}
+                      splitLabel="Tela 2"
+                      isChannelsPanelOpen={isChannelsPanelOpen}
+                      onToggleChannelsPanel={() => setIsChannelsPanelOpen((v) => !v)}
+                      onNextChannel={handleNextChannel}
+                      onPrevChannel={handlePrevChannel}
+                      onControlsVisibilityChange={setControlsVisible}
+                      hideFloatingCartao={true}
+                    />
+                  ) : (
+                    <div
+                      className="multitela-placeholder-escolha"
+                      onClick={() => {
+                        setActiveSide('secondary');
+                        setIsChannelsPanelOpen(true);
+                      }}
+                    >
+                      <div className="multitela-placeholder-conteudo">
+                        <div className="multitela-placeholder-icone">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="2" y="4" width="20" height="15" rx="3" />
+                            <line x1="12" y1="9" x2="12" y2="15" />
+                            <line x1="9" y1="12" x2="15" y2="12" />
+                          </svg>
+                        </div>
+                        <h3 className="multitela-placeholder-titulo">Escolha o canal da Tela 2</h3>
+                        <p className="multitela-placeholder-desc">
+                          Selecione qualquer canal na lista ao lado para assistir em multi tela simultânea.
+                        </p>
+                        <button
+                          type="button"
+                          className="multitela-btn-abrir-canais"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveSide('secondary');
+                            setIsChannelsPanelOpen(true);
+                          }}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16 }}>
+                            <line x1="8" y1="6" x2="21" y2="6" />
+                            <line x1="8" y1="12" x2="21" y2="12" />
+                            <line x1="8" y1="18" x2="21" y2="18" />
+                            <line x1="3" y1="6" x2="3.01" y2="6" />
+                            <line x1="3" y1="12" x2="3.01" y2="12" />
+                            <line x1="3" y1="18" x2="3.01" y2="18" />
+                          </svg>
+                          <span>Abrir lista de canais</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <VideoPlayer
+                channel={selectedChannel}
+                channelNumber={channels.findIndex((c) => c.id === selectedChannel?.id) + 1}
+                isTheaterMode={isTheaterMode}
+                onToggleTheater={handleToggleTheater}
+                onOpenGuide={() => setIsGuideOpen(true)}
+                isMultiScreen={false}
+                onToggleMultiScreen={handleToggleMultiScreen}
+                isChannelsPanelOpen={isChannelsPanelOpen}
+                onToggleChannelsPanel={() => setIsChannelsPanelOpen((v) => !v)}
+                onNextChannel={handleNextChannel}
+                onPrevChannel={handlePrevChannel}
+                onControlsVisibilityChange={setControlsVisible}
+              />
+            )}
+
+            {/* Painel de Canais Flutuante de Vidro como no macOS AoVivo.swift */}
+            <PainelDeCanais
+              channels={channels}
+              activeChannelId={
+                isMultiScreen && activeSide === 'secondary'
+                  ? secondChannel?.id || null
+                  : selectedChannel?.id || null
+              }
+              favorites={favorites}
+              isOpen={isChannelsPanelOpen}
+              onClose={() => setIsChannelsPanelOpen(false)}
+              onSelectChannel={handleSelectChannel}
+              onToggleFavorite={handleToggleFavorite}
+              onOpenOtherScreen={(ch) => {
+                if (!isMultiScreen) setIsMultiScreen(true);
+                if (activeSide === 'secondary') {
+                  setSelectedChannel(ch);
+                  setLastChannelId(ch.id);
+                  showToast(`Tela 1: ${ch.name}`, 'info');
+                } else {
+                  setSecondChannel(ch);
+                  setActiveSide('secondary');
+                  showToast(`Tela 2: ${ch.name}`, 'info');
+                }
+              }}
+              isMultiScreen={isMultiScreen}
+              activeSide={activeSide}
+              onSelectSide={setActiveSide}
+              hasSecondChannel={Boolean(secondChannel)}
+            />
+          </div>
+        )}
+
+        {/* Guia de Programação */}
+        <ProgramGuide
+          channels={channels}
+          currentChannel={selectedChannel}
+          onSelectChannel={handleSelectChannel}
+          onClose={() => setIsGuideOpen(false)}
+          isOpen={isGuideOpen}
+        />
+      </Suspense>}
+
+      {toast && (
+        <Toast key={toast.id} message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+      )}
+    </div>
+  );
+}
+
+// Componente de Filmes
+function MoviesPage() {
+  const navigate = useNavigate();
+  const { isAdultUnlocked } = useAdultMode();
+  const { filmes } = useListas();
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [seriesInfo, setSeriesInfo] = useState<SeriesEpisodeInfo | null>(null);
+  const [toast, setToast] = useState<ToastState | null>(null);
+
+  const showToast = useCallback((message: string, type: ToastState['type'] = 'info') => {
+    setToast({ message, type, id: Date.now() });
+    setTimeout(() => setToast(null), 3000);
+  }, []);
+
+  const handleSelectMovie = useCallback((movie: Movie, info?: SeriesEpisodeInfo | null) => {
+    setSelectedMovie(movie);
+    setSeriesInfo(info ?? null);
+    showToast(`Assistindo: ${movie.name}`, 'info');
+  }, [showToast]);
+
+  const handleEpisodeChange = useCallback((episode: Movie) => {
+    setSelectedMovie(episode);
+    setSeriesInfo((atual) => atual ? {
+      ...atual,
+      currentSeason: episode.seasonNumber ?? atual.currentSeason,
+      currentEpisode: episode.episodeNumber ?? atual.currentEpisode,
+    } : null);
+  }, []);
+
+  const handleBackFromMovie = useCallback(() => {
+    setSelectedMovie(null);
+    setSeriesInfo(null);
+  }, []);
+  // O voltar do celular fecha o player e volta à ficha.
+  useVoltarFecha(!!selectedMovie, handleBackFromMovie);
+
+  const handleBackFromCatalog = useCallback(() => {
+    navigate('/');
+  }, [navigate]);
+
+  return (
+    <div className="page-container movies-page">
+      {!selectedMovie && <BarraTopo />}
+      {/* O player tem cabeçalho próprio, como nos apps de streaming: sem uma
+          segunda barra global ocupando espaço e duplicando o botão de voltar. */}
+      {/* Catálogo lido do repositório, o mesmo que o aplicativo usa */}
+      {!filmes && <SemLista tipo="filmes" />}
+      {filmes && <Suspense fallback={<LoadingFallback />}>
+        <div className={`catalog-container ${selectedMovie ? 'hidden-catalog' : ''}`}>
+          <VodCatalog
+            onSelectMovie={handleSelectMovie}
+            onBack={handleBackFromCatalog}
+            isAdultUnlocked={isAdultUnlocked}
+            playerOpen={!!selectedMovie}
+            activeMovie={selectedMovie}
+          />
+        </div>
+      </Suspense>}
+
+      {/* Player como overlay quando tem filme selecionado */}
+      {selectedMovie && (
+        <div className="movie-player-overlay">
+          <Suspense fallback={<LoadingFallback />}>
+            <div className="movie-player-container">
+              <MoviePlayer 
+                key={selectedMovie.id}
+                movie={selectedMovie} 
+                onBack={handleBackFromMovie}
+                seriesInfo={seriesInfo}
+                onEpisodeChange={handleEpisodeChange}
+              />
+            </div>
+          </Suspense>
+        </div>
+      )}
+
+      {toast && (
+        <Toast key={toast.id} message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+      )}
+    </div>
+  );
+}
+
+// Layout principal que gerencia scroll
+function AppLayout() {
+  const location = useLocation();
+  
+  // Reset scroll on route change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
+  // Trocar um endereço em Ajustes refaz as telas de dados do zero: nada de
+  // títulos ou canais da lista anterior ficando na memória de um componente.
+  const { canais, filmes } = useListas();
+  const chave = `${canais}|${filmes}`;
+
+  return (
+    <>
+    <Routes>
+      <Route path="/" element={<Inicio key={chave} />} />
+      <Route path="/busca" element={<Busca key={chave} />} />
+      <Route path="/eventos" element={<Eventos />} />
+      <Route path="/favoritos" element={<Favoritos key={chave} />} />
+      <Route path="/radios" element={<Radios key={chave} />} />
+      <Route path="/ajustes" element={<Ajustes />} />
+      <Route path="/tv" element={<TVPage key={chave} />} />
+      <Route path="/tv/:slug" element={<TVPage key={chave} />} />
+            <Route path="/movies" element={<MoviesPage key={chave} />} />
+      <Route path="/app" element={
+        <Suspense fallback={<LoadingFallback />}>
+          <AppDownload />
+        </Suspense>
+      } />
+      {/* O que cada rodada da atualização trouxe. Sem link em lugar nenhum. */}
+      <Route path="/novidades" element={
+        <Suspense fallback={<LoadingFallback />}>
+          <Novidades />
+        </Suspense>
+      } />
+      {/* Ferramenta interna: só para quem ligou o modo de testes no navegador. */}
+      {localStorage.getItem('saimo-dev') === '1' && (
+        <Route path="/teste" element={
+          <Suspense fallback={<LoadingFallback />}>
+            <StreamTester />
+          </Suspense>
+        } />
+      )}
+    </Routes>
+    <NavegacaoMobile />
+    </>
+  );
+}
+
+// Provedor de contexto adulto
+function AdultModeProvider({ children }: { children: React.ReactNode }) {
+  const [isAdultUnlocked, setIsAdultUnlocked] = useLocalStorage<boolean>('adult-mode-global', false);
+  const [toast, setToast] = useState<ToastState | null>(null);
+
+  const unlockAdult = useCallback(() => {
+    setIsAdultUnlocked(true);
+    setToast({ message: '🔓 Modo adulto desbloqueado!', type: 'success', id: Date.now() });
+    setTimeout(() => setToast(null), 3000);
+  }, [setIsAdultUnlocked]);
+
+  const lockAdult = useCallback(() => {
+    setIsAdultUnlocked(false);
+    setToast({ message: '🔒 Modo adulto bloqueado', type: 'info', id: Date.now() });
+    setTimeout(() => setToast(null), 3000);
+  }, [setIsAdultUnlocked]);
+
+  return (
+    <AdultModeContext.Provider value={{ isAdultUnlocked, unlockAdult, lockAdult }}>
+      {children}
+      {toast && (
+        <Toast key={toast.id} message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+      )}
+    </AdultModeContext.Provider>
+  );
+}
+
+/*
+ * No site as páginas têm endereço limpo (/tv, /movies, /app), que dá para
+ * mandar a alguém. No app de desktop (tauri://, sem raiz de site) continua o
+ * endereço com #. Um link antigo com # que chega ao site é convertido.
+ */
+const noSite = import.meta.env.BASE_URL === '/';
+if (noSite && window.location.hash.startsWith('#/')) {
+  window.history.replaceState(null, '', window.location.hash.slice(1));
+}
+const Roteador = noSite ? BrowserRouter : HashRouter;
+
+function App() {
+  useEffect(() => {
+    const syncUpscaling = () => {
+      try {
+        const raw = localStorage.getItem('saimo-upscaling');
+        const val = raw ? JSON.parse(raw) : 'off';
+        document.documentElement.dataset.upscaling = (val === 'hd' || val === '4k') ? val : 'off';
+      } catch {
+        document.documentElement.dataset.upscaling = 'off';
+      }
+    };
+    syncUpscaling();
+    window.addEventListener('saimo-upscaling-mudou', syncUpscaling);
+
+    // Vídeo que já tem a resolução do alvo não recebe o filtro de nitidez (data-nativo="1").
+    // Alvo: a altura real da tela no modo 4K; até 1080 no modo HD.
+    const marcarNativo = (alvo: EventTarget | null) => {
+      const video = alvo as HTMLVideoElement | null;
+      if (!video || video.tagName !== 'VIDEO' || !video.videoHeight) return;
+      const modo = document.documentElement.dataset.upscaling;
+      const tela = Math.round(Math.min(window.screen.width, window.screen.height) * (window.devicePixelRatio || 1));
+      const meta = modo === '4k' ? tela : Math.min(1080, tela);
+      if (video.videoHeight >= meta) video.dataset.nativo = '1';
+      else delete video.dataset.nativo;
+    };
+    const aoMudarVideo = (e: Event) => marcarNativo(e.target);
+    const reavaliarTodos = () => document.querySelectorAll('video').forEach((v) => marcarNativo(v));
+    // Eventos de mídia não sobem: na fase de captura o documento recebe todos.
+    document.addEventListener('loadedmetadata', aoMudarVideo, true);
+    document.addEventListener('resize', aoMudarVideo, true);
+    window.addEventListener('saimo-upscaling-mudou', reavaliarTodos);
+    window.addEventListener('storage', syncUpscaling);
+    return () => {
+      window.removeEventListener('saimo-upscaling-mudou', syncUpscaling);
+      window.removeEventListener('storage', syncUpscaling);
+      document.removeEventListener('loadedmetadata', aoMudarVideo, true);
+      document.removeEventListener('resize', aoMudarVideo, true);
+      window.removeEventListener('saimo-upscaling-mudou', reavaliarTodos);
+    };
+  }, []);
+
+  return (
+    <Roteador>
+      <DpadNavigationProvider>
+        <AdultModeProvider>
+          <svg width="0" height="0" style={{ position: 'absolute', pointerEvents: 'none' }} aria-hidden="true">
+            <defs>
+              <filter id="saimo-upscale-hd" colorInterpolationFilters="sRGB">
+                <feConvolveMatrix
+                  order="3"
+                  kernelMatrix="0 -0.45 0 -0.45 2.8 -0.45 0 -0.45 0"
+                  preserveAlpha="true"
+                />
+              </filter>
+              <filter id="saimo-upscale-4k" colorInterpolationFilters="sRGB">
+                <feConvolveMatrix
+                  order="3"
+                  kernelMatrix="-0.15 -0.55 -0.15 -0.55 3.8 -0.55 -0.15 -0.55 -0.15"
+                  preserveAlpha="true"
+                />
+              </filter>
+            </defs>
+          </svg>
+          <AppLayout />
+        </AdultModeProvider>
+      </DpadNavigationProvider>
+    </Roteador>
+  );
+}
+
+export default App;
