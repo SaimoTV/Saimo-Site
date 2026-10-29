@@ -228,6 +228,7 @@ function TVPage() {
     fecharPainel: () => setIsChannelsPanelOpen(false),
     proximo: handleNextChannel,
     anterior: handlePrevChannel,
+    favoritar: handleToggleFavorite,
     // Volta para a tela de onde veio (On Demand, Busca…); só sem histórico cai no Início.
     multiTela: isMultiScreen,
     trocarLado: () => setActiveSide((lado) => (lado === 'primary' ? 'secondary' : 'primary')),
