@@ -274,6 +274,11 @@ export function DpadNavigationProvider({ children }: { children: React.ReactNode
       // Focus nativo para acessibilidade - SEM scroll
       element.focus({ preventScroll: true });
 
+      // Navegar pelos botões do player renova o tempo dos controles: sem isso eles somem
+      // depois de ~2,8s no meio da navegação e a seta seguinte acaba abrindo a lista de canais.
+      element.closest('.video-player-container')
+        ?.dispatchEvent(new CustomEvent('dpad-enter'));
+
       if (scrollIntoView) {
         requestAnimationFrame(() => rolarAteVer(element));
       }

@@ -17,7 +17,8 @@ import { iniciarVigiaAoVivo, type VigiaAoVivoHandle, type LatenciaInfo } from '.
 import * as telemetria from '../services/telemetria';
 import './VideoPlayer.css';
 import './AvisoApp.css';
-import { ehAppDaTv } from '../plataforma/tv';
+import { ehAppDaTv, ehTv } from '../plataforma/tv';
+import { useDpad } from '../contexts/dpadContexto';
 import { alternarTelaCheia, elementoEmTelaCheia, EVENTOS_TELA_CHEIA, soltarOrientacao } from '../utils/telaCheia';
 
 interface VideoPlayerProps {
@@ -151,6 +152,38 @@ export const VideoPlayer = memo(function VideoPlayer({
     modoZeroDelayRef.current = modoZeroDelay;
   }, [modoZeroDelay]);
 
+  // TV: o Voltar do controle fecha a modal aberta do player (fontes, áudio, qualidade,
+  // transmitir) em vez de sair do player. Devolve `false` quando não há modal aberta,
+  // deixando o Voltar seguir o fluxo normal. Reabre-se a cada mudança para ficar sempre
+  // como handler mais recente (roda antes do "voltar" do player).
+  const { registerBackHandler, setFocus } = useDpad();
+  useEffect(() => {
+    return registerBackHandler(() => {
+      if (showExternalPlayers) { setShowExternalPlayers(false); return true; }
+      if (showCastModal) { setShowCastModal(false); return true; }
+      if (showSources) { setShowSources(false); return true; }
+      if (showAudioMenu) { setShowAudioMenu(false); return true; }
+      if (showQualityMenu) { setShowQualityMenu(false); return true; }
+      return false;
+    });
+  }, [registerBackHandler, showSources, showAudioMenu, showQualityMenu, showCastModal, showExternalPlayers]);
+
+  // TV: ao abrir uma modal do player, o foco do D-pad vai para a opção em uso (ou a primeira).
+  // Sem isso o foco ficava no botão atrás da modal e a navegação para cima/baixo saía dela.
+  useEffect(() => {
+    if (!ehTv()) return;
+    if (!(showSources || showAudioMenu || showQualityMenu || showCastModal)) return;
+    const t = window.setTimeout(() => {
+      const modal = document.querySelector<HTMLElement>('.cast-modal[role="dialog"]');
+      if (!modal) return;
+      const alvo = modal.querySelector<HTMLElement>('.cast-option.active')
+        ?? modal.querySelector<HTMLElement>('.cast-option')
+        ?? modal.querySelector<HTMLElement>('button');
+      if (alvo) setFocus(alvo);
+    }, 60);
+    return () => window.clearTimeout(t);
+  }, [showSources, showAudioMenu, showQualityMenu, showCastModal, showExternalPlayers, setFocus]);
+
   useEffect(() => {
     const tratarMudanca = () => {
       const novo = zeroDelayService.getModo();
@@ -186,13 +219,31 @@ export const VideoPlayer = memo(function VideoPlayer({
    * o site ler o catálogo com várias fontes, ainda chega só com `url` — daí a
    * lista de uma fonte só como piso.
    */
-  const attempts = useMemo<Attempt[]>(() => {
+  const fontesDoCanal = useMemo<ChannelSource[]>(() => {
     if (!channel) return [];
-    const sources: ChannelSource[] = channel.sources?.length
+    return channel.sources?.length
       ? channel.sources
       : channel.url ? [{ url: channel.url }] : [];
-    return buildAttempts(sources);
   }, [channel]);
+
+  /*
+   * Chave estável das fontes: muda só quando as URLs (e cabeçalhos) de fato
+   * mudam, não quando o App entrega um novo objeto `channel` com o mesmo
+   * conteúdo — o que acontece a cada atualização do "programa atual"/EPG. Sem
+   * isto o effect de reprodução reiniciava a cada re-render do canal, zerava o
+   * contador de falhas e o fallback nunca saía do idx=0.
+   */
+  const fontesKey = useMemo(
+    () => fontesDoCanal.map((s) => `${s.url}|${s.referer ?? ''}|${s.userAgent ?? ''}`).join('\n'),
+    [fontesDoCanal],
+  );
+
+  const attempts = useMemo<Attempt[]>(
+    () => buildAttempts(fontesDoCanal),
+    // Ancorado na chave de valor, não na identidade de `fontesDoCanal`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [fontesKey],
+  );
 
   const [sourceIndex, setSourceIndex] = useState(0);
   const [reloadTick, setReloadTick] = useState(0);
@@ -360,10 +411,22 @@ export const VideoPlayer = memo(function VideoPlayer({
     let retomar: (() => void) | null = null;
 
     const marcarAvanco = () => {
+      // Pausado não é imagem na tela. No webOS a fonte anexa, o hls.js busca a
+      // borda ao vivo e o elemento pode ficar parado em preto sem nunca tocar:
+      // contar isso como "vivo" cancelava o relógio e matava o fallback.
+      if (video.paused) return;
       const t = video.currentTime;
-      if (t > ultimoTempo + 0.2) {
+      // Primeira amostra (já tocando) é só a referência; não é imagem ainda.
+      if (ultimoTempo < 0) { ultimoTempo = t; return; }
+      const delta = t - ultimoTempo;
+      // Salto grande é busca (pulo para a borda ao vivo), não reprodução: move a
+      // referência mas NÃO dá a fonte por viva. Só avanço miúdo e contínuo —
+      // como o relógio do vídeo correndo — conta como imagem de verdade.
+      if (delta >= 5) { ultimoTempo = t; return; }
+      if (delta > 0.2) {
         ultimoTempo = t;
         ultimoAvanco = performance.now();
+        if (!tocou) pararRelogio();
         tocou = true;
         recoveryAttemptsRef.current = 0;
       }
@@ -471,7 +534,12 @@ export const VideoPlayer = memo(function VideoPlayer({
 
     const tocar = () => {
       if (cancelado || !videoRef.current) return;
-      pararRelogio();
+      // O relógio de segurança NÃO é desarmado aqui de propósito. `tocar` roda
+      // quando a playlist/metadata chegou — não quando há imagem. Quem dá a
+      // fonte por viva é o `currentTime` andando (marcarAvanco), e é lá que o
+      // relógio para. Assim uma fonte que lê o manifesto e depois trava calada
+      // — o hls.js engolindo um bloqueio de CORS sem disparar erro fatal, que é
+      // o que trava os canais diretos na TV — ainda cai para a próxima em 12 s.
       const vid = videoRef.current;
       vid.volume = volumeRef.current;
       audioInteligenteService.conectar(vid);
@@ -618,7 +686,13 @@ export const VideoPlayer = memo(function VideoPlayer({
       limpar();
       if (nativo) { video.removeAttribute('src'); video.load(); }
     };
-  }, [channel, attempts, sourceIndex, reloadTick, semCaminhoNoSite, tentavel]);
+    // `channel` (objeto) fora das deps de propósito: o App o recria a cada
+    // atualização de EPG com o mesmo conteúdo, e reiniciar a reprodução por
+    // isso zerava o fallback. O que importa — id e fontes — está em `channel?.id`
+    // e `attempts` (ancorado em `fontesKey`). O corpo lê `channel.name` só para
+    // telemetria/log, e o nome não muda dentro de um mesmo id.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channel?.id, attempts, sourceIndex, reloadTick, semCaminhoNoSite, tentavel]);
 
   // Volume sync
   useEffect(() => {
@@ -1156,7 +1230,7 @@ export const VideoPlayer = memo(function VideoPlayer({
           {/* Pilha flutuante de controles com Cartão No Ar e Barra de Vidro */}
           <div
             className={`video-floating-stack ${showControls ? 'visible' : ''}`}
-            style={{ paddingLeft: isChannelsPanelOpen ? '420px' : '0px' }}
+            style={{ paddingLeft: isChannelsPanelOpen ? 'var(--deslocamento-painel, 420px)' : '0px' }}
             onMouseMove={resetControlsTimeout}
           >
             {/* Barra de vidro flutuante de controles (ControlBar) */}
@@ -1472,7 +1546,7 @@ export const VideoPlayer = memo(function VideoPlayer({
           {/* Fontes publicadas para este canal */}
           {showSources && (
             <div className="cast-modal-overlay" onClick={() => setShowSources(false)}>
-              <div className="cast-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="cast-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
                 <h3>Fontes de "{channel.name}"</h3>
                 <p>
                   {fontes.length} publicadas no catálogo, na ordem em que o player tenta.
@@ -1520,7 +1594,7 @@ export const VideoPlayer = memo(function VideoPlayer({
           {/* Modal de Áudio */}
           {showAudioMenu && (
             <div className="cast-modal-overlay" onClick={() => setShowAudioMenu(false)}>
-              <div className="cast-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="cast-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
                 <h3>Idiomas do Áudio</h3>
                 <p>Selecione a faixa de áudio desejada para este canal:</p>
                 <div className="cast-options">
@@ -1553,7 +1627,7 @@ export const VideoPlayer = memo(function VideoPlayer({
           {/* Modal de Qualidade */}
           {showQualityMenu && (
             <div className="cast-modal-overlay" onClick={() => setShowQualityMenu(false)}>
-              <div className="cast-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="cast-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
                 <h3>Qualidade do Vídeo</h3>
                 <p>Selecione a resolução desejada para transmissão:</p>
                 <div className="cast-options">
@@ -1585,7 +1659,7 @@ export const VideoPlayer = memo(function VideoPlayer({
           {/* Modal de Cast Melhorado */}
           {showCastModal && (
             <div className="cast-modal-overlay" onClick={() => { setShowCastModal(false); setShowExternalPlayers(false); }}>
-              <div className="cast-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="cast-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
                 {!showExternalPlayers ? (
                   <>
                     <h3>Transmitir para dispositivo</h3>
