@@ -6,6 +6,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useListas } from '../services/listas';
+import { useAbrirVod } from '../telas/compartilhado';
+import { melhorMatch } from '../services/tmdbService';
 import './Novidades.css';
 
 interface Titulo {
@@ -39,12 +41,62 @@ function quando(iso: string): { dia: string; hora: string; turno: string } {
   return { dia, hora, turno };
 }
 
+function extrairLetra(titulo: string): string {
+  const norm = titulo.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').trim();
+  const primeira = norm.charAt(0).toUpperCase();
+  return /^[A-Z]$/.test(primeira) ? primeira : '#';
+}
+
 function Cartao({ item, base }: { item: Titulo; base: string }) {
-  const capa = item.capa ? `${base.replace('/w342', '/w185')}${item.capa}` : '';
+  const abrirVod = useAbrirVod();
+  const [capaRemota, setCapaRemota] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (item.capa) return;
+    let vivo = true;
+    melhorMatch(item.t, item.tp === 's' ? 'tv' : 'movie')
+      .then((m) => {
+        if (vivo && m?.resultado?.poster_path) {
+          setCapaRemota(`https://image.tmdb.org/t/p/w185${m.resultado.poster_path}`);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, [item.t, item.tp, item.capa]);
+
+  const capa = item.capa ? `${base.replace('/w342', '/w185')}${item.capa}` : capaRemota;
+
+  const handleClick = () => {
+    abrirVod({
+      tipo: item.tp,
+      titulo: item.t,
+      letra: extrairLetra(item.t),
+      ano: item.ano || '',
+      capa: item.capa ? `${base}${item.capa}` : (capaRemota || ''),
+    });
+  };
+
   return (
-    <li className="nov-cartao">
+    <li
+      className="nov-cartao"
+      role="button"
+      tabIndex={0}
+      onClick={handleClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick();
+        }
+      }}
+    >
       <div className="nov-capa">
-        {capa ? <img src={capa} alt="" loading="lazy" /> : <span aria-hidden="true">{item.t.slice(0, 1)}</span>}
+        {capa ? (
+          <img src={capa} alt={item.t} loading="lazy" />
+        ) : (
+          <span aria-hidden="true">{item.t.slice(0, 1)}</span>
+        )}
         {item.de !== undefined && item.para !== undefined && (
           <span className="nov-faixa">+{item.para - item.de} ep.</span>
         )}

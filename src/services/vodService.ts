@@ -342,18 +342,32 @@ export async function todos(serie: boolean): Promise<Achado[]> {
 /** Um filme específico, pelo nome, dentro da letra dele. */
 export async function filme(achado: Achado): Promise<Filme | null> {
   const lista = await filmes(achado.letra);
-  const direto = lista.find((f) => f.titulo === achado.titulo);
+  let direto = lista.find((f) => f.titulo === achado.titulo);
+  if (!direto) {
+    const limpo = achado.titulo.replace(/\s*\(\d{4}\)\s*$/, '').trim().toLowerCase();
+    direto = lista.find((f) => f.titulo.replace(/\s*\(\d{4}\)\s*$/, '').trim().toLowerCase() === limpo);
+  }
   if (direto) return direto;
   const reservado = await filmes(achado.letra, true);
-  return reservado.find((f) => f.titulo === achado.titulo) ?? null;
+  let res = reservado.find((f) => f.titulo === achado.titulo);
+  if (!res) {
+    const limpo = achado.titulo.replace(/\s*\(\d{4}\)\s*$/, '').trim().toLowerCase();
+    res = reservado.find((f) => f.titulo.replace(/\s*\(\d{4}\)\s*$/, '').trim().toLowerCase() === limpo);
+  }
+  return res ?? null;
 }
 
 /** Uma série específica, pelo nome, dentro da letra dela. */
 export async function serie(achado: Achado): Promise<Serie | null> {
   const lista = await series(achado.letra);
-  return lista.find(
+  let direto = lista.find(
     (s) => s.titulo === achado.titulo && (!achado.ano.trim() || s.ano === achado.ano),
-  ) ?? null;
+  );
+  if (!direto) {
+    const limpo = achado.titulo.replace(/\s*\(\d{4}\)\s*$/, '').trim().toLowerCase();
+    direto = lista.find((s) => s.titulo.replace(/\s*\(\d{4}\)\s*$/, '').trim().toLowerCase() === limpo);
+  }
+  return direto ?? null;
 }
 
 /** Lê `vod/redeflix/links-animes.txt` ou `links-doramas.txt`. */
