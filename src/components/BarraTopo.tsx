@@ -261,6 +261,18 @@ export const BarraTopo = memo(function BarraTopo({ visible: visibleProp, autoHid
               <button className="barra-radio-parar" onClick={pararRadio} aria-label="Parar a rádio">■</button>
             </div>
           )}
+          <a
+            className="barra-discord"
+            href="https://discord.gg/BrWbQQhfh7"
+            target="_blank"
+            rel="noreferrer noopener"
+            title="Comunidade no Discord"
+            aria-label="Comunidade no Discord"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M20.317 4.369A19.79 19.79 0 0 0 16.558 3c-.164.293-.355.686-.487.998a18.27 18.27 0 0 0-4.14 0A12.6 12.6 0 0 0 11.437 3a19.74 19.74 0 0 0-3.76 1.369C3.29 10.02 2.24 15.53 2.76 20.96a19.9 19.9 0 0 0 5.99 3.04c.484-.66.915-1.362 1.286-2.1a12.9 12.9 0 0 1-2.025-.973c.17-.124.336-.254.496-.388 3.9 1.79 8.12 1.79 11.973 0 .162.134.328.264.497.388-.647.38-1.325.706-2.03.974.372.737.802 1.439 1.286 2.099a19.86 19.86 0 0 0 5.994-3.04c.6-6.28-1.06-11.74-4.91-16.59ZM9.68 17.65c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.951-2.42 2.157-2.42 1.213 0 2.18 1.096 2.157 2.42 0 1.334-.951 2.42-2.157 2.42Zm7.64 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.951-2.42 2.157-2.42 1.213 0 2.18 1.096 2.157 2.42 0 1.334-.944 2.42-2.157 2.42Z" />
+            </svg>
+          </a>
           <button
             className={`barra-engrenagem ${pathname === '/ajustes' ? 'on' : ''}`}
             onClick={(e) => {

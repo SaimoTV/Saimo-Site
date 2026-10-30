@@ -22,6 +22,7 @@ import type { Channel } from '../types/channel';
 import './Ajustes.css';
 import { IconeMaterial } from '../components/IconeMaterial';
 import { MinhasListas } from './MinhasListas';
+import { ChuvaApoiadores } from '../components/ChuvaApoiadores';
 
 export type AoIniciar = 'inicio' | 'ultimo';
 export const CHAVE_AO_INICIAR = 'saimo-ao-iniciar';
@@ -115,6 +116,7 @@ export function Ajustes() {
 
   return (
     <div className="tela tela-com-barra">
+      <ChuvaApoiadores />
       <BarraTopo />
       <div className="tela-miolo ajustes">
         <h1 className="tela-titulo">Ajustes</h1>
@@ -232,6 +234,7 @@ export function Ajustes() {
           <div className="ajustes-botoes">
             <button className="ajustes-botao" onClick={() => navigate('/app')}>Baixar o app (TV Box, celular, Mac, Windows)</button>
             <button className="ajustes-botao" onClick={() => navigate('/novidades')}>Novidades</button>
+            <a className="ajustes-botao" href="https://discord.gg/BrWbQQhfh7" target="_blank" rel="noreferrer noopener">Apoiar o projeto ❤️</a>
             <a className="ajustes-botao" href="https://discord.gg/BrWbQQhfh7" target="_blank" rel="noreferrer noopener">Comunidade no Discord</a>
             {listas.canais && (
               <a className="ajustes-botao" href={`${listas.canais}catalogo.txt`} target="_blank" rel="noreferrer noopener">Lista de canais (texto)</a>
