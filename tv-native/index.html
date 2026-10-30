@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0, user-scalable=no" />
+  <title>Saimo TV</title>
+</head>
+<body>
+  <div id="app">
+    <!-- Camada de Vídeo de Hardware (0% CPU / Acelerado por GPU) -->
+    <video id="tv-video" class="tv-video-container" playsinline></video>
+
+    <!-- Contêiner de Telas e Interface -->
+    <div id="tv-screens-container"></div>
+  </div>
+
+  <script type="module" src="./src/main.ts"></script>
+</body>
+</html>

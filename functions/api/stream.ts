@@ -19,7 +19,7 @@ const AGENTE_FROST = 'OnePlay-Matrix/3.3.9 Kodi';
 
 async function melhorVarianteHls(masterUrl: string): Promise<string | null> {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 5000);
+  const timer = setTimeout(() => ctrl.abort(), 4000);
   try {
     const r = await fetch(masterUrl, { headers: { 'User-Agent': AGENTE }, signal: ctrl.signal });
     if (!r.ok) return null;
@@ -27,7 +27,7 @@ async function melhorVarianteHls(masterUrl: string): Promise<string | null> {
     let melhorBw = -1;
     let melhorUrl: string | null = null;
     let pendente = -1;
-    const baseDir = masterUrl.substring(0, masterUrl.lastIndexOf('/'));
+    const baseDir = masterUrl.split('?')[0].substring(0, masterUrl.split('?')[0].lastIndexOf('/'));
     for (const raw of texto.split('\n')) {
       const linha = raw.trim();
       if (linha.startsWith('#EXT-X-STREAM-INF')) {
@@ -50,56 +50,94 @@ async function melhorVarianteHls(masterUrl: string): Promise<string | null> {
   }
 }
 
-async function buscarRedeFlix(tmdbId: string, isSerie: boolean, season: string, episode: string, versao: string): Promise<string | null> {
+async function buscarRedeFlix(tmdbId: string, isSerie: boolean, season: string, episode: string, versao: string, clientIp?: string, debugObj?: any): Promise<string | null> {
   if (!/^\d+$/.test(tmdbId)) return null;
   const pagina = isSerie
     ? `${REDEFLIX_BASE}/serie/${tmdbId}/${season}/${episode}`
     : `${REDEFLIX_BASE}/filme/${tmdbId}`;
   const servidores = versao === 'leg' ? ['legendado', 'default'] : ['default', 'legendado'];
+  const baseHeaders: Record<string, string> = {
+    'User-Agent': AGENTE,
+    'Accept': 'text/html,*/*;q=0.8',
+    'Referer': `${REDEFLIX_BASE}/`,
+  };
+  if (clientIp) {
+    baseHeaders['X-Forwarded-For'] = clientIp;
+    baseHeaders['CF-Connecting-IP'] = clientIp;
+  }
   for (const servidor of servidores) {
     try {
+      const c1 = new AbortController();
+      const t1 = setTimeout(() => c1.abort(), 4000);
       const r1 = await fetch(pagina, {
-        headers: {
-          'User-Agent': AGENTE,
-          'Accept': 'text/html,*/*;q=0.8',
-          'Referer': `${REDEFLIX_BASE}/`,
-        },
+        headers: baseHeaders,
+        signal: c1.signal,
       });
+      clearTimeout(t1);
+      if (debugObj) debugObj.r1 = { status: r1.status, ok: r1.ok };
       if (!r1.ok) continue;
       const html = await r1.text();
       const m = /playbackResolveTicket\s*=\s*["']([^"']+)["']/.exec(html);
+      if (debugObj) debugObj.hasTicket = !!m?.[1];
       if (!m?.[1]) continue;
+      const c2 = new AbortController();
+      const t2 = setTimeout(() => c2.abort(), 4000);
+      const r2Headers: Record<string, string> = {
+        'User-Agent': AGENTE,
+        'X-Requested-With': 'RedeFlixPlayer',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Referer': pagina,
+        'Origin': REDEFLIX_BASE,
+      };
+      if (clientIp) {
+        r2Headers['X-Forwarded-For'] = clientIp;
+        r2Headers['CF-Connecting-IP'] = clientIp;
+      }
       const r2 = await fetch(`${REDEFLIX_BASE}/playback-resolve.php`, {
         method: 'POST',
-        headers: {
-          'User-Agent': AGENTE,
-          'X-Requested-With': 'RedeFlixPlayer',
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Referer': pagina,
-          'Origin': REDEFLIX_BASE,
-        },
+        headers: r2Headers,
         body: JSON.stringify({ ticket: m[1], server: servidor }),
+        signal: c2.signal,
       });
-      if (!r2.ok) continue;
+      clearTimeout(t2);
+      if (debugObj) debugObj.r2 = { status: r2.status, ok: r2.ok };
+      if (!r2.ok) {
+        if (debugObj) debugObj.r2Body = (await r2.text()).slice(0, 200);
+        continue;
+      }
       const j2 = (await r2.json()) as { launchTicket?: string };
+      if (debugObj) debugObj.hasLaunch = !!j2?.launchTicket;
       if (!j2?.launchTicket) continue;
+      const c3 = new AbortController();
+      const t3 = setTimeout(() => c3.abort(), 4000);
+      const r3Headers: Record<string, string> = {
+        'User-Agent': AGENTE,
+        'X-Requested-With': 'RedeFlixPlayer',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Referer': pagina,
+        'Origin': REDEFLIX_BASE,
+      };
+      if (clientIp) {
+        r3Headers['X-Forwarded-For'] = clientIp;
+        r3Headers['CF-Connecting-IP'] = clientIp;
+      }
       const r3 = await fetch(`${REDEFLIX_BASE}/playerkys/source.php`, {
         method: 'POST',
-        headers: {
-          'User-Agent': AGENTE,
-          'X-Requested-With': 'RedeFlixPlayer',
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Referer': pagina,
-          'Origin': REDEFLIX_BASE,
-        },
+        headers: r3Headers,
         body: JSON.stringify({ ticket: j2.launchTicket }),
+        signal: c3.signal,
       });
+      clearTimeout(t3);
+      if (debugObj) debugObj.r3 = { status: r3.status, ok: r3.ok };
       if (!r3.ok) continue;
       const j3 = (await r3.json()) as { url?: string };
+      if (debugObj) debugObj.finalUrl = j3?.url;
       if (j3?.url) return j3.url;
-    } catch {}
+    } catch (e: any) {
+      if (debugObj) debugObj.err = e?.message || String(e);
+    }
   }
   return null;
 }
@@ -126,21 +164,32 @@ interface AddonResult {
   streams: StreamItem[];
   status: number;
   err?: string;
+  raw?: string;
 }
 
 async function buscarAddon(url: string, timeoutMs: number = 5000, customAgent?: string): Promise<AddonResult> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const res = await fetch(url, {
-      headers: { 'User-Agent': customAgent || (url.includes('froststream') ? AGENTE_FROST : AGENTE), 'Accept': 'application/json' },
+    const sep = url.includes('?') ? '&' : '?';
+    const fetchUrl = `${url}${sep}_cf=${Date.now()}`;
+    const res = await fetch(fetchUrl, {
+      headers: {
+        'User-Agent': customAgent || (url.includes('froststream') ? AGENTE_FROST : AGENTE),
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+      },
+      cache: 'no-store',
       signal: ctrl.signal,
     });
     if (!res.ok) {
       return { streams: [], status: res.status, err: `HTTP ${res.status}` };
     }
-    const data = (await res.json()) as { streams?: StreamItem[] };
-    return { streams: data.streams || [], status: res.status };
+    const text = await res.text();
+    let data: { streams?: StreamItem[] } = {};
+    try { data = JSON.parse(text); } catch {}
+    return { streams: data.streams || [], status: res.status, raw: text.slice(0, 200) };
   } catch (e: any) {
     return { streams: [], status: 0, err: e?.message || String(e) };
   } finally {
@@ -210,14 +259,46 @@ function normalizar(url: string): string {
 }
 
 /**
+ * Servidores que exigem cabeçalhos específicos para entregar a URL final.
+ * FrostStream redireciona (302) para o servidor real de vídeo quando chamado com Referer e User-Agent Kodi.
+ */
+async function desmascararFrost(url: string): Promise<string | null> {
+  if (!url.includes('froststream.cloutteam.com')) return url;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 4000);
+  try {
+    const r = await fetch(url, {
+      headers: {
+        'User-Agent': AGENTE_FROST,
+        'Referer': 'https://froststream.cloutteam.com/',
+      },
+      redirect: 'manual',
+      signal: ctrl.signal,
+    });
+    const loc = r.headers.get('Location');
+    return loc ? normalizar(loc) : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
  * Pede o começo do vídeo (ou a playlist) e devolve o endereço final, depois
  * dos redirecionamentos, quando há vídeo de verdade; null quando não.
  */
 async function respondeVideo(url: string): Promise<string | null> {
+  let alvo = url;
+  if (alvo.includes('froststream.cloutteam.com')) {
+    const d = await desmascararFrost(alvo);
+    if (!d) return null;
+    alvo = d;
+  }
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 5000);
+  const timer = setTimeout(() => ctrl.abort(), 4000);
   try {
-    const r = await fetch(url, {
+    const r = await fetch(alvo, {
       headers: { 'User-Agent': AGENTE, 'Range': 'bytes=0-1023' },
       redirect: 'follow',
       signal: ctrl.signal,
@@ -229,9 +310,9 @@ async function respondeVideo(url: string): Promise<string | null> {
     leitor.cancel().catch(() => {});
     const corpo = (value ?? new Uint8Array()).slice(0, 1024);
     const inicio = new TextDecoder().decode(corpo.slice(0, 16)).trimStart();
-    if (inicio.startsWith('#EXTM3U')) return r.url || url;
+    if (inicio.startsWith('#EXTM3U')) return r.url || alvo;
     if (corpo.length === 0 || corpo[0] === 0x3c /* < */ || corpo[0] === 0x7b /* { */) return null;
-    return r.url || url;
+    return r.url || alvo;
   } catch {
     return null;
   } finally {
@@ -247,6 +328,8 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
   const e = url.searchParams.get('e') || url.searchParams.get('ep') || url.searchParams.get('episodio') || '1';
   const versao = (url.searchParams.get('versao') || url.searchParams.get('v') || 'dub').toLowerCase();
   const querJson = url.searchParams.get('json') === '1';
+  const querDebug = url.searchParams.get('debug') === '1';
+  const clientIp = request.headers.get('cf-connecting-ip') || '';
 
   if (!id) {
     return new Response(JSON.stringify({ error: 'Parâmetro "id" é obrigatório' }), {
@@ -313,24 +396,22 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
 
   // Busca em paralelo nas origens comuns (FenixFlix, Magnetflix, FrostStream, Hollymovies).
   let todos: StreamItem[] = [];
-  for (let tentativa = 0; tentativa < 2 && todos.length === 0; tentativa++) {
-    const consultas: Promise<AddonResult>[] = [
-      buscarAddon(fenixUrl, 8000),
-      buscarAddon(magnetUrl, 8000),
-      buscarAddon(hollyUrl, 8000),
-    ];
-    if (frostUrl) {
-      consultas.push(buscarAddon(frostUrl, 8000, AGENTE_FROST));
-    }
-    if (imdbId && !cleanId.startsWith('tt')) {
-      const fenixImdb = isSerie
-        ? `${FENIX_BASE}/stream/series/${imdbId}:${season}:${episode}.json`
-        : `${FENIX_BASE}/stream/movie/${imdbId}.json`;
-      consultas.push(buscarAddon(fenixImdb, 8000));
-    }
-    const resultados = await Promise.all(consultas);
-    todos = resultados.flatMap(r => r.streams).filter(st => !!st.url);
+  const consultas: Promise<AddonResult>[] = [
+    buscarAddon(fenixUrl, 5000),
+    buscarAddon(magnetUrl, 5000),
+    buscarAddon(hollyUrl, 5000),
+  ];
+  if (frostUrl) {
+    consultas.push(buscarAddon(frostUrl, 5000, AGENTE_FROST));
   }
+  if (imdbId && !cleanId.startsWith('tt')) {
+    const fenixImdb = isSerie
+      ? `${FENIX_BASE}/stream/series/${imdbId}:${season}:${episode}.json`
+      : `${FENIX_BASE}/stream/movie/${imdbId}.json`;
+    consultas.push(buscarAddon(fenixImdb, 5000));
+  }
+  const resultados = await Promise.all(consultas);
+  todos = resultados.flatMap(r => r.streams).filter(st => !!st.url);
 
   // Filtra streams com arquivos de outros filmes associados erroneamente pelo provedor
   todos = todos.filter(st => {
@@ -355,26 +436,33 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
 
   // Testa antes de entregar: provedor costuma listar primeiro um link que já
   // morreu (o R2 de terceiros que passou a dar 403) com um bom logo atrás.
-  // Os quatro testados ao mesmo tempo (no máximo 5 s no total); vale o
+  // Os quatro testados ao mesmo tempo (no máximo 4 s no total); vale o
   // primeiro, na ordem de preferência, que respondeu com vídeo.
   const testados = await Promise.all(ordenados.slice(0, 4).map(st => respondeVideo(normalizar(st.url!))));
   let escolhido = testados.find((u): u is string => !!u) ?? '';
   let ehUsoUnico = false;
 
-  if (escolhido && escolhido.includes('embedplayer2.xyz') && escolhido.endsWith('.m3u8')) {
+  if (escolhido && escolhido.includes('embedplayer2.xyz') && (escolhido.includes('.m3u8') || escolhido.endsWith('.m3u8'))) {
     const melhor = await melhorVarianteHls(escolhido);
     if (melhor) escolhido = melhor;
   }
 
-  // 404: cadeia RedeFlix (3 saltos, uso unico) entra no FIM, fora do probe e sem cache.
+  let redeflixDebug: any = {};
+  // Cadeia RedeFlix: entra quando nenhum addon respondeu vídeo válido
   if (!escolhido) {
-    const redeflixUrl = await buscarRedeFlix(cleanId, isSerie, season, episode, versao);
-    if (redeflixUrl) {
-      escolhido = redeflixUrl;
-      ehUsoUnico = true;
+    try {
+      const redeflixUrl = await buscarRedeFlix(cleanId, isSerie, season, episode, versao, clientIp, redeflixDebug);
+      redeflixDebug.redeflixUrl = redeflixUrl;
+      if (redeflixUrl) {
+        escolhido = redeflixUrl;
+        ehUsoUnico = true;
+      }
+    } catch (e: any) {
+      redeflixDebug.error = e?.message || String(e);
     }
   }
 
+  let ehFallback = false;
   if (!escolhido) {
     if (ordenados.length === 0) {
       return new Response(JSON.stringify({ error: 'Nenhum stream disponível para este título' }), {
@@ -382,13 +470,37 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' },
       });
     }
-    escolhido = normalizar(ordenados[0].url!);
+    let candidato = normalizar(ordenados[0].url!);
+    if (candidato.includes('froststream.cloutteam.com')) {
+      const d = await desmascararFrost(candidato);
+      if (d) candidato = d;
+    }
+    escolhido = candidato;
+    ehFallback = true;
   }
 
   const headers = new Headers();
   headers.set('Access-Control-Allow-Origin', '*');
   headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-  headers.set('Cache-Control', ehUsoUnico ? 'no-store' : 'public, max-age=600');
+  // Se for uso único (RedeFlix) ou fallback não verificado, nunca armazena cache na borda!
+  headers.set('Cache-Control', (ehUsoUnico || ehFallback) ? 'no-store' : 'public, max-age=600');
+
+  if (querDebug) {
+    headers.set('Content-Type', 'application/json');
+    headers.set('Cache-Control', 'no-store');
+    return new Response(JSON.stringify({
+      escolhido,
+      ehUsoUnico,
+      ehFallback,
+      redeflixDebug,
+      urlsConsultadas: { fenixUrl, magnetUrl, hollyUrl, frostUrl, fenixImdb: (imdbId && !cleanId.startsWith('tt')) ? `${FENIX_BASE}/stream/series/${imdbId}:${season}:${episode}.json` : null },
+      resultadosAddons: resultados.map((r, i) => ({ status: r.status, err: r.err, count: r.streams.length, raw: r.raw })),
+      testados,
+      ordenadosCount: ordenados.length,
+      todosCount: todos.length,
+      ordenados: ordenados.map(o => ({ name: o.name, title: o.title, url: o.url })),
+    }, null, 2), { status: 200, headers });
+  }
 
   if (querJson) {
     headers.set('Content-Type', 'application/json');

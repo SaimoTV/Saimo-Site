@@ -10,5 +10,6 @@
   "bgColor": "#0a0a0a",
   "resolution": "1920x1080",
   "disableBackHistoryAPI": true,
+  "supportQuickStart": true,
   "uiRevision": 2
 }
