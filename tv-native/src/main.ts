@@ -79,10 +79,9 @@ class SaimoTVApp {
   private async boot() {
     console.info('[SaimoTV] Iniciando aplicação nativa 1080p...');
 
-    // Inicia carregamento de listas em segundo plano sem bloquear a interface
+    // Pré-carrega canais e destaques da tela inicial em background de forma assíncrona
+    Api.fetchDestaques().catch(() => {});
     Api.fetchChannels().catch(() => {});
-    Api.fetchFichas().catch(() => {});
-    Api.fetchEPG().catch(() => {});
 
     const prefs = Storage.getPrefs();
     if (prefs.abrirEm === 'canal' && prefs.ultimoCanal) {

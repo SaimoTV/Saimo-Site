@@ -66,15 +66,21 @@ export class SearchScreen {
     return this.element;
   }
 
-  async enter() {
+  enter() {
     this.element.classList.remove('hidden');
 
-    if (State.channels.length === 0) State.channels = await Api.fetchChannels();
-    if (State.vodItems.length === 0) State.vodItems = await Api.fetchFichas();
+    if (State.channels.length === 0) {
+      State.channels = Api.getCachedChannelsSync();
+      if (State.channels.length === 0) {
+        Api.fetchChannels().then((c) => { State.channels = c; }).catch(() => {});
+      }
+    }
 
-    setTimeout(() => {
-      this.keyboard.focusFirst();
-    }, 50);
+    if (State.vodItems.length === 0) {
+      Api.fetchFichas().then((v) => { State.vodItems = v; }).catch(() => {});
+    }
+
+    this.keyboard.focusFirst();
   }
 
   leave() {
@@ -148,12 +154,19 @@ export class SearchScreen {
       this.channelsRail.getElement().style.display = 'none';
     }
 
-    // Busca Filmes e Séries
-    const matchedVOD = State.vodItems.filter(
-      (v) =>
+    // Busca Filmes e Séries usando getSearchPool() com interrupção rápida aos 25 itens
+    const pool = Api.getSearchPool();
+    const matchedVOD: VODItem[] = [];
+    for (let i = 0; i < pool.length; i++) {
+      const v = pool[i];
+      if (
         v.title.toLowerCase().includes(q) ||
         v.genres?.some((g) => g.toLowerCase().includes(q))
-    );
+      ) {
+        matchedVOD.push(v);
+        if (matchedVOD.length >= 25) break;
+      }
+    }
 
     if (matchedVOD.length > 0) {
       this.vodRail.getElement().style.display = 'block';

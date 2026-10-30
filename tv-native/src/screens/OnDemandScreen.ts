@@ -1,10 +1,11 @@
 /**
- * Tela On Demand (OnDemandScreen).
- * Hub unificado de Filmes, Séries, Animes e Doramas com filtros de categoria e trilhos por gênero.
+ * Tela On Demand (OnDemandScreen) - Desempenho Instantâneo 0ms.
+ * Catálogo categorizado de Filmes, Séries, Animes e Doramas com filtragem instantânea
+ * e resposta imediata ao controle remoto.
  */
 
 import { State } from '../core/State';
-import { Api, VODItem } from '../core/Api';
+import { Api, VODItem, DestaqueFila } from '../core/Api';
 import { HeroBanner } from '../components/HeroBanner';
 import { Rail, CardModel } from '../components/Rail';
 import { SpatialNav } from '../core/SpatialNav';
@@ -16,10 +17,11 @@ export class OnDemandScreen {
   private scrollContainer: HTMLElement;
   private heroBanner: HeroBanner;
   private filterBar: HTMLElement;
+  private railsContainer: HTMLElement;
 
   private currentFilter: CategoryFilter = 'todos';
-  private genreRails: Map<string, Rail> = new Map();
-  private azRail: Rail;
+  private dynamicRails: Rail[] = [];
+  private isLoaded = false;
 
   constructor() {
     this.element = document.createElement('div');
@@ -41,27 +43,9 @@ export class OnDemandScreen {
     this.renderCategoryChips();
     this.scrollContainer.appendChild(this.filterBar);
 
-    // Trilhos de Gêneros Principais
-    const mainGenres = [
-      'Ação',
-      'Comédia',
-      'Terror',
-      'Ficção científica',
-      'Animação',
-      'Aventura',
-      'Romance',
-      'Drama',
-      'Crime',
-    ];
-
-    mainGenres.forEach((g) => {
-      const rail = new Rail(g, false);
-      this.genreRails.set(g, rail);
-      this.scrollContainer.appendChild(rail.getElement());
-    });
-
-    this.azRail = new Rail('Explorar de A a Z', false);
-    this.scrollContainer.appendChild(this.azRail.getElement());
+    this.railsContainer = document.createElement('div');
+    this.railsContainer.className = 'tv-ondemand-rails';
+    this.scrollContainer.appendChild(this.railsContainer);
 
     this.element.appendChild(this.scrollContainer);
   }
@@ -93,33 +77,45 @@ export class OnDemandScreen {
       }
 
       chip.addEventListener('click', () => {
+        if (this.currentFilter === c.id) return;
         this.currentFilter = c.id;
         this.renderCategoryChips();
         this.filterAndPopulateRails();
+        const activeChip = this.filterBar.querySelector<HTMLElement>(`#chip-${c.id}`);
+        if (activeChip) SpatialNav.focus(activeChip);
       });
 
       this.filterBar.appendChild(chip);
     });
   }
 
-  async enter() {
+  enter() {
     this.element.classList.remove('hidden');
     this.heroBanner.setDefault(
       'On Demand',
       'Filmes · Séries · Animes · Doramas',
-      'Explore milhares de títulos sob demanda catalogados por categoria e gênero.'
+      'Explore milhares de títulos sob demanda catalogados por categoria e gênero com zero delay.'
     );
 
-    if (State.vodItems.length === 0) {
-      State.vodItems = await Api.fetchFichas();
-    }
-
+    // 1. Popula trilhos instantaneamente com cache local (<1ms)
     this.filterAndPopulateRails();
 
-    setTimeout(() => {
-      const firstChip = this.filterBar.querySelector<HTMLElement>('.tv-btn');
-      if (firstChip) SpatialNav.focus(firstChip);
-    }, 50);
+    // 2. Foca no chip da categoria ativa imediatamente
+    const activeChip = this.filterBar.querySelector<HTMLElement>(`#chip-${this.currentFilter}`) ||
+                       this.filterBar.querySelector<HTMLElement>('.tv-btn');
+    if (activeChip) {
+      SpatialNav.focus(activeChip);
+    }
+
+    // 3. Atualização não bloqueante em background se necessário
+    if (!this.isLoaded) {
+      this.isLoaded = true;
+      Api.fetchDestaques().then((destaques) => {
+        if (destaques && destaques.length > 0) {
+          this.filterAndPopulateRails();
+        }
+      }).catch(() => {});
+    }
   }
 
   leave() {
@@ -127,41 +123,66 @@ export class OnDemandScreen {
   }
 
   private filterAndPopulateRails() {
-    let items = State.vodItems;
+    const allFilas = Api.getCachedDestaquesSync();
+    if (allFilas.length === 0) return;
 
-    if (this.currentFilter === 'filmes') {
-      items = items.filter((i) => !i.isSeries);
+    // Filtra as fileiras correspondentes à categoria atual
+    let matchingFilas: DestaqueFila[] = [];
+
+    if (this.currentFilter === 'todos') {
+      matchingFilas = allFilas;
+    } else if (this.currentFilter === 'filmes') {
+      matchingFilas = allFilas.filter((f) => {
+        const t = f.titulo.toLowerCase();
+        return !t.includes('série') && !t.includes('anime') && !t.includes('dorama');
+      });
     } else if (this.currentFilter === 'series') {
-      items = items.filter((i) => i.isSeries);
+      matchingFilas = allFilas.filter((f) => {
+        const t = f.titulo.toLowerCase();
+        return t.includes('série');
+      });
     } else if (this.currentFilter === 'animes') {
-      items = items.filter((i) => i.genres?.some((g) => g.toLowerCase().includes('anime') || g.toLowerCase().includes('animação')));
+      matchingFilas = allFilas.filter((f) => f.titulo.toLowerCase().includes('anime'));
     } else if (this.currentFilter === 'doramas') {
-      items = items.filter((i) => i.genres?.some((g) => g.toLowerCase().includes('dorama') || g.toLowerCase().includes('coreano')));
+      matchingFilas = allFilas.filter((f) => f.titulo.toLowerCase().includes('dorama'));
     }
 
-    this.genreRails.forEach((rail, genreName) => {
-      const matching = items
-        .filter((i) => i.genres?.some((g) => g.toLowerCase().includes(genreName.toLowerCase())))
-        .slice(0, 20);
+    // Limpa os trilhos existentes do contêiner
+    this.railsContainer.innerHTML = '';
+    this.dynamicRails = [];
 
-      if (matching.length === 0) {
-        rail.getElement().style.display = 'none';
-      } else {
-        rail.getElement().style.display = 'block';
-        rail.setCards(this.mapCards(matching));
-      }
+    // Cria os trilhos dinâmicos
+    matchingFilas.forEach((f) => {
+      if (f.itens.length === 0) return;
+      const rail = new Rail(f.titulo, false);
+      rail.setCards(this.mapCards(f.itens));
+      this.railsContainer.appendChild(rail.getElement());
+      this.dynamicRails.push(rail);
     });
 
-    // Trilho A-Z
-    const sortedAZ = [...items].sort((a, b) => a.title.localeCompare(b.title)).slice(0, 30);
-    this.azRail.setCards(this.mapCards(sortedAZ));
+    // Trilho A-Z rápido e sem travamento de CPU (baseado no conjunto de títulos da categoria)
+    const itemsMap = new Map<string, VODItem>();
+    matchingFilas.forEach((f) => {
+      f.itens.forEach((it) => {
+        if (!itemsMap.has(it.title)) itemsMap.set(it.title, it);
+      });
+    });
+
+    const uniqueItems = Array.from(itemsMap.values());
+    if (uniqueItems.length > 0) {
+      const sortedAZ = uniqueItems.slice(0, 35).sort((a, b) => a.title.localeCompare(b.title));
+      const azRail = new Rail('Explorar de A a Z', false);
+      azRail.setCards(this.mapCards(sortedAZ));
+      this.railsContainer.appendChild(azRail.getElement());
+      this.dynamicRails.push(azRail);
+    }
   }
 
   private mapCards(items: VODItem[]): CardModel[] {
     return items.map((item) => ({
       id: `ondemand_${item.id}`,
       title: item.title,
-      subtitle: item.genres?.slice(0, 2).join(' · ') || (item.isSeries ? 'Série' : 'Filme'),
+      subtitle: item.year ? `${item.year} · ${item.isSeries ? 'Série' : 'Filme'}` : (item.isSeries ? 'Série' : 'Filme'),
       image: item.poster,
       badge: item.year || (item.isSeries ? 'SÉRIE' : '4K'),
       badgeColor: item.isSeries ? '#7aa2ff' : '#4fe3d0',

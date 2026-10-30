@@ -51,6 +51,8 @@ export class Storage {
   private static PROGRESS_KEY = 'saimo_tv_vod_progress';
   private static FAV_CHANNELS_KEY = 'saimo_tv_fav_channels';
   private static FAV_VOD_KEY = 'saimo_tv_fav_vod';
+  private static CACHED_DESTAQUES_KEY = 'saimo_tv_cached_destaques';
+  private static CACHED_CHANNELS_KEY = 'saimo_tv_cached_channels';
 
   static getPrefs(): TVPreferences {
     try {
@@ -141,5 +143,35 @@ export class Storage {
     else favs.add(title);
     localStorage.setItem(this.FAV_VOD_KEY, JSON.stringify(Array.from(favs)));
     return !isFav;
+  }
+
+  // Cache instantâneo para Boot Zero-Delay
+  static getCachedDestaques(): any[] | null {
+    try {
+      const data = localStorage.getItem(this.CACHED_DESTAQUES_KEY);
+      if (data) return JSON.parse(data);
+    } catch (e) {}
+    return null;
+  }
+
+  static setCachedDestaques(destaques: any[]) {
+    try {
+      localStorage.setItem(this.CACHED_DESTAQUES_KEY, JSON.stringify(destaques));
+    } catch (e) {}
+  }
+
+  static getCachedChannels(): any[] | null {
+    try {
+      const data = localStorage.getItem(this.CACHED_CHANNELS_KEY);
+      if (data) return JSON.parse(data);
+    } catch (e) {}
+    return null;
+  }
+
+  static setCachedChannels(channels: any[]) {
+    try {
+      const slice = channels.slice(0, 100);
+      localStorage.setItem(this.CACHED_CHANNELS_KEY, JSON.stringify(slice));
+    } catch (e) {}
   }
 }

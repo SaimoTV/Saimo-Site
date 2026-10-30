@@ -48,15 +48,27 @@ export class LiveScreen {
     return this.element;
   }
 
-  async enter() {
+  enter() {
     this.element.classList.remove('hidden');
 
-    // Carrega canais se ainda não carregados
     if (State.channels.length === 0) {
-      State.channels = await Api.fetchChannels();
+      State.channels = Api.getCachedChannelsSync();
+      if (State.channels.length === 0) {
+        Api.fetchChannels().then((c) => {
+          State.channels = c;
+          if (!State.currentChannel && c.length > 0) {
+            this.tuneDefaultChannel();
+          }
+        }).catch(() => {});
+      }
     }
 
-    // Se nenhum canal estiver selecionado, usa o último assistido ou o primeiro
+    if (State.channels.length > 0) {
+      this.tuneDefaultChannel();
+    }
+  }
+
+  private tuneDefaultChannel() {
     if (!State.currentChannel && State.channels.length > 0) {
       const prefs = Storage.getPrefs();
       const last = State.channels.find((c) => c.name === prefs.ultimoCanal);

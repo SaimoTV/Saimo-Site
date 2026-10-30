@@ -105,17 +105,37 @@ export class Api {
   }
 
   // ===== CANAIS AO VIVO =====
+  static getCachedChannelsSync(): Channel[] {
+    if (this.channelsCache.length > 0) return this.channelsCache;
+    const cached = Storage.getCachedChannels();
+    if (cached && cached.length > 0) {
+      this.channelsCache = cached;
+      return cached;
+    }
+    return [];
+  }
+
   static async fetchChannels(forceRefresh = false): Promise<Channel[]> {
     if (!forceRefresh && this.channelsCache.length > 0) {
       return this.channelsCache;
     }
 
+    // Se temos em cache local, popula imediatamente para a UI não esperar
+    const cached = Storage.getCachedChannels();
+    if (cached && cached.length > 0 && this.channelsCache.length === 0) {
+      this.channelsCache = cached;
+    }
+
     try {
-      const url = `${this.getBaseUrl('canais')}catalogo.txt?t=${Date.now()}`;
-      const res = await fetch(url);
+      const url = `${this.getBaseUrl('canais')}catalogo.txt`;
+      const res = await fetch(url, { cache: 'default' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const text = await res.text();
-      this.channelsCache = this.parseChannels(text);
+      const parsed = this.parseChannels(text);
+      if (parsed.length > 0) {
+        this.channelsCache = parsed;
+        Storage.setCachedChannels(parsed);
+      }
       return this.channelsCache;
     } catch (e) {
       console.warn('[SaimoTV] Falha ao baixar catálogo de canais:', e);
@@ -276,12 +296,28 @@ export class Api {
   }
 
   // ===== DESTAQUES DA TELA INICIAL (DESTAQUES.TXT) =====
-  static async fetchDestaques(): Promise<DestaqueFila[]> {
+  static getCachedDestaquesSync(): DestaqueFila[] {
     if (this.destaquesCache.length > 0) return this.destaquesCache;
+    const cached = Storage.getCachedDestaques();
+    if (cached && cached.length > 0) {
+      this.destaquesCache = cached;
+      return cached;
+    }
+    return [];
+  }
+
+  static async fetchDestaques(forceRefresh = false): Promise<DestaqueFila[]> {
+    if (!forceRefresh && this.destaquesCache.length > 0) return this.destaquesCache;
+
+    const cached = Storage.getCachedDestaques();
+    if (cached && cached.length > 0 && this.destaquesCache.length === 0) {
+      this.destaquesCache = cached;
+    }
+
     try {
-      const url = `${this.getBaseUrl('filmes')}destaques.txt?t=${Date.now()}`;
-      const res = await fetch(url);
-      if (!res.ok) return [];
+      const url = `${this.getBaseUrl('filmes')}destaques.txt`;
+      const res = await fetch(url, { cache: 'default' });
+      if (!res.ok) return this.destaquesCache;
       const text = await res.text();
 
       const filas: DestaqueFila[] = [];
@@ -324,11 +360,14 @@ export class Api {
         }
       }
 
-      this.destaquesCache = filas;
-      return filas;
+      if (filas.length > 0) {
+        this.destaquesCache = filas;
+        Storage.setCachedDestaques(filas);
+      }
+      return this.destaquesCache;
     } catch (e) {
       console.warn('[SaimoTV] Falha ao carregar destaques.txt:', e);
-      return [];
+      return this.destaquesCache;
     }
   }
 
@@ -336,8 +375,8 @@ export class Api {
   static async fetchFichas(): Promise<VODItem[]> {
     if (this.vodCache.length > 0) return this.vodCache;
     try {
-      const url = `${this.getBaseUrl('filmes')}fichas.txt?t=${Date.now()}`;
-      const res = await fetch(url);
+      const url = `${this.getBaseUrl('filmes')}fichas.txt`;
+      const res = await fetch(url, { cache: 'default' });
       if (!res.ok) return [];
       const text = await res.text();
       const items: VODItem[] = [];
@@ -377,6 +416,24 @@ export class Api {
     } catch (e) {
       return [];
     }
+  }
+
+  static getDestaquesFlat(): VODItem[] {
+    const filas = this.getCachedDestaquesSync();
+    const map = new Map<string, VODItem>();
+    for (const f of filas) {
+      for (const item of f.itens) {
+        if (!map.has(item.title)) {
+          map.set(item.title, item);
+        }
+      }
+    }
+    return Array.from(map.values());
+  }
+
+  static getSearchPool(): VODItem[] {
+    if (this.vodCache.length > 0) return this.vodCache;
+    return this.getDestaquesFlat();
   }
 
   // ===== RESOLUÇÃO REAL DE FONTES DE FILME =====

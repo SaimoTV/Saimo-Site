@@ -48,17 +48,19 @@ video {
   object-fit: contain;
 }
 
-/* Efeito de Foco D-Pad Fluido (60 FPS) */
+/* Efeito de Foco D-Pad Fluido (60 FPS Instantâneo na GPU) */
 .nav-focusable {
-  transition: transform 0.16s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.16s ease, border-color 0.16s ease;
+  transition: transform 0.08s ease-out, border-color 0.08s ease-out;
+  transform: translateZ(0);
   will-change: transform;
   border: 3px solid transparent;
+  outline: none;
 }
 
 .nav-focused {
-  transform: scale(1.07) translateZ(0) !important;
+  transform: scale(1.06) translateZ(0) !important;
   border-color: #00e3ff !important;
-  box-shadow: 0 10px 30px rgba(0, 227, 255, 0.45) !important;
+  box-shadow: 0 4px 20px rgba(0, 227, 255, 0.5) !important;
   z-index: 50 !important;
 }
 

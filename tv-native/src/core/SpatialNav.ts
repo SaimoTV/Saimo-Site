@@ -144,16 +144,52 @@ export class SpatialNav {
   }
 
   private static getFocusables(): HTMLElement[] {
-    const scope: Document | HTMLElement = this.trapContainer || document;
-    const list = Array.from(
-      scope.querySelectorAll<HTMLElement>(
+    if (this.trapContainer) {
+      const list = this.trapContainer.querySelectorAll<HTMLElement>(
         '[data-nav="true"]:not([disabled]):not([data-nav-disabled="true"])'
-      )
-    );
-    return list.filter((el) => {
-      const style = window.getComputedStyle(el);
-      return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
-    });
+      );
+      const result: HTMLElement[] = [];
+      for (let i = 0; i < list.length; i++) {
+        const el = list[i];
+        if (el.offsetParent !== null && el.style.display !== 'none' && el.style.visibility !== 'hidden') {
+          result.push(el);
+        }
+      }
+      return result;
+    }
+
+    const activeScreen = document.querySelector<HTMLElement>('.tv-screen:not(.hidden)');
+    const menuGlobal = document.querySelector<HTMLElement>('.tv-menu-global');
+
+    const result: HTMLElement[] = [];
+
+    // Inclui itens do menu do topo quando estiver visível
+    if (menuGlobal && menuGlobal.style.display !== 'none') {
+      const menuList = menuGlobal.querySelectorAll<HTMLElement>(
+        '[data-nav="true"]:not([disabled]):not([data-nav-disabled="true"])'
+      );
+      for (let i = 0; i < menuList.length; i++) {
+        const el = menuList[i];
+        if (el.offsetParent !== null && el.style.display !== 'none' && el.style.visibility !== 'hidden') {
+          result.push(el);
+        }
+      }
+    }
+
+    // Inclui itens da tela ativa
+    if (activeScreen) {
+      const screenList = activeScreen.querySelectorAll<HTMLElement>(
+        '[data-nav="true"]:not([disabled]):not([data-nav-disabled="true"])'
+      );
+      for (let i = 0; i < screenList.length; i++) {
+        const el = screenList[i];
+        if (el.offsetParent !== null && el.style.display !== 'none' && el.style.visibility !== 'hidden') {
+          result.push(el);
+        }
+      }
+    }
+
+    return result;
   }
 
   private static getRect(el: HTMLElement): NavRect {
@@ -197,14 +233,14 @@ export class SpatialNav {
   }
 
   private static scrollToElement(el: HTMLElement) {
-    // 1. Rolagem horizontal no trilho pai
+    // 1. Rolagem horizontal no trilho pai (Instantânea a 60 FPS na GPU da TV)
     const rail = el.closest<HTMLElement>('.tv-rail-items, .tv-scroll-h');
     if (rail) {
       const railRect = rail.getBoundingClientRect();
       const elRect = el.getBoundingClientRect();
       const targetScroll =
         rail.scrollLeft + (elRect.left - railRect.left) - (railRect.width / 2 - elRect.width / 2);
-      rail.scrollTo({ left: targetScroll, behavior: 'smooth' });
+      rail.scrollLeft = targetScroll;
     }
 
     // 2. Rolagem vertical na tela principal
@@ -214,7 +250,7 @@ export class SpatialNav {
       const elRect = el.getBoundingClientRect();
       const targetScrollY =
         screen.scrollTop + (elRect.top - screenRect.top) - (screenRect.height / 2 - elRect.height / 2);
-      screen.scrollTo({ top: targetScrollY, behavior: 'smooth' });
+      screen.scrollTop = targetScrollY;
     }
   }
 }

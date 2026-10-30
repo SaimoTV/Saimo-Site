@@ -50,7 +50,7 @@ export class HomeScreen {
     return this.element;
   }
 
-  async enter() {
+  enter() {
     this.element.classList.remove('hidden');
     this.heroBanner.setDefault(
       'Saimo TV',
@@ -58,19 +58,19 @@ export class HomeScreen {
       'Navegue com o controle remoto para explorar o acervo completo e sintonizar canais com zero delay.'
     );
 
-    // Carrega itens locais imediatamente (<1ms)
+    // 1. Carrega itens locais e dados em cache imediatamente no frame 0 (< 1ms)
     this.renderContinueWatching();
-    await this.renderLiveRail();
+    this.renderLiveRailSync();
+    this.loadDestaquesSync();
 
-    // Carrega fileiras do destaques.txt
+    // 2. Foco instantâneo para resposta a comandos do controle remoto
+    this.focusFirstItem();
+
+    // 3. Atualização em segundo plano não bloqueante (fire and forget)
     if (!this.isLoaded) {
-      await this.loadDestaques();
       this.isLoaded = true;
+      this.syncFreshData();
     }
-
-    setTimeout(() => {
-      this.focusFirstItem();
-    }, 50);
   }
 
   leave() {
@@ -86,6 +86,24 @@ export class HomeScreen {
     if (firstCard) {
       SpatialNav.focus(firstCard);
     }
+  }
+
+  private syncFreshData() {
+    Promise.all([
+      Api.fetchChannels(),
+      Api.fetchDestaques()
+    ]).then(([channels, destaques]) => {
+      if (channels && channels.length > 0) {
+        State.channels = channels;
+        this.renderLiveRailSync();
+      }
+      if (destaques && destaques.length > 0) {
+        this.loadDestaquesSync();
+      }
+      if (!document.querySelector('.nav-focused')) {
+        this.focusFirstItem();
+      }
+    }).catch((e) => console.warn('[HomeScreen] syncFreshData erro:', e));
   }
 
   private renderContinueWatching() {
@@ -131,13 +149,17 @@ export class HomeScreen {
     this.continueRail.setCards(cards);
   }
 
-  private async renderLiveRail() {
-    if (State.channels.length === 0) {
-      State.channels = await Api.fetchChannels();
+  private renderLiveRailSync() {
+    const channels = State.channels.length > 0 ? State.channels : Api.getCachedChannelsSync();
+    if (channels.length === 0) {
+      this.liveRail.getElement().style.display = 'none';
+      return;
     }
+    State.channels = channels;
+    this.liveRail.getElement().style.display = 'block';
 
     const favs = Storage.getFavoriteChannels();
-    const chosenChannels = State.channels
+    const chosenChannels = channels
       .filter((c) => favs.has(c.name) || c.category.includes('Aberta') || c.category.includes('Esporte'))
       .slice(0, 16);
 
@@ -167,24 +189,16 @@ export class HomeScreen {
     this.liveRail.setCards(cards);
   }
 
-  private async loadDestaques() {
-    const filas = await Api.fetchDestaques();
+  private loadDestaquesSync() {
+    const filas = Api.getCachedDestaquesSync();
+    if (filas.length === 0) return;
 
-    // Remove trilhos dinâmicos anteriores se houver
-    this.dynamicRails.forEach((r) => r.getElement().remove());
-    this.dynamicRails = [];
-
-    if (filas.length === 0) {
-      // Fallback para fichas caso destaques.txt não responda
-      const items = await Api.fetchFichas();
-      if (items.length > 0) {
-        const r1 = new Rail('Em Alta & Destaques', false);
-        r1.setCards(this.mapCards(items.slice(0, 20)));
-        this.scrollContainer.appendChild(r1.getElement());
-        this.dynamicRails.push(r1);
-      }
+    if (this.dynamicRails.length > 0 && this.dynamicRails.length === filas.length) {
       return;
     }
+
+    this.dynamicRails.forEach((r) => r.getElement().remove());
+    this.dynamicRails = [];
 
     filas.forEach((f) => {
       if (f.itens.length === 0) return;

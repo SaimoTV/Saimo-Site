@@ -39,20 +39,29 @@ export class GuideScreen {
     return this.element;
   }
 
-  async enter() {
+  enter() {
     this.element.classList.remove('hidden');
 
     if (State.channels.length === 0) {
-      State.channels = await Api.fetchChannels();
+      State.channels = Api.getCachedChannelsSync();
+      if (State.channels.length === 0) {
+        Api.fetchChannels().then((c) => {
+          State.channels = c;
+          this.renderChannels();
+        }).catch(() => {});
+      }
     }
-    await Api.fetchEPG();
 
     this.renderChannels();
 
-    setTimeout(() => {
-      const firstChannel = this.channelListEl.querySelector<HTMLElement>('.tv-guide-channel-item');
-      if (firstChannel) SpatialNav.focus(firstChannel);
-    }, 50);
+    const firstChannel = this.channelListEl.querySelector<HTMLElement>('.tv-guide-channel-item');
+    if (firstChannel) SpatialNav.focus(firstChannel);
+
+    Api.fetchEPG().then(() => {
+      if (this.selectedChannel) {
+        this.renderSchedule(this.selectedChannel);
+      }
+    }).catch(() => {});
   }
 
   leave() {
