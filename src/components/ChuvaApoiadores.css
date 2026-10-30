@@ -12,23 +12,6 @@
   pointer-events: none;
   user-select: none;
   z-index: 0;
-  contain: strict;
-  perspective: 1000px;
-  /* Transição suave nas bordas extremas da janela */
-  mask-image: linear-gradient(
-    to bottom,
-    transparent 0%,
-    rgba(0, 0, 0, 1) 4%,
-    rgba(0, 0, 0, 1) 96%,
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent 0%,
-    rgba(0, 0, 0, 1) 4%,
-    rgba(0, 0, 0, 1) 96%,
-    transparent 100%
-  );
 }
 
 /* Quando a aba fica em segundo plano, congela a animação economizando 100% de GPU */
@@ -36,14 +19,13 @@
   animation-play-state: paused !important;
 }
 
-/* Elemento individual que flutua suavemente para cima */
+/* Elemento individual que flutua para cima */
 .chuva-item {
   position: absolute;
   bottom: -60px;
   white-space: nowrap;
   font-family: inherit;
   letter-spacing: -0.01em;
-  transform: translate3d(var(--x-offset, 0px), 0, 0);
   will-change: transform, opacity;
   animation-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1);
   animation-fill-mode: forwards;
@@ -61,20 +43,20 @@
 /* Animação com oscilação orgânica no eixo X (drift suave para a esquerda) */
 @keyframes subirApoiadorDriftLeft {
   0% {
-    transform: translate3d(var(--x-offset, 0px), 30px, 0) scale(var(--scale, 1));
+    transform: translate3d(0, 30px, 0);
     opacity: 0;
   }
   8% {
-    opacity: var(--target-opacity, 0.5);
+    opacity: var(--target-opacity, 0.6);
   }
   50% {
-    transform: translate3d(calc(var(--x-offset, 0px) - 22px), calc(-50vh - 60px), 0) scale(var(--scale, 1));
+    transform: translate3d(-20px, calc(-50vh - 60px), 0);
   }
   90% {
-    opacity: var(--target-opacity, 0.5);
+    opacity: var(--target-opacity, 0.6);
   }
   100% {
-    transform: translate3d(calc(var(--x-offset, 0px) - 10px), calc(-100vh - 120px), 0) scale(var(--scale, 1));
+    transform: translate3d(-10px, calc(-100vh - 120px), 0);
     opacity: 0;
   }
 }
@@ -82,20 +64,20 @@
 /* Animação com oscilação orgânica no eixo X (drift suave para a direita) */
 @keyframes subirApoiadorDriftRight {
   0% {
-    transform: translate3d(var(--x-offset, 0px), 30px, 0) scale(var(--scale, 1));
+    transform: translate3d(0, 30px, 0);
     opacity: 0;
   }
   8% {
-    opacity: var(--target-opacity, 0.5);
+    opacity: var(--target-opacity, 0.6);
   }
   50% {
-    transform: translate3d(calc(var(--x-offset, 0px) + 22px), calc(-50vh - 60px), 0) scale(var(--scale, 1));
+    transform: translate3d(20px, calc(-50vh - 60px), 0);
   }
   90% {
-    opacity: var(--target-opacity, 0.5);
+    opacity: var(--target-opacity, 0.6);
   }
   100% {
-    transform: translate3d(calc(var(--x-offset, 0px) + 10px), calc(-100vh - 120px), 0) scale(var(--scale, 1));
+    transform: translate3d(10px, calc(-100vh - 120px), 0);
     opacity: 0;
   }
 }

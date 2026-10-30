@@ -35,9 +35,8 @@ function SlotApoiador({
   const [ciclo, setCiclo] = useState(0);
   const [apoiador, setApoiador] = useState<Apoiador>(() => sortearApoiador(lista));
 
-  // Variação orgânica de posição por ciclo
-  const [jitterX, setJitterX] = useState(() => (Math.random() * 6 - 3)); // -3% a +3%
-  const [velocidadeOffset, setVelocidadeOffset] = useState(() => (Math.random() * 3 - 1.5)); // -1.5s a +1.5s
+  const [jitterX, setJitterX] = useState(() => (Math.random() * 4 - 2)); // -2% a +2%
+  const [velocidadeOffset, setVelocidadeOffset] = useState(() => (Math.random() * 2 - 1));
 
   const maior = useMemo(() => maiorValor(lista), [lista]);
   const estilo = useMemo(() => calcularEstiloApoiador(apoiador, maior), [apoiador, maior]);
@@ -48,14 +47,12 @@ function SlotApoiador({
 
   const aoTerminarAnimacao = () => {
     setApoiador(sortearApoiador(lista));
-    setJitterX(Math.random() * 6 - 3);
-    setVelocidadeOffset(Math.random() * 3 - 1.5);
+    setJitterX(Math.random() * 4 - 2);
+    setVelocidadeOffset(Math.random() * 2 - 1);
     setCiclo((c) => c + 1);
   };
 
-  // No primeiro ciclo (ciclo 0), aplica o delay negativo gerado aleatoriamente para cada slot
-  // Nos ciclos subsequentes, recomeça com um pequeno delay orgânico aleatório (0 a 1.2s)
-  const delayCss = ciclo === 0 ? `${initialDelay}s` : `${Math.random() * 1.2}s`;
+  const delayCss = ciclo === 0 ? `${initialDelay}s` : `${Math.random() * 1.5}s`;
   const duracaoFinal = Math.max(12, estilo.durationSeconds + velocidadeOffset);
 
   const animacaoNome = driftDirection === 'Left' ? 'subirApoiadorDriftLeft' : 'subirApoiadorDriftRight';
@@ -95,7 +92,6 @@ export function ChuvaApoiadores() {
   const [lista, setLista] = useState<Apoiador[]>(APOIADORES_SEMENTE);
   const [pausada, setPausada] = useState(false);
 
-  // Carregar lista de apoiadores (remota/local)
   useEffect(() => {
     let ativo = true;
     carregarApoiadores().then((res) => {
@@ -108,7 +104,6 @@ export function ChuvaApoiadores() {
     };
   }, []);
 
-  // Pausar animação quando a aba perder o foco (economia total de GPU e bateria)
   useEffect(() => {
     const tratarVisibilidade = () => {
       setPausada(document.hidden);
@@ -119,17 +114,14 @@ export function ChuvaApoiadores() {
     };
   }, []);
 
-  // Quantidade de slots simultâneos na tela (24 em desktop, 12 em mobile)
+  // 24 faixas no desktop, 12 no mobile
   const totalSlots = typeof window !== 'undefined' && window.innerWidth < 680 ? 12 : 24;
 
-  // Gerar configuração inicial completamente aleatória a CADA carregamento da tela
   const slotsConfig = useMemo(() => {
-    // Embaralhar delays no intervalo de -0.5s a -24s para espalhar os nomes pela tela de forma única
     const margemEsquerda = 3;
     const larguraUtil = 92;
     const passoFaixa = larguraUtil / Math.max(1, totalSlots - 1);
 
-    // Gera delays negativos distribuídos em fatias com jitter aleatório
     const delays: number[] = [];
     const stepDelay = 22 / totalSlots;
     for (let i = 0; i < totalSlots; i++) {
@@ -138,15 +130,14 @@ export function ChuvaApoiadores() {
       delays.push(parseFloat((baseD + randomJitter).toFixed(1)));
     }
 
-    // Embaralha os delays para que colunas vizinhas não subam juntas em escadinha
     for (let i = delays.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [delays[i], delays[j]] = [delays[j], delays[i]];
     }
 
     return Array.from({ length: totalSlots }, (_, i) => {
-      const baseLeft = margemEsquerda + i * passoFaixa + (Math.random() * 3 - 1.5);
-      const driftDirection = Math.random() > 0.5 ? 'Left' : 'Right';
+      const baseLeft = margemEsquerda + i * passoFaixa + (Math.random() * 2 - 1);
+      const driftDirection = i % 2 === 0 ? 'Left' : 'Right';
       return {
         slotId: i,
         baseLeft,
