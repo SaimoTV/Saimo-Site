@@ -365,6 +365,17 @@ const SERVIDORES_MORTOS = [
   'vod-limit-media',
   'froststream.cloutteam.com',
   'cloutteam.com',
+  'cdn.hermesnewone.com',
+  'speed2.megafilmeshd9.com',
+  'cdn-sv01.maximaimg.online',
+  'strm15.uqload.vc',
+  'megaembed.com',
+  'clickhost.xyz',
+  'playercdnx.workers.dev',
+  '146.0.32.89',
+  'corruptx.org',
+  'governosptx.org',
+  'desativado.invalid',
 ];
 
 /** Aliases para títulos recém-lançados ou sequências que compartilham acervo nos provedores */
