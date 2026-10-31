@@ -212,7 +212,13 @@ async function buscarNoCatalogo(id: string, isSerie: boolean, season: string, ep
         break;
       }
     }
-    if (!tituloAchado) return null;
+    if (!tituloAchado) {
+      const aliasId = TMDB_ALIASES[id];
+      if (aliasId && aliasId !== id) {
+        return buscarNoCatalogo(aliasId, isSerie, season, episode, versao);
+      }
+      return null;
+    }
 
     const norm = tituloAchado.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').trim();
     const inicial = norm.charAt(0).toUpperCase();
@@ -229,7 +235,7 @@ async function buscarNoCatalogo(id: string, isSerie: boolean, season: string, ep
             if (p[i].startsWith(`${versao}=`) || p[i].startsWith('dub=') || p[i].startsWith('leg=')) {
               const urls = p[i].substring(4).split(',');
               for (const u of urls) {
-                if (u && !u.includes('api/stream')) return u;
+                if (u && !u.includes('api/stream') && !SERVIDORES_MORTOS.some(h => u.includes(h))) return u;
               }
             }
           }
@@ -240,8 +246,16 @@ async function buscarNoCatalogo(id: string, isSerie: boolean, season: string, ep
   return null;
 }
 
-/** Servidores que deixaram de servir os arquivos (403 permanente): nunca entregar. */
-const SERVIDORES_MORTOS = ['pub-bda823ef358c448ea310cdf9539f9628.r2.dev'];
+/** Servidores que deixaram de servir os arquivos (403 permanente ou offline): nunca entregar. */
+const SERVIDORES_MORTOS = [
+  'pub-bda823ef358c448ea310cdf9539f9628.r2.dev',
+  'praia13.com',
+];
+
+/** Aliases para títulos recém-lançados ou sequências que compartilham acervo nos provedores */
+const TMDB_ALIASES: Record<string, string> = {
+  '1507696': '1118031', // Apocalipse Z: Novo Mundo (2026) -> Apocalipse Z: O Princípio do Fim
+};
 
 /**
  * HTTPS só onde se sabe que existe. O `new URL` some com o `:80` explícito
@@ -410,6 +424,13 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
       : `${FENIX_BASE}/stream/movie/${imdbId}.json`;
     consultas.push(buscarAddon(fenixImdb, 5000));
   }
+  const aliasId = TMDB_ALIASES[cleanId];
+  if (aliasId) {
+    const aliasFenix = isSerie
+      ? `${FENIX_BASE}/stream/series/tmdb:${aliasId}:${season}:${episode}.json`
+      : `${FENIX_BASE}/stream/movie/tmdb:${aliasId}.json`;
+    consultas.push(buscarAddon(aliasFenix, 5000));
+  }
   const resultados = await Promise.all(consultas);
   todos = resultados.flatMap(r => r.streams).filter(st => !!st.url);
 
@@ -464,13 +485,14 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
 
   let ehFallback = false;
   if (!escolhido) {
-    if (ordenados.length === 0) {
+    const validos = ordenados.filter(st => !SERVIDORES_MORTOS.some(h => st.url!.includes(h)));
+    if (validos.length === 0) {
       return new Response(JSON.stringify({ error: 'Nenhum stream disponível para este título' }), {
         status: 404,
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' },
       });
     }
-    let candidato = normalizar(ordenados[0].url!);
+    let candidato = normalizar(validos[0].url!);
     if (candidato.includes('froststream.cloutteam.com')) {
       const d = await desmascararFrost(candidato);
       if (d) candidato = d;
