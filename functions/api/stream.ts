@@ -237,11 +237,31 @@ function expandBaseUrl(u: string): string {
   return '';
 }
 
+const FILMES_INEDITOS = new Set([
+  '1058424', // Hope: O Primeiro Impacto (2026)
+  '1400940', // Clayface (2026)
+  '1257147', // Minha Melhor Amiga (2026) - estreia na Netflix em 02/11/2026
+  '969681',  // Homem-Aranha: Um Novo Dia (2026)
+  '1273221', // Todo Mundo em Pânico (2026)
+  '936075',  // Michael (2026)
+  '552524',  // Lilo & Stitch (2025)
+  '1291595', // Sobrenatural: Agora Entre Nós (2026)
+  '83533',   // Avatar: Fogo e Cinzas (2025)
+  '1038392', // Invocação do Mal 4: O Último Ritual (2025)
+  '1506560', // Clash of the Thundermans (2026)
+  '1367642', // Uma Segunda Chance (2026)
+  '1228834', // The Fix (2026)
+  '1127110', // Diablo: Caçada Mortal (2025)
+  '1137844', // Mayday (2026)
+  '1503762', // Razão e Sensibilidade (2026)
+  '941109',  // Jogo Sujo (2025)
+]);
+
 async function buscarNoCatalogo(id: string, isSerie: boolean, season: string, episode: string, versao: string): Promise<string | null> {
-  if (id === '1058424' || id === '1400940') return null; // Hope (2026) e Clayface (2026) são inéditos
+  if (FILMES_INEDITOS.has(id)) return null;
   const CATALOG_BASE = 'https://filmes-saimo.pages.dev';
   try {
-    const fichasRes = await fetch(`${CATALOG_BASE}/fichas.txt`);
+    const fichasRes = await fetch(`${CATALOG_BASE}/fichas.txt?t=${Date.now()}`);
     if (!fichasRes.ok) return null;
     const fichasTxt = await fichasRes.text();
     const prefixoTipo = isSerie ? 's' : 'f';
@@ -266,16 +286,20 @@ async function buscarNoCatalogo(id: string, isSerie: boolean, season: string, ep
     const l = (inicial >= 'A' && inicial <= 'Z') ? inicial : '#';
 
     if (!isSerie) {
-      const fRes = await fetch(`${CATALOG_BASE}/filmes-${l}.txt`);
+      const fRes = await fetch(`${CATALOG_BASE}/filmes-${l}.txt?t=${Date.now()}`);
       if (!fRes.ok) return null;
       const fTxt = await fRes.text();
       const normAlvo = tituloAchado.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const baseAlvo = tituloAchado.split(' (')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+      const anoAlvo = tituloAchado.match(/\((\d{4})\)/)?.[1];
       for (const linha of fTxt.split('\n')) {
         const p = linha.split('\t');
         if (p.length >= 2) {
           const normLinha = p[0].toLowerCase().replace(/[^a-z0-9]/g, '');
-          if (normLinha === normAlvo || (baseAlvo.length >= 3 && normLinha.startsWith(baseAlvo))) {
+          const anoLinha = p[0].match(/\((\d{4})\)/)?.[1];
+          // Se o alvo tem ano, não pode casar com filme de ano diferente nem homônimo antigo sem ano
+          if (anoAlvo && anoLinha && anoAlvo !== anoLinha) continue;
+          if (anoAlvo && !anoLinha && parseInt(anoAlvo) >= 2025) continue;
+          if (normLinha === normAlvo) {
             for (let i = 1; i < p.length; i++) {
               if (p[i].startsWith(`${versao}=`) || p[i].startsWith('dub=') || p[i].startsWith('leg=')) {
                 const urls = p[i].substring(4).split(',');
