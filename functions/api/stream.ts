@@ -557,9 +557,11 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
   const resultados = await Promise.all(consultas);
   todos = resultados.flatMap(r => r.streams).filter(st => !!st.url);
 
-  // Filtra streams com arquivos de outros filmes associados erroneamente pelo provedor
+  // Filtra streams com arquivos de outros filmes associados erroneamente ou em servidores mortos
   todos = todos.filter(st => {
-    if (cleanId !== '432613' && st.url && (st.url.includes('98853.mp4') || st.url.includes('Cara.mp4') || st.url.includes('97968.mp4'))) {
+    if (!st.url) return false;
+    if (SERVIDORES_MORTOS.some(h => st.url!.includes(h))) return false;
+    if (cleanId !== '432613' && (st.url.includes('98853.mp4') || st.url.includes('Cara.mp4') || st.url.includes('97968.mp4'))) {
       return false;
     }
     return true;
@@ -585,6 +587,14 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
   const testados = await Promise.all(ordenados.slice(0, 4).map(st => respondeVideo(normalizar(st.url!))));
   let escolhido = testados.find((u): u is string => !!u) ?? '';
   let ehUsoUnico = false;
+
+  if (!escolhido) {
+    const doCatalogo = await buscarNoCatalogo(cleanId, isSerie, season, episode, versao);
+    if (doCatalogo) {
+      const resp = await respondeVideo(normalizar(doCatalogo));
+      escolhido = resp || normalizar(doCatalogo);
+    }
+  }
 
   if (escolhido && escolhido.includes('embedplayer2.xyz')) {
     escolhido = escolhido.replace(/\/master\.(?:m3u8|txt)(?:\?[^"'\s]*)?/, '/master.txt');
