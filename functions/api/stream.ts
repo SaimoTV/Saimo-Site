@@ -255,6 +255,24 @@ const FILMES_INEDITOS = new Set([
   '1137844', // Mayday (2026)
   '1503762', // Razão e Sensibilidade (2026)
   '941109',  // Jogo Sujo (2025)
+  '1507696', // Apocalipse Z: Novo Mundo (2026)
+  '1384216', // Ponto Sem Retorno (2026)
+  '340666',  // Animals. (2026)
+  '1283515', // Verity (2026)
+  '1571955', // Colisão Implacável (2026)
+  '1153576', // Street Fighter (2026)
+  '1248832', // Digger (2026)
+  '1561726', // Masterplan (2026)
+  '1204680', // Coyote vs. Acme (2026)
+  '1288069', // Tenzing (2026)
+  '1541477', // Eu, Você, Nós (2026)
+  '1453407', // Noite Brutal (2026)
+  '1433583', // The Weight (2026)
+  '1657630', // El despertar (2026)
+  '1187326', // As Aventuras de Tadeo e a Lâmpada Mágica (2026)
+  '1284046', // Protocolo de Extermínio (2026)
+  '1263337', // Coração Selvagem (2026)
+  '1288445', // Codigo Vinganca (2026)
 ]);
 
 async function buscarNoCatalogo(id: string, isSerie: boolean, season: string, episode: string, versao: string): Promise<string | null> {
@@ -399,6 +417,8 @@ const SERVIDORES_MORTOS = [
   'corruptx.org',
   'governosptx.org',
   'desativado.invalid',
+  'fenixhub.online',
+  'fenixflix.fenixhub.online',
 ];
 
 /** Aliases para títulos recém-lançados ou sequências que compartilham acervo nos provedores */
@@ -479,6 +499,10 @@ async function respondeVideo(url: string): Promise<string | null> {
       redirect: 'follow',
       signal: ctrl.signal,
     });
+    const finalUrl = normalizar(r.url || alvo);
+    if (finalUrl.includes('bloqueado.mp4') || finalUrl.includes('desativado.invalid')) return null;
+    const cl = r.headers.get('content-length');
+    if (cl === '0') return null;
     if (r.status >= 400 || !r.body) return null;
     // Só o primeiro pedaço: servidor que ignora o Range mandaria o filme inteiro.
     const leitor = r.body.getReader();
@@ -486,9 +510,9 @@ async function respondeVideo(url: string): Promise<string | null> {
     leitor.cancel().catch(() => {});
     const corpo = (value ?? new Uint8Array()).slice(0, 1024);
     const inicio = new TextDecoder().decode(corpo.slice(0, 16)).trimStart();
-    if (inicio.startsWith('#EXTM3U')) return normalizar(r.url || alvo);
+    if (inicio.startsWith('#EXTM3U')) return finalUrl;
     if (corpo.length === 0 || corpo[0] === 0x3c /* < */ || corpo[0] === 0x7b /* { */) return null;
-    return normalizar(r.url || alvo);
+    return finalUrl;
   } catch {
     return null;
   } finally {
