@@ -388,10 +388,16 @@ const TMDB_ALIASES: Record<string, string> = {
  * endereço que nunca abre: os addons entregam quase tudo em http numa porta 80.
  */
 function normalizar(url: string): string {
+  if (!url) return '';
   if (/^https:\/\/[^/]+:80\//.test(url)) return 'http://' + url.slice(8);
   if (url.startsWith('http://')) {
+    // Se tem porta explícita (como :80 ou :8080), não força https pois quebra o handshake TLS
+    if (/:[0-9]+\//.test(url)) return url;
     try {
-      if (/\.(workers\.dev|pages\.dev|r2\.dev)$/.test(new URL(url).hostname)) return 'https://' + url.slice(7);
+      const u = new URL(url);
+      if (!u.port && (/\.(workers\.dev|pages\.dev|r2\.dev|b-cdn\.net)$/i.test(u.hostname) || u.hostname === 'cdn.vdcdpstop.lat')) {
+        return 'https://' + url.slice(7);
+      }
     } catch { /* fica como veio */ }
   }
   return url;
@@ -457,9 +463,9 @@ async function respondeVideo(url: string): Promise<string | null> {
     leitor.cancel().catch(() => {});
     const corpo = (value ?? new Uint8Array()).slice(0, 1024);
     const inicio = new TextDecoder().decode(corpo.slice(0, 16)).trimStart();
-    if (inicio.startsWith('#EXTM3U')) return r.url || alvo;
+    if (inicio.startsWith('#EXTM3U')) return normalizar(r.url || alvo);
     if (corpo.length === 0 || corpo[0] === 0x3c /* < */ || corpo[0] === 0x7b /* { */) return null;
-    return r.url || alvo;
+    return normalizar(r.url || alvo);
   } catch {
     return null;
   } finally {
@@ -663,6 +669,16 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
     }
     escolhido = candidato;
     ehFallback = true;
+  }
+
+  escolhido = normalizar(escolhido);
+
+  // Se a requisição veio de HTTPS (navegador no site) e a URL do vídeo ainda for HTTP
+  // (servidor legado na porta 80 sem SSL), entrega através do proxy interno para
+  // evitar bloqueio de Conteúdo Misto (Mixed Content) pelo navegador!
+  if (escolhido.startsWith('http://') && request.url.startsWith('https://')) {
+    const reqOrigin = new URL(request.url).origin;
+    escolhido = `${reqOrigin}/api/proxy?url=${encodeURIComponent(escolhido)}`;
   }
 
   const headers = new Headers();
