@@ -582,6 +582,32 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
     if (cleanId === '1058424' && (st.url.includes('313329.mp4') || st.url.includes('313368.mp4') || st.url.includes('Impacto.mp4'))) {
       return false;
     }
+    // Minha Melhor Amiga (2026): FrostStream e listas antigas entregam o filme italiano de 2014 (Una donna per amica) ou Pokémon
+    if (cleanId === '1257147' && (st.url.includes('froststream') || st.url.includes('249904.mp4') || st.url.includes('78879.mp4'))) {
+      return false;
+    }
+    // Filmes inéditos / não lançados que recebem streams de filmes antigos homônimos
+    if (cleanId === '969681' && (st.url.includes('09d89b1f0482cc99118dab08') || st.url.includes('311018.mp4') || st.url.includes('310642.mp4'))) {
+      return false;
+    }
+    if (cleanId === '1273221' && (st.url.includes('628d9896b729b1cb52c3bb4a') || st.url.includes('309257.mp4') || st.url.includes('19950.mp4'))) {
+      return false;
+    }
+    if (cleanId === '936075' && (st.url.includes('306260.mp4') || st.url.includes('306261.mp4') || st.url.includes('301385.mp4'))) {
+      return false;
+    }
+    if (cleanId === '552524' && (st.url.includes('35e556752717d78a474e6bd4d576a7eb') || st.url.includes('16001.mp4'))) {
+      return false;
+    }
+    if (cleanId === '1291595' && st.url.includes('52018.mp4')) {
+      return false;
+    }
+    if (cleanId === '83533' && (st.url.includes('91edabea842aefc574c16aca') || st.url.includes('251106.mp4') || st.url.includes('256143.mp4'))) {
+      return false;
+    }
+    if (cleanId === '1038392' && (st.url.includes('a8435a9da193b4189be4ab4a') || st.url.includes('256452.mp4'))) {
+      return false;
+    }
     return true;
   });
 
