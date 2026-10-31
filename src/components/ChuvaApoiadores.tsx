@@ -38,6 +38,17 @@ function SlotApoiador({
   const [jitterX, setJitterX] = useState(() => (Math.random() * 4 - 2)); // -2% a +2%
   const [velocidadeOffset, setVelocidadeOffset] = useState(() => (Math.random() * 2 - 1));
 
+  // Quando a lista de apoiadores carrega ou é atualizada, reflete o novo valor e estilo na hora
+  useEffect(() => {
+    setApoiador((atual) => {
+      const achado = lista.find((a) => a.nome === atual.nome);
+      if (achado) {
+        return achado;
+      }
+      return sortearApoiador(lista);
+    });
+  }, [lista]);
+
   const maior = useMemo(() => maiorValor(lista), [lista]);
   const estilo = useMemo(() => calcularEstiloApoiador(apoiador, maior), [apoiador, maior]);
 

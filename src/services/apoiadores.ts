@@ -26,18 +26,16 @@ export interface ApoiadorEstilo {
 
 /** Fonte mínima e teto absoluto (px). */
 const FONTE_MIN = 13;
-const FONTE_TETO = 44;
-
-const CHAVE_CACHE = 'saimo-apoiadores-cache-v5';
-const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutos
+const FONTE_TETO = 46;
 
 /** Lista de emergência caso nenhum arquivo de rede/disco possa ser lido */
 export const APOIADORES_SEMENTE: Apoiador[] = [
+  { nome: 'Michell C.', valor: 60 },
+  { nome: 'Bruno C.', valor: 50 },
   { nome: 'Yuri D.', valor: 50 },
   { nome: 'Fabiano B.', valor: 30 },
   { nome: 'Luiz F.', valor: 10 },
   { nome: 'Edmundo G.', valor: 10 },
-  { nome: 'Michell C.', valor: 10 },
   { nome: 'Everton C.', valor: 10 },
   { nome: 'Anderson C.', valor: 10 },
   { nome: 'Rafael C.', valor: 7.28 },
@@ -86,49 +84,47 @@ export function calcularIntensidade(valor: number, maior: number): number {
 
 /**
  * Retorna as propriedades de estilo CSS para renderizar o apoiador.
+ * Regra de 3: quanto maior o valor em relação ao maior apoiador, maior a fonte
+ * e mais forte e vermelho é a cor.
  */
 export function calcularEstiloApoiador(apoiador: Apoiador, maior: number): ApoiadorEstilo {
   const t = calcularIntensidade(apoiador.valor, maior);
 
-  // Tamanho proporcional: FONTE_MIN + t * (FONTE_TETO - FONTE_MIN), nunca passa do teto
+  // Tamanho proporcional: FONTE_MIN (14px) até FONTE_TETO (46px)
   const fontSizePx = Math.round(FONTE_MIN + t * (FONTE_TETO - FONTE_MIN));
 
-  // Peso da fonte: 400 (normal) até 800 (extra bold)
-  const peso = 400 + Math.round(t * 4) * 100;
+  // Peso da fonte: 400 (normal) até 900 (black)
+  const peso = t >= 0.85 ? 900 : t >= 0.60 ? 800 : t >= 0.30 ? 600 : 400;
 
-  // Cor (HSL): cinza-azulado frio -> âmbar -> vermelho forte
-  let hue: number;
-  let sat: number;
-  let light: number;
-  if (t <= 0.5) {
-    const f = t / 0.5;
-    hue = Math.round(210 - f * 172); // 210 -> 38
-    sat = Math.round(25 + f * 60); // 25% -> 85%
-    light = Math.round(75 - f * 10); // 75% -> 65%
-  } else {
-    const f = (t - 0.5) / 0.5;
-    hue = Math.round(38 - f * 38); // 38 -> 0
-    sat = Math.round(85 + f * 11); // 85% -> 96%
-    light = Math.round(65 - f * 7); // 65% -> 58%
-  }
-
-  // Opacidade: 0.35 (suave) a 0.85 (nítido)
-  const opacity = parseFloat((0.35 + t * 0.5).toFixed(2));
-
-  // Brilho vermelho para os maiores
+  // Cor e brilho:
+  // - Top (>= 85%): Vermelho vivo forte com brilho neon intenso
+  // - Alto (60% a 85%): Vermelho coral vibrante
+  // - Médio (30% a 60%): Âmbar / Dourado quente
+  // - Baixo (< 30%): Cinza-azulado suave
+  let color: string;
   let textShadow = '0 1px 4px rgba(0, 0, 0, 0.7)';
-  if (t >= 0.6) {
-    const alphaGlow = (0.25 + (t - 0.6) * 0.5).toFixed(2);
-    textShadow = `0 0 14px rgba(255, 45, 65, ${alphaGlow}), 0 1px 6px rgba(0, 0, 0, 0.9)`;
+  const opacity = parseFloat((0.42 + t * 0.53).toFixed(2));
+
+  if (t >= 0.85) {
+    color = '#ff2244';
+    textShadow = '0 0 16px rgba(255, 34, 68, 0.85), 0 2px 8px rgba(0, 0, 0, 0.9)';
+  } else if (t >= 0.60) {
+    color = '#f43f5e';
+    textShadow = '0 0 10px rgba(244, 63, 94, 0.6), 0 1px 6px rgba(0, 0, 0, 0.85)';
+  } else if (t >= 0.30) {
+    color = '#f59e0b';
+    textShadow = '0 0 8px rgba(245, 158, 11, 0.4), 0 1px 4px rgba(0, 0, 0, 0.8)';
+  } else {
+    color = '#cbd5e1';
   }
 
-  // Duração: 20s (menores) a 16s (maiores)
-  const durationSeconds = Math.round((20 - t * 4) * 10) / 10;
+  // Duração: 20s (menores) a 15s (maiores)
+  const durationSeconds = Math.round((20 - t * 5) * 10) / 10;
 
   return {
     fontSize: `${fontSizePx}px`,
     fontWeight: peso,
-    color: `hsl(${hue}, ${sat}%, ${light}%)`,
+    color,
     opacity,
     textShadow,
     durationSeconds,
@@ -137,37 +133,28 @@ export function calcularEstiloApoiador(apoiador: Apoiador, maior: number): Apoia
 }
 
 /**
- * Carrega a lista de apoiadores com estratégia de cache e fallbacks resilientes.
+ * Carrega a lista de apoiadores com busca direta sem cache travado.
  */
 export async function carregarApoiadores(): Promise<Apoiador[]> {
-  try {
-    const cached = sessionStorage.getItem(CHAVE_CACHE);
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (parsed && Array.isArray(parsed.dados) && Date.now() - parsed.timestamp < CACHE_TTL_MS) {
-        return parsed.dados;
-      }
-    }
-  } catch {
-    // sessionStorage indisponível
-  }
+  const agora = Date.now();
+  const urls: string[] = [
+    `/apoiadores.txt?t=${agora}`,
+  ];
 
   const baseCanais = linkCanais();
-  const urls: string[] = [];
-  if (baseCanais) urls.push(`${baseCanais}apoiadores.txt`);
-  urls.push('/apoiadores.txt');
+  if (baseCanais) {
+    urls.push(`${baseCanais}apoiadores.txt?t=${agora}`);
+  }
 
   for (const url of urls) {
     try {
-      const resp = await fetch(url, { cache: 'no-cache', signal: AbortSignal.timeout(4000) });
+      const resp = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(3000) });
       if (!resp.ok) continue;
-      const lista = parseApoiadoresTxt(await resp.text());
-      try {
-        sessionStorage.setItem(CHAVE_CACHE, JSON.stringify({ dados: lista, timestamp: Date.now() }));
-      } catch {
-        // ignorar erro de storage
+      const texto = await resp.text();
+      const lista = parseApoiadoresTxt(texto);
+      if (lista && lista.length > 0) {
+        return lista;
       }
-      return lista;
     } catch {
       // tenta próxima url
     }
