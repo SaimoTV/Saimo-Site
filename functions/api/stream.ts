@@ -577,7 +577,7 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
     buscarAddon(magnetUrl, 5000, undefined, clientIp),
     buscarAddon(hollyUrl, 5000, undefined, clientIp),
   ];
-  if (frostUrl) {
+  if (frostUrl && !FILMES_INEDITOS.has(cleanId)) {
     consultas.push(buscarAddon(frostUrl, 5000, AGENTE_FROST, clientIp));
   }
   if (imdbId && !cleanId.startsWith('tt')) {
