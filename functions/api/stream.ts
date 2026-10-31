@@ -263,15 +263,20 @@ async function buscarNoCatalogo(id: string, isSerie: boolean, season: string, ep
       const fRes = await fetch(`${CATALOG_BASE}/filmes-${l}.txt`);
       if (!fRes.ok) return null;
       const fTxt = await fRes.text();
+      const normAlvo = tituloAchado.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const baseAlvo = tituloAchado.split(' (')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
       for (const linha of fTxt.split('\n')) {
         const p = linha.split('\t');
-        if (p.length >= 2 && (p[0] === tituloAchado || p[0].startsWith(tituloAchado.split(' (')[0]))) {
-          for (let i = 1; i < p.length; i++) {
-            if (p[i].startsWith(`${versao}=`) || p[i].startsWith('dub=') || p[i].startsWith('leg=')) {
-              const urls = p[i].substring(4).split(',');
-              for (const u of urls) {
-                const exp = expandBaseUrl(u);
-                if (exp && !exp.includes('api/stream') && !SERVIDORES_MORTOS.some(h => exp.includes(h))) return exp;
+        if (p.length >= 2) {
+          const normLinha = p[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+          if (normLinha === normAlvo || (baseAlvo.length >= 3 && normLinha.startsWith(baseAlvo))) {
+            for (let i = 1; i < p.length; i++) {
+              if (p[i].startsWith(`${versao}=`) || p[i].startsWith('dub=') || p[i].startsWith('leg=')) {
+                const urls = p[i].substring(4).split(',');
+                for (const u of urls) {
+                  const exp = expandBaseUrl(u);
+                  if (exp && !exp.includes('api/stream') && !SERVIDORES_MORTOS.some(h => exp.includes(h))) return exp;
+                }
               }
             }
           }
@@ -283,11 +288,16 @@ async function buscarNoCatalogo(id: string, isSerie: boolean, season: string, ep
       let parte = '0';
       if (sIndexRes.ok) {
         const sIndexTxt = await sIndexRes.text();
+        const normAlvo = tituloAchado.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const baseAlvo = tituloAchado.split(' (')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
         for (const linha of sIndexTxt.split('\n')) {
           const p = linha.split('\t');
-          if (p.length >= 3 && (p[0] === tituloAchado || p[0].startsWith(tituloAchado.split(' (')[0]))) {
-            parte = p[2] || '0';
-            break;
+          if (p.length >= 3) {
+            const normP = p[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (normP === normAlvo || (baseAlvo.length >= 3 && normP.startsWith(baseAlvo))) {
+              parte = p[2] || '0';
+              break;
+            }
           }
         }
       }
@@ -296,14 +306,16 @@ async function buscarNoCatalogo(id: string, isSerie: boolean, season: string, ep
       const epRes = await fetch(`${CATALOG_BASE}/series-${l}-${parte}.txt`);
       if (epRes.ok) {
         const epTxt = await epRes.text();
-        const blocoTitulo = `@${tituloAchado}`;
+        const normAlvo = tituloAchado.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const baseAlvo = tituloAchado.split(' (')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
         let dentroDoBloco = false;
         let achouOutraVersao: string | null = null;
 
         for (const linha of epTxt.split('\n')) {
           const lTrim = linha.trim();
           if (lTrim.startsWith('@')) {
-            if (lTrim === blocoTitulo || lTrim.startsWith(blocoTitulo.split(' (')[0])) {
+            const normHeader = lTrim.slice(1).toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (normHeader === normAlvo || (baseAlvo.length >= 3 && normHeader.startsWith(baseAlvo))) {
               dentroDoBloco = true;
             } else if (dentroDoBloco) {
               break; // Saiu do bloco da série
