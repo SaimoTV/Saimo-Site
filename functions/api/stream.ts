@@ -238,6 +238,7 @@ function expandBaseUrl(u: string): string {
 }
 
 async function buscarNoCatalogo(id: string, isSerie: boolean, season: string, episode: string, versao: string): Promise<string | null> {
+  if (id === '1058424' || id === '1400940') return null; // Hope (2026) e Clayface (2026) são inéditos
   const CATALOG_BASE = 'https://filmes-saimo.pages.dev';
   try {
     const fichasRes = await fetch(`${CATALOG_BASE}/fichas.txt`);
@@ -363,8 +364,6 @@ const SERVIDORES_MORTOS = [
   'praia13.com',
   '123flmsfree.com',
   'vod-limit-media',
-  'froststream.cloutteam.com',
-  'cloutteam.com',
   'cdn.hermesnewone.com',
   'speed2.megafilmeshd9.com',
   'cdn-sv01.maximaimg.online',
@@ -500,7 +499,7 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
 
   const cleanId = id.replace(/^(tmdb:|imdb:)/i, '');
 
-  const BLACKLIST_IDS = new Set(['1400940']);
+  const BLACKLIST_IDS = new Set(['1400940', '1058424']); // 1400940 = Clayface (2026), 1058424 = Hope (2026)
   if (BLACKLIST_IDS.has(cleanId)) {
     return new Response(JSON.stringify({ error: 'Título indisponível ou somente em cartaz nos cinemas' }), {
       status: 404,
@@ -573,6 +572,9 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
     if (!st.url) return false;
     if (SERVIDORES_MORTOS.some(h => st.url!.includes(h))) return false;
     if (cleanId !== '432613' && (st.url.includes('98853.mp4') || st.url.includes('Cara.mp4') || st.url.includes('97968.mp4'))) {
+      return false;
+    }
+    if (cleanId === '1058424' && (st.url.includes('313329.mp4') || st.url.includes('313368.mp4') || st.url.includes('Impacto.mp4'))) {
       return false;
     }
     return true;
