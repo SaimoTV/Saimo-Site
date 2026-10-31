@@ -379,7 +379,6 @@ const SERVIDORES_MORTOS = [
 
 /** Aliases para títulos recém-lançados ou sequências que compartilham acervo nos provedores */
 const TMDB_ALIASES: Record<string, string> = {
-  '1507696': '1118031', // Apocalipse Z: Novo Mundo (2026) -> Apocalipse Z: O Princípio do Fim
 };
 
 /**
