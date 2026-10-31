@@ -63,7 +63,6 @@ async function buscarRedeFlix(tmdbId: string, isSerie: boolean, season: string, 
   };
   if (clientIp) {
     baseHeaders['X-Forwarded-For'] = clientIp;
-    baseHeaders['CF-Connecting-IP'] = clientIp;
   }
   for (const servidor of servidores) {
     try {
@@ -92,7 +91,6 @@ async function buscarRedeFlix(tmdbId: string, isSerie: boolean, season: string, 
       };
       if (clientIp) {
         r2Headers['X-Forwarded-For'] = clientIp;
-        r2Headers['CF-Connecting-IP'] = clientIp;
       }
       const r2 = await fetch(`${REDEFLIX_BASE}/playback-resolve.php`, {
         method: 'POST',
@@ -121,7 +119,6 @@ async function buscarRedeFlix(tmdbId: string, isSerie: boolean, season: string, 
       };
       if (clientIp) {
         r3Headers['X-Forwarded-For'] = clientIp;
-        r3Headers['CF-Connecting-IP'] = clientIp;
       }
       const r3 = await fetch(`${REDEFLIX_BASE}/playerkys/source.php`, {
         method: 'POST',
@@ -240,6 +237,64 @@ async function buscarNoCatalogo(id: string, isSerie: boolean, season: string, ep
             }
           }
         }
+      }
+    } else {
+      // 1. Consulta series-${l}.txt para achar a parte do arquivo de episódios
+      const sIndexRes = await fetch(`${CATALOG_BASE}/series-${l}.txt`);
+      let parte = '0';
+      if (sIndexRes.ok) {
+        const sIndexTxt = await sIndexRes.text();
+        for (const linha of sIndexTxt.split('\n')) {
+          const p = linha.split('\t');
+          if (p.length >= 3 && (p[0] === tituloAchado || p[0].startsWith(tituloAchado.split(' (')[0]))) {
+            parte = p[2] || '0';
+            break;
+          }
+        }
+      }
+
+      // 2. Lê series-${l}-${parte}.txt
+      const epRes = await fetch(`${CATALOG_BASE}/series-${l}-${parte}.txt`);
+      if (epRes.ok) {
+        const epTxt = await epRes.text();
+        const blocoTitulo = `@${tituloAchado}`;
+        let dentroDoBloco = false;
+        let achouOutraVersao: string | null = null;
+
+        for (const linha of epTxt.split('\n')) {
+          const lTrim = linha.trim();
+          if (lTrim.startsWith('@')) {
+            if (lTrim === blocoTitulo || lTrim.startsWith(blocoTitulo.split(' (')[0])) {
+              dentroDoBloco = true;
+            } else if (dentroDoBloco) {
+              break; // Saiu do bloco da série
+            }
+            continue;
+          }
+          if (!dentroDoBloco) continue;
+
+          // Formato: season \t episode \t versao(dub/leg) \t urls
+          const partes = linha.split('\t');
+          if (partes.length >= 4) {
+            const epSeason = partes[0].trim();
+            const epNum = partes[1].trim();
+            const epVersao = partes[2].trim().toLowerCase();
+            const epUrls = partes[3].split(',');
+
+            if (epSeason === season && epNum === episode) {
+              for (const u of epUrls) {
+                const urlLimpa = u.trim();
+                if (urlLimpa && !urlLimpa.includes('api/stream') && !SERVIDORES_MORTOS.some(h => urlLimpa.includes(h))) {
+                  if (epVersao === versao || epVersao.startsWith(versao)) {
+                    return urlLimpa;
+                  }
+                  if (!achouOutraVersao) achouOutraVersao = urlLimpa;
+                }
+              }
+            }
+          }
+        }
+        if (achouOutraVersao) return achouOutraVersao;
       }
     }
   } catch {}
