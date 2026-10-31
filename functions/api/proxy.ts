@@ -577,6 +577,26 @@ export const onRequest = async ({ request }: { request: Request }): Promise<Resp
       responseHeaders.set('Content-Type', 'video/mp2t');
     }
 
+    // Corrige Content-Type para qualquer segmento de vídeo/áudio com extensão mascarada
+    // (.js, .css, .woff, .png, etc. gerados por CDNs de vídeo como embedplayer / eloialu):
+    // Players nativos como Roku, Safari/AVPlayer e ExoPlayer rejeitam HLS se o MIME do segmento for application/javascript ou text/css.
+    const cleanPath = currentUrl.split('?')[0].toLowerCase();
+    const currentMime = (responseHeaders.get('content-type') || '').toLowerCase();
+    const hasFakeExt = /\.(js|css|woff|woff2|png|jpg|jpeg|gif|ts|m4s)($|\?)/i.test(currentUrl);
+    const isNonMediaMime = !currentMime.startsWith('video/') && !currentMime.startsWith('audio/');
+
+    if (hasFakeExt || isNonMediaMime) {
+      if (cleanPath.endsWith('.m4s') || cleanPath.endsWith('.mp4')) {
+        responseHeaders.set('Content-Type', 'video/mp4');
+      } else if (cleanPath.endsWith('.aac')) {
+        responseHeaders.set('Content-Type', 'audio/aac');
+      } else if (cleanPath.endsWith('.ac3')) {
+        responseHeaders.set('Content-Type', 'audio/ac3');
+      } else {
+        responseHeaders.set('Content-Type', 'video/mp2t');
+      }
+    }
+
     return new Response(finalResponse.body, {
       status: finalResponse.status,
       headers: responseHeaders,
