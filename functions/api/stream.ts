@@ -538,6 +538,25 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
     }
   }
 
+  if (querDebug) {
+    const dbgHeaders = new Headers();
+    dbgHeaders.set('Access-Control-Allow-Origin', '*');
+    dbgHeaders.set('Content-Type', 'application/json');
+    dbgHeaders.set('Cache-Control', 'no-store');
+    return new Response(JSON.stringify({
+      escolhido,
+      ehUsoUnico,
+      ehFallback: false,
+      redeflixDebug,
+      urlsConsultadas: { fenixUrl, magnetUrl, hollyUrl, frostUrl, fenixImdb: (imdbId && !cleanId.startsWith('tt')) ? `${FENIX_BASE}/stream/movie/${imdbId}.json` : null },
+      resultadosAddons: resultados.map((r, i) => ({ status: r.status, err: r.err, count: r.streams.length, raw: r.raw })),
+      testados,
+      ordenadosCount: ordenados.length,
+      todosCount: todos.length,
+      ordenados: ordenados.map(o => ({ name: o.name, title: o.title, url: o.url })),
+    }, null, 2), { status: 200, headers: dbgHeaders });
+  }
+
   let ehFallback = false;
   if (!escolhido) {
     const validos = ordenados.filter(st => !SERVIDORES_MORTOS.some(h => st.url!.includes(h)));
@@ -561,23 +580,6 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
   headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
   // Se for uso único (RedeFlix) ou fallback não verificado, nunca armazena cache na borda!
   headers.set('Cache-Control', (ehUsoUnico || ehFallback) ? 'no-store' : 'public, max-age=600');
-
-  if (querDebug) {
-    headers.set('Content-Type', 'application/json');
-    headers.set('Cache-Control', 'no-store');
-    return new Response(JSON.stringify({
-      escolhido,
-      ehUsoUnico,
-      ehFallback,
-      redeflixDebug,
-      urlsConsultadas: { fenixUrl, magnetUrl, hollyUrl, frostUrl, fenixImdb: (imdbId && !cleanId.startsWith('tt')) ? `${FENIX_BASE}/stream/series/${imdbId}:${season}:${episode}.json` : null },
-      resultadosAddons: resultados.map((r, i) => ({ status: r.status, err: r.err, count: r.streams.length, raw: r.raw })),
-      testados,
-      ordenadosCount: ordenados.length,
-      todosCount: todos.length,
-      ordenados: ordenados.map(o => ({ name: o.name, title: o.title, url: o.url })),
-    }, null, 2), { status: 200, headers });
-  }
 
   if (querJson) {
     headers.set('Content-Type', 'application/json');
