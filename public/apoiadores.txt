@@ -4,7 +4,7 @@ Yuri D.	50
 Fabiano B.	30
 Luiz F.	10
 Edmundo G.	10
-Michell C.	10
+Michell C.	60
 Everton C.	10
 Anderson C.	10
 Rafael C.	7.28
