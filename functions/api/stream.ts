@@ -164,19 +164,24 @@ interface AddonResult {
   raw?: string;
 }
 
-async function buscarAddon(url: string, timeoutMs: number = 5000, customAgent?: string): Promise<AddonResult> {
+async function buscarAddon(url: string, timeoutMs: number = 5000, customAgent?: string, clientIp?: string): Promise<AddonResult> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     const sep = url.includes('?') ? '&' : '?';
     const fetchUrl = `${url}${sep}_cf=${Date.now()}`;
+    const baseHeaders: Record<string, string> = {
+      'User-Agent': customAgent || (url.includes('froststream') ? AGENTE_FROST : AGENTE),
+      'Accept': 'application/json',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache',
+    };
+    if (clientIp) {
+      baseHeaders['X-Forwarded-For'] = clientIp;
+      baseHeaders['CF-Connecting-IP'] = clientIp;
+    }
     const res = await fetch(fetchUrl, {
-      headers: {
-        'User-Agent': customAgent || (url.includes('froststream') ? AGENTE_FROST : AGENTE),
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
-      },
+      headers: baseHeaders,
       cache: 'no-store',
       signal: ctrl.signal,
     });
@@ -356,6 +361,10 @@ async function buscarNoCatalogo(id: string, isSerie: boolean, season: string, ep
 const SERVIDORES_MORTOS = [
   'pub-bda823ef358c448ea310cdf9539f9628.r2.dev',
   'praia13.com',
+  '123flmsfree.com',
+  'vod-limit-media',
+  'froststream.cloutteam.com',
+  'cloutteam.com',
 ];
 
 /** Aliases para títulos recém-lançados ou sequências que compartilham acervo nos provedores */
@@ -418,8 +427,16 @@ async function respondeVideo(url: string): Promise<string | null> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 4000);
   try {
+    const testHeaders: Record<string, string> = {
+      'User-Agent': AGENTE,
+      'Accept': '*/*',
+      'Range': 'bytes=0-1023',
+    };
+    if (alvo.includes('embedplayer2.xyz')) {
+      testHeaders['Referer'] = 'https://embedplayer2.xyz/';
+    }
     const r = await fetch(alvo, {
-      headers: { 'User-Agent': AGENTE, 'Range': 'bytes=0-1023' },
+      headers: testHeaders,
       redirect: 'follow',
       signal: ctrl.signal,
     });
@@ -517,25 +534,25 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
   // Busca em paralelo nas origens comuns (FenixFlix, Magnetflix, FrostStream, Hollymovies).
   let todos: StreamItem[] = [];
   const consultas: Promise<AddonResult>[] = [
-    buscarAddon(fenixUrl, 5000),
-    buscarAddon(magnetUrl, 5000),
-    buscarAddon(hollyUrl, 5000),
+    buscarAddon(fenixUrl, 5000, undefined, clientIp),
+    buscarAddon(magnetUrl, 5000, undefined, clientIp),
+    buscarAddon(hollyUrl, 5000, undefined, clientIp),
   ];
   if (frostUrl) {
-    consultas.push(buscarAddon(frostUrl, 5000, AGENTE_FROST));
+    consultas.push(buscarAddon(frostUrl, 5000, AGENTE_FROST, clientIp));
   }
   if (imdbId && !cleanId.startsWith('tt')) {
     const fenixImdb = isSerie
       ? `${FENIX_BASE}/stream/series/${imdbId}:${season}:${episode}.json`
       : `${FENIX_BASE}/stream/movie/${imdbId}.json`;
-    consultas.push(buscarAddon(fenixImdb, 5000));
+    consultas.push(buscarAddon(fenixImdb, 5000, undefined, clientIp));
   }
   const aliasId = TMDB_ALIASES[cleanId];
   if (aliasId) {
     const aliasFenix = isSerie
       ? `${FENIX_BASE}/stream/series/tmdb:${aliasId}:${season}:${episode}.json`
       : `${FENIX_BASE}/stream/movie/tmdb:${aliasId}.json`;
-    consultas.push(buscarAddon(aliasFenix, 5000));
+    consultas.push(buscarAddon(aliasFenix, 5000, undefined, clientIp));
   }
   const resultados = await Promise.all(consultas);
   todos = resultados.flatMap(r => r.streams).filter(st => !!st.url);
@@ -569,9 +586,8 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
   let escolhido = testados.find((u): u is string => !!u) ?? '';
   let ehUsoUnico = false;
 
-  if (escolhido && escolhido.includes('embedplayer2.xyz') && (escolhido.includes('.m3u8') || escolhido.endsWith('.m3u8'))) {
-    const melhor = await melhorVarianteHls(escolhido);
-    if (melhor) escolhido = melhor;
+  if (escolhido && escolhido.includes('embedplayer2.xyz')) {
+    escolhido = escolhido.replace(/\/master\.(?:m3u8|txt)(?:\?[^"'\s]*)?/, '/master.txt');
   }
 
   let redeflixDebug: any = {};
