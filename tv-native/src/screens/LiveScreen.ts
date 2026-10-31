@@ -61,6 +61,8 @@ export class LiveScreen {
 
   enter() {
     this.element.classList.remove('hidden');
+    this.sourceModal.close();
+    State.currentVariantIndex = 0;
 
     if (State.channels.length === 0) {
       State.channels = Api.getCachedChannelsSync();
@@ -220,13 +222,19 @@ export class LiveScreen {
         const activeTab = menu.querySelector<HTMLElement>('.tv-menu-tab.active') || menu.querySelector<HTMLElement>('.tv-menu-tab');
         if (activeTab) SpatialNav.focus(activeTab);
       }
-    } else if (
-      key === 39 || // D-PAD DIREITA (Controle Samsung Smart TV)
-      key === 415 || key === 19 || // PLAY / PAUSE (Samsung One Remote)
-      key === 10182 || key === 457 || key === 10071 || // SAMSUNG TOOLS, INFO, GUIDE
-      key === 403 || key === 404 || key === 405 || key === 406 || key === 82 // TECLAS COLORIDAS (VERMELHO, VERDE, AMARELO, AZUL) / R
-    ) {
-      // Abre seletor de fonte em qualquer controle Samsung ou Smart TV!
+    } else if (key === 39) {
+      // ESQUERDA/DIREITA: Seta Direita apenas mostra o ZapHUD com informações do canal, sem abrir modal
+      e.preventDefault();
+      e.stopPropagation();
+      if (State.currentChannel) {
+        this.zapHud.show(State.currentChannel, State.currentVariantIndex);
+      }
+    } else if (key === 415 || key === 19 || key === 10252) {
+      // PLAY / PAUSE: em transmissão ao vivo mantém o vídeo fluindo normalmente sem abrir nenhum modal
+      e.preventDefault();
+      e.stopPropagation();
+    } else if (key === 10182 || key === 403 || key === 82) {
+      // Tecla Vermelha ou Menu de Ferramentas Samsung: abre seletor manual sob demanda explícita
       e.preventDefault();
       e.stopPropagation();
       this.openCurrentChannelSources();

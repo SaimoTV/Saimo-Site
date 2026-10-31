@@ -29,28 +29,19 @@ export class ChannelDrawer {
       <div class="tv-drawer-channel-list tv-scroll-v" id="drawer-ch-list" style="flex:1;"></div>
       <div class="tv-drawer-footer" style="padding:14px 20px; font-size:14px; color:#94a3b8; border-top:1px solid rgba(255,255,255,0.1); background:#0c0c12; display:flex; justify-content:space-between; align-items:center;">
         <span>[OK] Assistir</span>
-        <span style="color:#00e3ff; font-weight:700;">[▶ / Direita] Fontes</span>
-        <span>[Voltar] Fechar</span>
+        <span>[Voltar / Direita] Fechar</span>
       </div>
     `;
 
     this.categoryTitleEl = this.element.querySelector('#drawer-cat-title')!;
     this.channelListEl = this.element.querySelector('#drawer-ch-list')!;
 
-    // Atalho: Seta para a Direita ou Play abre o seletor de fontes do canal focado na lista
+    // Seta para a Direita fecha a gaveta e retorna para a tela cheia
     this.element.addEventListener('keydown', (e) => {
-      if (e.keyCode === 39 || e.keyCode === 415 || e.keyCode === 19) { // RIGHT ou PLAY
-        const focused = document.activeElement as HTMLElement;
-        if (focused && focused.id && focused.id.startsWith('drawer-ch-')) {
-          const chId = focused.id.replace('drawer-ch-', '');
-          const ch = this.channels.find((c) => c.id === chId);
-          if (ch) {
-            e.preventDefault();
-            e.stopPropagation();
-            this.close();
-            this.onOpenChannelSources?.(ch);
-          }
-        }
+      if (e.keyCode === 39) { // RIGHT
+        e.preventDefault();
+        e.stopPropagation();
+        this.close();
       }
     });
   }
@@ -81,17 +72,9 @@ export class ChannelDrawer {
           <div class="name">${ch.name}</div>
           <div style="font-size:14px; color:rgba(255,255,255,0.6); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${programTitle}</div>
         </div>
-        ${variantCount > 1 ? `<span class="sources-tag" style="font-size:12px; background:rgba(0,227,255,0.15); color:#00e3ff; border:1px solid #00e3ff; padding:2px 8px; border-radius:10px; margin-right:4px; font-weight:700; white-space:nowrap;">${variantCount} fontes [▶]</span>` : ''}
       `;
 
-      item.addEventListener('click', (ev) => {
-        const target = ev.target as HTMLElement;
-        if (target && (target.classList.contains('sources-tag') || target.closest('.sources-tag'))) {
-          ev.stopPropagation();
-          this.close();
-          this.onOpenChannelSources?.(ch);
-          return;
-        }
+      item.addEventListener('click', () => {
         this.close();
         this.onSelectChannel?.(ch);
       });

@@ -22,6 +22,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import type { Movie, MovieSource, SeriesEpisodeInfo } from '../types/movie';
+import { ehTv } from '../plataforma/tv';
 import {
   LETRAS,
   buscar,
@@ -1853,8 +1854,8 @@ export function VodCatalog({
                     </div>
                   )}
 
-                  {/* Fontes alternativas para filmes */}
-                  {!aberto.serie && fontesAbertas && fontesAbertas.length > 1 && (
+                  {/* Fontes alternativas para filmes (oculto na TV para tocar direto sem pedir confirmação) */}
+                  {!ehTv() && !aberto.serie && fontesAbertas && fontesAbertas.length > 1 && (
                     <div className="vod-fontes-seletor">
                       <p>Fontes e versões disponíveis:</p>
                       <div className="vod-fontes-lista">

@@ -31,9 +31,8 @@ export class ZapHUD {
           <span id="zap-num">1</span>
           <span id="zap-name">Canal</span>
           <span id="zap-quality" style="font-size:14px; background:rgba(0,227,255,0.2); padding:2px 8px; border-radius:4px; font-weight:700;">FHD</span>
-          <div id="zap-sources-badge" style="font-size:13px; background:#162032; border:1px solid #00e3ff; color:#00e3ff; padding:3px 12px; border-radius:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px;">
-            <span>⚙️ Fontes (1)</span>
-            <span style="font-size:11px; opacity:0.8; color:#ffffff;">[Direita / ▶]</span>
+          <div id="zap-sources-badge" style="font-size:13px; background:#162032; border:1px solid rgba(0,227,255,0.5); color:#00e3ff; padding:2px 10px; border-radius:10px; font-weight:600; display:none;">
+            <span>Fonte 1</span>
           </div>
         </div>
         <div class="tv-zap-current-program" id="zap-cur-prog">Sem programação</div>
@@ -86,10 +85,12 @@ export class ZapHUD {
     this.qualityEl.textContent = currentVariant?.quality || 'FHD';
 
     const totalVariants = channel.variants?.length || 1;
-    this.sourcesBadgeEl.innerHTML = `
-      <span>⚙️ Fonte ${variantIndex + 1}/${totalVariants}</span>
-      <span style="font-size:11px; opacity:0.85; color:#ffffff; background:rgba(0,0,0,0.3); padding:1px 6px; border-radius:4px;">[Direita / ▶]</span>
-    `;
+    if (totalVariants > 1) {
+      this.sourcesBadgeEl.innerHTML = `<span>Fonte ${variantIndex + 1}/${totalVariants}</span>`;
+      this.sourcesBadgeEl.style.display = 'block';
+    } else {
+      this.sourcesBadgeEl.style.display = 'none';
+    }
 
     const epg = Api.getNowNext(channel.name);
     if (epg.current) {

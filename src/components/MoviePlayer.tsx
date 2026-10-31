@@ -311,6 +311,12 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
     localStorage.setItem('current-movie-id', movie.id);
 
     if (soHttp) {
+      // Se houver uma fonte HTTPS disponível nas alternativas, pula direto para ela sem travar com aviso
+      const proximaValida = fontes.findIndex((f, idx) => idx > fonteIdx && !f.url.startsWith('http://'));
+      if (proximaValida !== -1) {
+        setFonteIdx(proximaValida);
+        return;
+      }
       setIsLoading(false);
       setIsProxyBlocked(true);
       setError('Este vídeo só existe em http.');

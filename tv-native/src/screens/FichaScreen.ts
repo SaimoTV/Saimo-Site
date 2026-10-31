@@ -113,6 +113,8 @@ export class FichaScreen {
 
     this.currentItem = vod;
     this.currentSeasonIdx = 0;
+    State.currentVariantIndex = 0;
+    this.sourceModal.close();
     this.renderInitialDetails(vod);
 
     // Foca o botão assistir imediatamente
@@ -222,24 +224,10 @@ export class FichaScreen {
       : '▶ Assistir';
 
     playBtn.addEventListener('click', () => {
+      State.currentVariantIndex = 0;
       State.setScreen('player', { vod: item });
     });
     this.actionsContainer.appendChild(playBtn);
-
-    // Botão Escolher Fonte
-    const sources = item.sources && item.sources.length > 0 ? item.sources : ['Fonte 1 (Servidor Principal)'];
-    const srcBtn = document.createElement('div');
-    srcBtn.className = 'tv-btn nav-focusable';
-    srcBtn.setAttribute('data-nav', 'true');
-    srcBtn.id = 'ficha-btn-source';
-    srcBtn.innerHTML = `🔄 Fontes (${sources.length})`;
-    srcBtn.addEventListener('click', () => {
-      this.sourceModal.open(item.title, sources, State.currentVariantIndex, (idx) => {
-        State.currentVariantIndex = idx;
-        State.setScreen('player', { vod: item });
-      });
-    });
-    this.actionsContainer.appendChild(srcBtn);
 
     // Botão Favoritar
     const favs = Storage.getFavoriteVOD();
@@ -256,6 +244,11 @@ export class FichaScreen {
       favBtn.innerHTML = nowFav ? '❤️ Favoritado' : '🤍 Adicionar aos Favoritos';
     });
     this.actionsContainer.appendChild(favBtn);
+
+    // Mantém o foco no botão de assistir pronto para tocar sem perguntar nada
+    setTimeout(() => {
+      SpatialNav.focus(playBtn);
+    }, 10);
   }
 
   private renderSeasonsAndEpisodes(item: VODItem) {
