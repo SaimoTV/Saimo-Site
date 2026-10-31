@@ -1,9 +1,9 @@
 /**
  * Cartão do Programa no Ar (Zap HUD Banner).
- * Mostra número, logo, canal, programa atual com barra de progresso, tempo restante e próximo programa.
+ * Mostra número, logo, canal, qualidade, botão de fontes, programa atual e tempo restante.
  */
 
-import { Channel, Api, EpgProgram } from '../core/Api';
+import { Channel, Api } from '../core/Api';
 
 export class ZapHUD {
   private element: HTMLElement;
@@ -11,11 +11,13 @@ export class ZapHUD {
   private channelNumEl: HTMLElement;
   private channelNameEl: HTMLElement;
   private qualityEl: HTMLElement;
+  private sourcesBadgeEl: HTMLElement;
   private currentProgramEl: HTMLElement;
   private currentTimingEl: HTMLElement;
   private progressBarEl: HTMLElement;
   private nextProgramEl: HTMLElement;
   private hideTimer: any = null;
+  private onOpenSources?: () => void;
 
   constructor() {
     this.element = document.createElement('div');
@@ -25,10 +27,14 @@ export class ZapHUD {
     this.element.innerHTML = `
       <img class="tv-zap-logo" id="zap-logo" src="" alt="" />
       <div class="tv-zap-info">
-        <div class="tv-zap-channel-line">
+        <div class="tv-zap-channel-line" style="display:flex; align-items:center; gap:12px;">
           <span id="zap-num">1</span>
           <span id="zap-name">Canal</span>
-          <span id="zap-quality" style="font-size:14px; background:rgba(0,227,255,0.2); padding:2px 8px; border-radius:4px;">FHD</span>
+          <span id="zap-quality" style="font-size:14px; background:rgba(0,227,255,0.2); padding:2px 8px; border-radius:4px; font-weight:700;">FHD</span>
+          <div id="zap-sources-badge" style="font-size:13px; background:#162032; border:1px solid #00e3ff; color:#00e3ff; padding:3px 12px; border-radius:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px;">
+            <span>⚙️ Fontes (1)</span>
+            <span style="font-size:11px; opacity:0.8; color:#ffffff;">[Direita / ▶]</span>
+          </div>
         </div>
         <div class="tv-zap-current-program" id="zap-cur-prog">Sem programação</div>
         <div class="tv-zap-next-line">
@@ -45,14 +51,24 @@ export class ZapHUD {
     this.channelNumEl = this.element.querySelector('#zap-num')!;
     this.channelNameEl = this.element.querySelector('#zap-name')!;
     this.qualityEl = this.element.querySelector('#zap-quality')!;
+    this.sourcesBadgeEl = this.element.querySelector('#zap-sources-badge')!;
     this.currentProgramEl = this.element.querySelector('#zap-cur-prog')!;
     this.currentTimingEl = this.element.querySelector('#zap-timing')!;
     this.progressBarEl = this.element.querySelector('#zap-prog-bar')!;
     this.nextProgramEl = this.element.querySelector('#zap-next-prog')!;
+
+    this.sourcesBadgeEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.onOpenSources?.();
+    });
   }
 
   getElement(): HTMLElement {
     return this.element;
+  }
+
+  setOnOpenSources(cb: () => void) {
+    this.onOpenSources = cb;
   }
 
   show(channel: Channel, variantIndex = 0) {
@@ -68,6 +84,12 @@ export class ZapHUD {
 
     const currentVariant = channel.variants[variantIndex] || channel.variants[0];
     this.qualityEl.textContent = currentVariant?.quality || 'FHD';
+
+    const totalVariants = channel.variants?.length || 1;
+    this.sourcesBadgeEl.innerHTML = `
+      <span>⚙️ Fonte ${variantIndex + 1}/${totalVariants}</span>
+      <span style="font-size:11px; opacity:0.85; color:#ffffff; background:rgba(0,0,0,0.3); padding:1px 6px; border-radius:4px;">[Direita / ▶]</span>
+    `;
 
     const epg = Api.getNowNext(channel.name);
     if (epg.current) {
@@ -100,9 +122,6 @@ export class ZapHUD {
 
   hide() {
     this.element.classList.add('hidden');
-  }
-
-  isVisible(): boolean {
-    return !this.element.classList.contains('hidden');
+    clearTimeout(this.hideTimer);
   }
 }

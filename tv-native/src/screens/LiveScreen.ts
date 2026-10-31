@@ -2,6 +2,7 @@
  * Tela de TV Ao Vivo em Tela Cheia (LiveScreen).
  * Zapeamento instantâneo via D-Pad (Cima/Baixo) e numérico (0-9),
  * integração com ZapHUD, Gaveta Lateral de Canais (OK) e failover automático de fontes.
+ * Seletor de Fontes acessível por Direita, Play/Pause, Tools ou pelas Teclas Coloridas.
  */
 
 import { State } from '../core/State';
@@ -31,9 +32,19 @@ export class LiveScreen {
     this.element.id = 'screen-live';
 
     this.zapHud = new ZapHUD();
-    this.drawer = new ChannelDrawer((channel) => {
-      this.tuneChannel(channel);
+    this.zapHud.setOnOpenSources(() => {
+      this.openCurrentChannelSources();
     });
+
+    this.drawer = new ChannelDrawer(
+      (channel) => {
+        this.tuneChannel(channel);
+      },
+      (channel) => {
+        this.openChannelSources(channel);
+      }
+    );
+
     this.sourceModal = new SourceModal();
 
     this.element.appendChild(this.zapHud.getElement());
@@ -86,6 +97,21 @@ export class LiveScreen {
     this.drawer.close();
     this.sourceModal.close();
     this.player.stop();
+  }
+
+  openCurrentChannelSources() {
+    if (!State.currentChannel) return;
+    this.openChannelSources(State.currentChannel, State.currentVariantIndex);
+  }
+
+  openChannelSources(channel: Channel, defaultVariant = 0) {
+    const variants = channel.variants || [];
+    this.sourceModal.open(
+      channel.name,
+      variants,
+      defaultVariant,
+      (idx) => this.tuneChannel(channel, idx)
+    );
   }
 
   async tuneChannel(channel: Channel, variantIndex = 0) {
@@ -194,17 +220,16 @@ export class LiveScreen {
         const activeTab = menu.querySelector<HTMLElement>('.tv-menu-tab.active') || menu.querySelector<HTMLElement>('.tv-menu-tab');
         if (activeTab) SpatialNav.focus(activeTab);
       }
-    } else if (key === 403 || key === 82) {
-      // Tecla Vermelha ou R -> Abrir seletor de fonte
+    } else if (
+      key === 39 || // D-PAD DIREITA (Controle Samsung Smart TV)
+      key === 415 || key === 19 || // PLAY / PAUSE (Samsung One Remote)
+      key === 10182 || key === 457 || key === 10071 || // SAMSUNG TOOLS, INFO, GUIDE
+      key === 403 || key === 404 || key === 405 || key === 406 || key === 82 // TECLAS COLORIDAS (VERMELHO, VERDE, AMARELO, AZUL) / R
+    ) {
+      // Abre seletor de fonte em qualquer controle Samsung ou Smart TV!
       e.preventDefault();
-      if (State.currentChannel && State.currentChannel.variants.length > 1) {
-        this.sourceModal.open(
-          State.currentChannel.name,
-          State.currentChannel.variants,
-          State.currentVariantIndex,
-          (idx) => this.tuneChannel(State.currentChannel!, idx)
-        );
-      }
+      e.stopPropagation();
+      this.openCurrentChannelSources();
     } else if ((key >= 48 && key <= 57) || (key >= 96 && key <= 105)) {
       // Teclas Numéricas (0-9)
       const digit = key >= 96 ? key - 96 : key - 48;
