@@ -10,8 +10,29 @@ function isAllowedTargetHost(hostname: string): boolean {
   );
 }
 
+/**
+ * `/api/stream` só decide o destino ao ser chamado e pode cair em playlist HLS.
+ * Sem o endereço final o player não reconhece o HLS e o navegador recusa o vídeo.
+ */
+function ehEnderecoDinamico(url: string): boolean {
+  try { return new URL(url).pathname === '/api/stream'; } catch { return false; }
+}
+
+async function resolverDinamica(source: MovieSource, signal: AbortSignal): Promise<MovieSource> {
+  try {
+    const endereco = new URL(source.url);
+    endereco.searchParams.set('json', '1');
+    const response = await fetch(endereco.href, { signal });
+    if (!response.ok) return source;
+    const data = await response.json();
+    return typeof data.url === 'string' && data.url ? { ...source, url: data.url } : source;
+  } catch { return source; }
+}
+
 /** Resolve ao abrir o título: URLs assinadas não ficam gravadas no catálogo. */
-export async function resolveVodSources(sources: MovieSource[], signal: AbortSignal): Promise<MovieSource[]> {
+export async function resolveVodSources(original: MovieSource[], signal: AbortSignal): Promise<MovieSource[]> {
+  const sources = await Promise.all(original.map(source =>
+    ehEnderecoDinamico(source.url) ? resolverDinamica(source, signal) : source));
   const candidates = sources.filter(source => {
     try {
       const url = new URL(source.url);

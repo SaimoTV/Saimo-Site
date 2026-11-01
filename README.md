@@ -53,6 +53,8 @@ lidos na hora; o [`versao.json`](https://canais-saimo.pages.dev/versao.json) só
 
 - As listas de fontes (canais e filmes) mostram só "Fonte N", o nome da fonte
   (ex.: "Temporada 3") e a qualidade; nunca o servidor nem o endereço.
+- Fonte `/api/stream` é resolvida ao abrir o título, porque o destino muda a cada
+  pedido e pode ser HLS; o player precisa do endereço final para escolher como tocar.
 - Copiar link, compartilhar, abrir em player externo e abrir em nova aba só
   aparecem para fonte **http** (que o site não toca); https nunca sai do site
   (`castService.getAvailableMethods(url)` e trava em `castService.cast`).
