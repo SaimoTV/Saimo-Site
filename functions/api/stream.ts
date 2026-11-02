@@ -210,26 +210,25 @@ async function buscarAddon(url: string, timeoutMs: number = 5000, customAgent?: 
   }
 }
 
-const BASES_CACHE: Record<string, string> = {
-  '0': 'http://desativado.invalid/up.kiwi/movie/351921603109/34939156/',
-  '1': 'http://desativado.invalid/up.kiwi/series/351921603109/34939156/',
-  '2': 'http://tjtor8411.com:80/movie/Osiel123/Felicidade321/',
-  '3': 'http://tjtor8411.com:80/series/Osiel123/Felicidade321/',
-  '4': 'http://desativado.invalid/hubby.cx/movie/Pdsrv-vods/726216683528qroqv/',
-  '5': 'http://desativado.invalid/hubby.cx/series/Pdsrv-vods/726216683528qroqv/',
-  '6': 'http://proxy.nr3.xyz:80/movie/daniellytvc/danielly2396/',
-  '7': 'http://proxy.nr3.xyz:80/series/daniellytvc/danielly2396/',
-  '8': 'http://tvonhdbr.com:80/movie/493754/NqCxf1/',
-  '9': 'http://tvonhdbr.com:80/series/493754/NqCxf1/',
-  '10': 'http://corruptx.org:80/movie/3llohwk4g9/kwf099q30o/',
-  '11': 'http://corruptx.org:80/series/3llohwk4g9/kwf099q30o/',
-  '12': 'http://vaiagora.vip:80/movie/5q8VUj/5BeUd8/',
-  '13': 'http://vaiagora.vip:80/series/5q8VUj/5BeUd8/',
-  '14': 'http://vivlar.me:80/movie/497238/KK8Kdy/',
-  '15': 'http://vivlar.me:80/series/497238/KK8Kdy/',
-  '16': 'http://corruptx.org:80/movie/hfp5ejnrey/zq0u3kzads/',
-  '17': 'http://corruptx.org:80/series/hfp5ejnrey/zq0u3kzads/',
-};
+// As bases de filmes e séries vêm do indice.txt publicado, como nos apps:
+// nenhum endereço de fonte fica neste código.
+let BASES_CACHE: Record<string, string> = {};
+let basesLidasEm = 0;
+
+async function carregarBases(): Promise<void> {
+  if (Object.keys(BASES_CACHE).length > 0 && Date.now() - basesLidasEm < 10 * 60 * 1000) return;
+  const res = await fetch('https://filmes-saimo.pages.dev/indice.txt');
+  if (!res.ok) return;
+  const bases: Record<string, string> = {};
+  for (const linha of (await res.text()).split('\n')) {
+    const m = /^base:\s*(\d+)\s+(\S+)/.exec(linha);
+    if (m) bases[m[1]] = m[2];
+  }
+  if (Object.keys(bases).length > 0) {
+    BASES_CACHE = bases;
+    basesLidasEm = Date.now();
+  }
+}
 
 function expandBaseUrl(u: string): string {
   const limpa = u.trim();
@@ -288,6 +287,7 @@ const FILMES_INEDITOS = new Set([
 
 async function buscarNoCatalogo(id: string, isSerie: boolean, season: string, episode: string, versao: string): Promise<string | null> {
   if (FILMES_INEDITOS.has(id)) return null;
+  await carregarBases().catch(() => {});
   const CATALOG_BASE = 'https://filmes-saimo.pages.dev';
   try {
     const fichasRes = await fetch(`${CATALOG_BASE}/fichas.txt?t=${Date.now()}`);

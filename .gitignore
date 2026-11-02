@@ -34,3 +34,8 @@ desktop/src-tauri/gen/schemas
 # Pacotes de TV (scripts/montar_tv.sh)
 build/
 dist-tv/
+
+# Listas nunca vão para o Git: canais e filmes vêm só dos links das configs.
+catalogo.txt
+canais.txt
+restritos.txt
