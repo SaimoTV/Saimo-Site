@@ -1,6 +1,6 @@
 {
   "name": "saimo-tv-native",
-  "version": "2.6.4",
+  "version": "2.6.5",
   "private": true,
   "description": "Saimo TV Native Smart TV App for Samsung (Tizen) and LG (webOS)",
   "scripts": {
