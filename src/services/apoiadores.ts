@@ -31,9 +31,11 @@ const FONTE_TETO = 46;
 /** Lista de emergência caso nenhum arquivo de rede/disco possa ser lido */
 export const APOIADORES_SEMENTE: Apoiador[] = [
   { nome: 'Michell C.', valor: 60 },
+  { nome: 'Antoniel S.', valor: 60 },
   { nome: 'Bruno C.', valor: 50 },
   { nome: 'Yuri D.', valor: 50 },
   { nome: 'Fabiano B.', valor: 30 },
+  { nome: 'Adaldez C.', valor: 22.62 },
   { nome: 'Luiz F.', valor: 10 },
   { nome: 'Edmundo G.', valor: 10 },
   { nome: 'Everton C.', valor: 10 },

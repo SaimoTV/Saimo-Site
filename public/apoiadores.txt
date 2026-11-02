@@ -1,9 +1,11 @@
 # Saimo TV - Apoiadores
 # Formato: Nome <TAB> Valor (R$)
 Michell C.	60
+Antoniel S.	60
 Bruno C.	50
 Yuri D.	50
 Fabiano B.	30
+Adaldez C.	22.62
 Luiz F.	10
 Edmundo G.	10
 Everton C.	10
