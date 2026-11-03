@@ -18,11 +18,17 @@ function ehEnderecoDinamico(url: string): boolean {
   try { return new URL(url).pathname === '/api/stream'; } catch { return false; }
 }
 
-async function resolverDinamica(source: MovieSource, signal: AbortSignal): Promise<MovieSource> {
+/**
+ * `null` quando o servidor afirma que não há vídeo (404): o episódio ainda não
+ * saiu em lugar nenhum. Tocar o endereço mesmo assim dava "formato inválido".
+ * Limite do provedor (503), rede ou demora mantêm a fonte para o player tentar.
+ */
+async function resolverDinamica(source: MovieSource, signal: AbortSignal): Promise<MovieSource | null> {
   try {
     const endereco = new URL(source.url);
     endereco.searchParams.set('json', '1');
     const response = await fetch(endereco.href, { signal });
+    if (response.status === 404) return null;
     if (!response.ok) return source;
     const data = await response.json();
     return typeof data.url === 'string' && data.url ? { ...source, url: data.url } : source;
@@ -31,8 +37,9 @@ async function resolverDinamica(source: MovieSource, signal: AbortSignal): Promi
 
 /** Resolve ao abrir o título: URLs assinadas não ficam gravadas no catálogo. */
 export async function resolveVodSources(original: MovieSource[], signal: AbortSignal): Promise<MovieSource[]> {
-  const sources = await Promise.all(original.map(source =>
-    ehEnderecoDinamico(source.url) ? resolverDinamica(source, signal) : source));
+  const sources = (await Promise.all(original.map(source =>
+    ehEnderecoDinamico(source.url) ? resolverDinamica(source, signal) : source)))
+    .filter((source): source is MovieSource => source !== null);
   const candidates = sources.filter(source => {
     try {
       const url = new URL(source.url);

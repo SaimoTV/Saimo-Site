@@ -204,11 +204,17 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
       if (!active) return;
       setFonteIdx(fonteInicial(sources, movie));
       setResolvidas({ movie, sources });
+      if (sources.length === 0) {
+        setIsLoading(false);
+        setError('Este título ainda não está disponível em nenhuma fonte. Tente de novo mais tarde.');
+      }
     });
     return () => { active = false; clearTimeout(timeout); controller.abort(); };
   }, [movie, fontesOriginais, resolverNoSite]);
 
-  const urlAtiva = fontes[fonteIdx]?.url ?? movie?.url ?? '';
+  // Resolvido sem fonte nenhuma: nada a tocar (o aviso já está na tela).
+  const semFonte = resolvidas?.movie === movie && resolvidas!.sources.length === 0;
+  const urlAtiva = semFonte ? '' : (fontes[fonteIdx]?.url ?? movie?.url ?? '');
   // Extensão de captura detectada: muda a dependência do efeito de carga, a
   // limpeza destrói o hls.js e a trava (extensaoBloqueada) não deixa recomeçar.
   const [bloqueado, setBloqueado] = useState(() => extensaoBloqueada() !== null);

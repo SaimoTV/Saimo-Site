@@ -4,6 +4,7 @@
  * auto-skip de aberturas e encerramento com contagem regressiva para o próximo episódio.
  */
 
+import { resolverDinamica } from '../core/Dinamica';
 import { State } from '../core/State';
 import { Storage, VODProgress } from '../core/Storage';
 import { Api } from '../core/Api';
@@ -94,6 +95,9 @@ export class PlayerScreen {
       this.activeSources = vod.sources || [];
     }
 
+    const chave = `${vod.title}|${vod.isSeries ? `${State.currentSeasonIndex}:${State.currentEpisodeIndex}` : ''}`;
+    if (chave !== this.chaveAtual) { this.chaveAtual = chave; this.falhas = 0; }
+
     const title = vod.isSeries
       ? `${vod.title} - T${State.currentSeasonIndex + 1}E${State.currentEpisodeIndex + 1}`
       : vod.title;
@@ -106,7 +110,14 @@ export class PlayerScreen {
       return;
     }
 
-    const streamUrl = this.activeSources[State.currentVariantIndex] || this.activeSources[0];
+    const pedida = this.activeSources[State.currentVariantIndex] || this.activeSources[0];
+    const streamUrl = await resolverDinamica(pedida);
+    if (streamUrl === null) {
+      // O servidor afirma que não há vídeo em provedor nenhum: nem tenta tocar.
+      this.osd.setInfo(title, 'Este título ainda não está disponível em nenhuma fonte. Tente de novo mais tarde.');
+      this.failoverNextSource();
+      return;
+    }
 
     try {
       await this.player.play({
@@ -140,8 +151,13 @@ export class PlayerScreen {
     this.player.stop();
   }
 
+  /** Fontes que já falharam neste título; esgotadas, para de rodar em círculo. */
+  private falhas = 0;
+  private chaveAtual = '';
+
   private failoverNextSource() {
-    if (this.activeSources.length <= 1) return;
+    this.falhas++;
+    if (this.activeSources.length <= 1 || this.falhas >= this.activeSources.length) return;
     State.currentVariantIndex = (State.currentVariantIndex + 1) % this.activeSources.length;
     this.enter();
   }
