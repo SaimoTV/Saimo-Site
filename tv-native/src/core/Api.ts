@@ -102,7 +102,10 @@ export class Api {
 
   static getBaseUrl(type: 'canais' | 'filmes'): string {
     const prefs = Storage.getPrefs();
-    return type === 'canais' ? prefs.urlCanais : prefs.urlFilmes;
+    const salvo = (type === 'canais' ? prefs.urlCanais : prefs.urlFilmes) || '';
+    // A TV não tem onde digitar lista: endereço vazio herdado volta ao padrão.
+    if (salvo.trim()) return salvo;
+    return type === 'canais' ? 'https://canais-saimo.pages.dev/' : 'https://filmes-saimo.pages.dev/';
   }
 
   // ===== CANAIS AO VIVO =====

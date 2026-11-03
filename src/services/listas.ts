@@ -39,9 +39,27 @@ function ler(chave: string, padrao: string): string {
 const memoria: Record<Lista, string> = { ...PADRAO };
 let lidoDoDisco = false;
 
+const CHAVE_PADRAO_DE_VOLTA = 'saimo-listas-padrao-v2';
+
+/**
+ * As versões "sem listas" gravavam endereço vazio e o aparelho abria pedindo
+ * lista (o caso das TVs LG que carregam o site). Uma vez só, o vazio herdado
+ * delas volta ao padrão; quem desligar a lista depois disso continua desligado.
+ */
+function devolverPadraoUmaVez(): void {
+  try {
+    if (localStorage.getItem(CHAVE_PADRAO_DE_VOLTA)) return;
+    for (const chave of [CHAVE_CANAIS, CHAVE_FILMES]) {
+      if (localStorage.getItem(chave)?.trim() === '') localStorage.removeItem(chave);
+    }
+    localStorage.setItem(CHAVE_PADRAO_DE_VOLTA, '1');
+  } catch { /* sem localStorage: já vale o padrão */ }
+}
+
 function carregar(): void {
   if (lidoDoDisco) return;
   lidoDoDisco = true;
+  devolverPadraoUmaVez();
   memoria.canais = ler(CHAVE_CANAIS, PADRAO.canais);
   memoria.filmes = ler(CHAVE_FILMES, PADRAO.filmes);
 }
