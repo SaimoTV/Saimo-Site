@@ -20,13 +20,7 @@ export function isDash(url: string): boolean {
 
 export function isHls(url: string): boolean {
   const path = url.toLowerCase().split('?')[0];
-  return (
-    path.includes('.m3u8') ||
-    path.endsWith('.txt') ||
-    path.includes('dadinhodetapioca.fun') ||
-    url.includes('/api/curtitv') ||
-    url.startsWith('curtitv://')
-  );
+  return path.includes('.m3u8') || path.endsWith('.txt') || path.includes('dadinhodetapioca.fun');
 }
 
 /** Fluxo MPEG-TS cru, servido sem playlist. */
@@ -40,8 +34,6 @@ export function isMpegTs(url: string): boolean {
  * uma tentativa direta antes do proxy.
  */
 export function needsProxy(source: ChannelSource | { url: string }): boolean {
-  // Endpoints dedicados de relay (CurtiTV) já cuidam de cabeçalhos e CORS por conta própria.
-  if (source.url.includes('/api/curtitv') || source.url.startsWith('curtitv://')) return false;
   // Na TV o app é instalado: não existe conteúdo misto nem CORS de página. O vídeo
   // abre direto, inclusive http, e o proxy só entra como última tentativa (buildAttempts).
   if (ehAppDaTv()) return false;
@@ -119,10 +111,6 @@ export function proxyUrl(source: ChannelSource): string {
 
 /** Endereço a entregar ao player: o proxy quando obrigatório, a origem quando não. */
 export function playableUrl(source: ChannelSource): string {
-  if (source.url.startsWith('curtitv://')) {
-    const streamId = source.url.replace('curtitv://', '');
-    return `${proxyBase()}/api/curtitv?stream=${streamId}`;
-  }
   return needsProxy(source) ? proxyUrl(source) : source.url;
 }
 
@@ -179,16 +167,6 @@ export function buildAttempts(sources: ChannelSource[]): Attempt[] {
   const out: Attempt[] = [];
   const tv = ehAppDaTv();
   for (const source of httpsFirst(sources)) {
-    if (source.url.startsWith('curtitv://')) {
-      const streamId = source.url.replace('curtitv://', '');
-      const u = `${proxyBase()}/api/curtitv?stream=${streamId}`;
-      out.push({ source, url: u, viaProxy: true });
-      continue;
-    }
-    if (source.url.includes('/api/curtitv')) {
-      out.push({ source, url: source.url, viaProxy: true });
-      continue;
-    }
     // No app da TV a tentativa direta vale para qualquer endereço (http, .txt, dadinho): primeiro
     // pelo hls.js (o mesmo caminho do site, que já se provou), depois pelo decodificador da
     // própria TV (sem CORS), e por último o proxy. Muitas TVs dizem que tocam HLS sozinhas e
