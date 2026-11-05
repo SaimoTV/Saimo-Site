@@ -4,11 +4,15 @@
  * sem bloqueios de CORS por rodar em app empacotado.
  */
 
+import Hls from 'hls.js';
 import { TVPlayerInstance, PlaybackSource, PlayerEvents, AudioTrack, SubtitleTrack } from './TVPlayer';
+
+const TEMPO_LIMITE_INICIO_MS = 8000;
 
 export class WebOSPlayer implements TVPlayerInstance {
   private video: HTMLVideoElement;
   private events: PlayerEvents;
+  private hls: Hls | null = null;
 
   constructor(videoElement: HTMLVideoElement, events: PlayerEvents) {
     this.video = videoElement;
@@ -46,15 +50,78 @@ export class WebOSPlayer implements TVPlayerInstance {
   async play(source: PlaybackSource): Promise<void> {
     this.stop();
 
-    this.video.src = source.url;
-    this.video.load();
-
     try {
-      await this.video.play();
-    } catch (e: any) {
-      console.warn('[WebOSPlayer] Erro ao iniciar vídeo no webOS:', e);
-      this.events.onError?.(e.message || 'Falha ao reproduzir');
+      await this.iniciarNativo(source.url);
+      return;
+    } catch (erroNativo) {
+      console.warn('[WebOSPlayer] Reprodução nativa falhou:', erroNativo);
+      if (!Hls.isSupported()) throw erroNativo;
     }
+
+    this.stop();
+    await this.iniciarHls(source);
+  }
+
+  private aguardarInicio(preparar: (falhar: (erro: Error) => void) => void): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      let encerrado = false;
+      const encerrar = (erro?: Error) => {
+        if (encerrado) return;
+        encerrado = true;
+        clearTimeout(limite);
+        this.video.removeEventListener('playing', aoTocar);
+        this.video.removeEventListener('error', aoFalhar);
+        if (erro) reject(erro);
+        else resolve();
+      };
+      const aoTocar = () => encerrar();
+      const aoFalhar = () => encerrar(new Error(`Erro webOS Video: code ${this.video.error?.code ?? 'desconhecido'}`));
+      const limite = setTimeout(() => encerrar(new Error('Tempo esgotado ao iniciar a fonte')), TEMPO_LIMITE_INICIO_MS);
+      this.video.addEventListener('playing', aoTocar);
+      this.video.addEventListener('error', aoFalhar);
+      preparar(encerrar);
+    });
+  }
+
+  private iniciarNativo(url: string): Promise<void> {
+    return this.aguardarInicio((falhar) => {
+      this.video.src = url;
+      this.video.load();
+      this.video.play().catch((e: Error) => falhar(e));
+    });
+  }
+
+  private iniciarHls(source: PlaybackSource): Promise<void> {
+    return this.aguardarInicio((falhar) => {
+      const hls = new Hls({
+        enableWorker: false,
+        lowLatencyMode: Boolean(source.isLive),
+        backBufferLength: source.isLive ? 15 : 60,
+        maxBufferSize: 30 * 1000 * 1000,
+        maxBufferLength: 20,
+      });
+      this.hls = hls;
+      let iniciou = false;
+      this.video.addEventListener('playing', () => { iniciou = true; }, { once: true });
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        this.video.play().catch(() => {});
+      });
+
+      hls.on(Hls.Events.ERROR, (_, dados) => {
+        if (!dados.fatal) return;
+        if (!iniciou) {
+          falhar(new Error(`Erro HLS fatal: ${dados.details}`));
+          return;
+        }
+        if (dados.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad();
+        else if (dados.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
+        else this.events.onError?.(`Erro HLS fatal: ${dados.details}`);
+      });
+
+      hls.loadSource(source.url);
+      hls.attachMedia(this.video);
+    });
   }
 
   private extractTracks() {
@@ -102,6 +169,10 @@ export class WebOSPlayer implements TVPlayerInstance {
   }
 
   stop() {
+    if (this.hls) {
+      this.hls.destroy();
+      this.hls = null;
+    }
     this.video.pause();
     this.video.removeAttribute('src');
     this.video.load();

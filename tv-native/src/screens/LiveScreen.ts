@@ -225,7 +225,7 @@ export class LiveScreen {
     );
   }
 
-  async tuneChannel(channel: Channel, variantIndex = 0) {
+  async tuneChannel(channel: Channel, variantIndex = 0, falhasSeguidas = 0) {
     if (this.isTuning && State.currentChannel?.id === channel.id && State.currentVariantIndex === variantIndex) {
       return;
     }
@@ -258,18 +258,22 @@ export class LiveScreen {
       });
     } catch (e) {
       console.warn(`[LiveScreen] Falha ao sintonizar ${channel.name}. Tentando próxima variante...`, e);
-      this.failoverNextVariant();
+      this.failoverNextVariant(falhasSeguidas + 1);
     } finally {
       this.isTuning = false;
     }
   }
 
-  private failoverNextVariant() {
+  private failoverNextVariant(falhasSeguidas: number) {
     if (!State.currentChannel || State.currentChannel.variants.length <= 1) return;
+    if (falhasSeguidas >= State.currentChannel.variants.length) {
+      console.warn(`[LiveScreen] Todas as fontes de ${State.currentChannel.name} falharam.`);
+      return;
+    }
     const nextIdx = (State.currentVariantIndex + 1) % State.currentChannel.variants.length;
     if (nextIdx !== State.currentVariantIndex) {
       console.info(`[LiveScreen] Alternando para variante ${nextIdx + 1} de ${State.currentChannel.name}`);
-      this.tuneChannel(State.currentChannel, nextIdx);
+      this.tuneChannel(State.currentChannel, nextIdx, falhasSeguidas);
     }
   }
 
