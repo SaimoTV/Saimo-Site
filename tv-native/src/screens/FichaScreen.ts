@@ -33,7 +33,7 @@ export class FichaScreen {
 
   constructor() {
     this.element = document.createElement('div');
-    this.element.className = 'tv-ficha-screen hidden';
+    this.element.className = 'tv-screen tv-ficha-screen hidden';
     this.element.id = 'screen-ficha';
 
     this.backdropEl = document.createElement('img');
