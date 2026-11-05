@@ -42,7 +42,11 @@ export class HlsPlayer implements TVPlayerInstance {
   async play(source: PlaybackSource): Promise<void> {
     this.stop();
 
-    const isHls = source.url.includes('.m3u8') || source.url.includes('.txt');
+    const isHls =
+      source.url.includes('.m3u8') ||
+      source.url.includes('.txt') ||
+      source.url.includes('embedtvproxy.workers.dev') ||
+      source.url.includes('workers.dev');
 
     if (isHls && Hls.isSupported()) {
       this.hls = new Hls({
