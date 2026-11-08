@@ -16,6 +16,27 @@
  * não respondeu.
  */
 
+/** Servidores conhecidos que deixaram de funcionar permanentemente. */
+export const MORTOS_PERMANENTES: ReadonlySet<string> = new Set([
+  '123flmsfree.com',
+  'vod-limit-media',
+  'froststream.cloutteam.com',
+  'cloutteam.com',
+  'praia13.com',
+  'pub-bda823ef358c448ea310cdf9539f9628.r2.dev',
+  'cdn.hermesnewone.com',
+  'speed2.megafilmeshd9.com',
+  'cdn-sv01.maximaimg.online',
+  'strm15.uqload.vc',
+  'megaembed.com',
+  'clickhost.xyz',
+  'playercdnx.workers.dev',
+  '146.0.32.89',
+  'corruptx.org',
+  'governosptx.org',
+  'desativado.invalid',
+]);
+
 const ENDERECO = 'https://saimo-tv.pages.dev/fontes-desativadas.json';
 /** Uma hora, guardada entre aberturas: o monitor cobra por pedido, e com
  *  milhares de abas pedindo a cada dois minutos a conta passava da franquia.
@@ -94,9 +115,9 @@ function servidor(url: string): string | null {
 }
 
 export function desligado(url: string): boolean {
-  if (!url || !hosts.size) return false;
+  if (!url) return false;
   const host = servidor(url);
-  return host !== null && hosts.has(host);
+  return host !== null && (MORTOS_PERMANENTES.has(host) || hosts.has(host));
 }
 
 /** Os endereços de um filme ou episódio sem os que estão desligados. */
