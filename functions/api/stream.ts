@@ -62,51 +62,85 @@ async function buscarRedeFlix(tmdbId: string, isSerie: boolean, season: string, 
     'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
     'Referer': `${REDEFLIX_BASE}/`,
   };
+
+  // 1. Tenta carregar o HTML da página do título (direto ou via fallback anti-520)
+  let html = '';
+  try {
+    const c1 = new AbortController();
+    const t1 = setTimeout(() => c1.abort(), 3500);
+    const r1 = await fetch(pagina, { headers: baseHeaders, signal: c1.signal });
+    clearTimeout(t1);
+    if (debugObj) debugObj.r1 = { status: r1.status, ok: r1.ok, pagina };
+    if (r1.ok) {
+      html = await r1.text();
+    }
+  } catch (e: any) {
+    if (debugObj) debugObj.r1Err = e?.message;
+  }
+
+  if (!html) {
+    try {
+      const cProxy = new AbortController();
+      const tProxy = setTimeout(() => cProxy.abort(), 6000);
+      const rProxy = await fetch(`https://r.jina.ai/${pagina}`, {
+        headers: { 'X-Return-Format': 'html', 'User-Agent': AGENTE },
+        signal: cProxy.signal,
+      });
+      clearTimeout(tProxy);
+      if (debugObj) debugObj.rProxy = { status: rProxy.status, ok: rProxy.ok };
+      if (rProxy.ok) {
+        html = await rProxy.text();
+      }
+    } catch (e: any) {
+      if (debugObj) debugObj.rProxyErr = e?.message;
+    }
+  }
+
+  if (!html) return null;
+
+  // 2. Extrai fastLaunchTickets direto do HTML
+  let fastTickets: Record<string, string> = {};
+  const fastMatch = /fastLaunchTickets\s*=\s*({[^}]+})/.exec(html);
+  if (fastMatch?.[1]) {
+    try { fastTickets = JSON.parse(fastMatch[1]); } catch (_) {}
+  }
+  if (debugObj) debugObj.fastTickets = fastTickets;
+
   for (const servidor of servidores) {
     try {
-      const c1 = new AbortController();
-      const t1 = setTimeout(() => c1.abort(), 4000);
-      const r1 = await fetch(pagina, {
-        headers: baseHeaders,
-        signal: c1.signal,
-      });
-      clearTimeout(t1);
-      if (debugObj) {
-        debugObj.r1 = { status: r1.status, ok: r1.ok, pagina };
-        if (!r1.ok) {
-          try { debugObj.r1Body = (await r1.clone().text()).slice(0, 300); } catch (_) {}
+      let launchTicket = fastTickets[servidor] || '';
+
+      // Fallback para playback-resolve se fastLaunchTickets não tiver para o servidor
+      if (!launchTicket) {
+        const m = /playbackResolveTicket\s*=\s*["']([^"']+)["']/.exec(html);
+        if (m?.[1]) {
+          const c2 = new AbortController();
+          const t2 = setTimeout(() => c2.abort(), 4000);
+          const r2Headers: Record<string, string> = {
+            'User-Agent': AGENTE,
+            'X-Requested-With': 'RedeFlixPlayer',
+            'Accept': 'application/json, text/plain, */*',
+            'Content-Type': 'application/json',
+            'Referer': pagina,
+            'Origin': REDEFLIX_BASE,
+          };
+          const r2 = await fetch(`${REDEFLIX_BASE}/playback-resolve.php`, {
+            method: 'POST',
+            headers: r2Headers,
+            body: JSON.stringify({ ticket: m[1], server: servidor }),
+            signal: c2.signal,
+          });
+          clearTimeout(t2);
+          if (r2.ok) {
+            const j2 = (await r2.json()) as { launchTicket?: string };
+            launchTicket = j2?.launchTicket || '';
+          }
         }
       }
-      if (!r1.ok) continue;
-      const html = await r1.text();
-      const m = /playbackResolveTicket\s*=\s*["']([^"']+)["']/.exec(html);
-      if (debugObj) debugObj.hasTicket = !!m?.[1];
-      if (!m?.[1]) continue;
-      const c2 = new AbortController();
-      const t2 = setTimeout(() => c2.abort(), 4000);
-      const r2Headers: Record<string, string> = {
-        'User-Agent': AGENTE,
-        'X-Requested-With': 'RedeFlixPlayer',
-        'Accept': 'application/json, text/plain, */*',
-        'Content-Type': 'application/json',
-        'Referer': pagina,
-        'Origin': REDEFLIX_BASE,
-      };
-      const r2 = await fetch(`${REDEFLIX_BASE}/playback-resolve.php`, {
-        method: 'POST',
-        headers: r2Headers,
-        body: JSON.stringify({ ticket: m[1], server: servidor }),
-        signal: c2.signal,
-      });
-      clearTimeout(t2);
-      if (debugObj) debugObj.r2 = { status: r2.status, ok: r2.ok };
-      if (!r2.ok) {
-        if (debugObj) debugObj.r2Body = (await r2.text()).slice(0, 200);
-        continue;
-      }
-      const j2 = (await r2.json()) as { launchTicket?: string };
-      if (debugObj) debugObj.hasLaunch = !!j2?.launchTicket;
-      if (!j2?.launchTicket) continue;
+
+      if (!launchTicket) continue;
+
+      // 3. Resolve a URL final no source.php
       const c3 = new AbortController();
       const t3 = setTimeout(() => c3.abort(), 4000);
       const r3Headers: Record<string, string> = {
@@ -120,7 +154,7 @@ async function buscarRedeFlix(tmdbId: string, isSerie: boolean, season: string, 
       const r3 = await fetch(`${REDEFLIX_BASE}/playerkys/source.php`, {
         method: 'POST',
         headers: r3Headers,
-        body: JSON.stringify({ ticket: j2.launchTicket }),
+        body: JSON.stringify({ ticket: launchTicket }),
         signal: c3.signal,
       });
       clearTimeout(t3);
