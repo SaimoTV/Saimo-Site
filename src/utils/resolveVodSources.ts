@@ -18,28 +18,49 @@ function ehEnderecoDinamico(url: string): boolean {
   try { return new URL(url).pathname === '/api/stream'; } catch { return false; }
 }
 
+export type ResolvedMovieSources = MovieSource[] & {
+  somenteApp?: boolean;
+};
+
 /**
  * `null` quando o servidor afirma que não há vídeo (404): o episódio ainda não
  * saiu em lugar nenhum. Tocar o endereço mesmo assim dava "formato inválido".
  * Limite do provedor (503), rede ou demora mantêm a fonte para o player tentar.
  */
-async function resolverDinamica(source: MovieSource, signal: AbortSignal): Promise<MovieSource | null> {
+async function resolverDinamica(source: MovieSource, signal: AbortSignal): Promise<{ source: MovieSource | null; somenteApp?: boolean }> {
   try {
     const endereco = new URL(source.url);
     endereco.searchParams.set('json', '1');
     const response = await fetch(endereco.href, { signal });
-    if (response.status === 404) return null;
-    if (!response.ok) return source;
+    if (response.status === 404) {
+      try {
+        const body = await response.json();
+        return { source: null, somenteApp: !!body?.somenteApp };
+      } catch {
+        return { source: null, somenteApp: true };
+      }
+    }
+    if (!response.ok) return { source };
     const data = await response.json();
-    return typeof data.url === 'string' && data.url ? { ...source, url: data.url } : source;
-  } catch { return source; }
+    return {
+      source: typeof data.url === 'string' && data.url ? { ...source, url: data.url } : source,
+      somenteApp: !!data.somenteApp,
+    };
+  } catch { return { source }; }
 }
 
 /** Resolve ao abrir o título: URLs assinadas não ficam gravadas no catálogo. */
-export async function resolveVodSources(original: MovieSource[], signal: AbortSignal): Promise<MovieSource[]> {
-  const sources = (await Promise.all(original.map(source =>
-    ehEnderecoDinamico(source.url) ? resolverDinamica(source, signal) : source)))
-    .filter((source): source is MovieSource => source !== null);
+export async function resolveVodSources(original: MovieSource[], signal: AbortSignal): Promise<ResolvedMovieSources> {
+  let indicouSomenteApp = false;
+  const resolvedDynamics = await Promise.all(original.map(async source => {
+    if (ehEnderecoDinamico(source.url)) {
+      const res = await resolverDinamica(source, signal);
+      if (res.somenteApp) indicouSomenteApp = true;
+      return res.source;
+    }
+    return source;
+  }));
+  const sources = resolvedDynamics.filter((source): source is MovieSource => source !== null);
   const candidates = sources.filter(source => {
     try {
       const url = new URL(source.url);
@@ -71,9 +92,11 @@ export async function resolveVodSources(original: MovieSource[], signal: AbortSi
   }
   const remaining = sources.filter(s => !resolvedHubbyOriginals.has(s.url));
   const seen = new Set<string>();
-  return httpsFirst([...resolved, ...remaining]).filter(source => {
+  const finalSources: ResolvedMovieSources = httpsFirst([...resolved, ...remaining]).filter(source => {
     if (seen.has(source.url)) return false;
     seen.add(source.url);
     return true;
   });
+  finalSources.somenteApp = indicouSomenteApp;
+  return finalSources;
 }

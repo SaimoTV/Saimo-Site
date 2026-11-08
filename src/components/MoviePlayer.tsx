@@ -65,6 +65,7 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [soNosApps, setSoNosApps] = useState(false);
   const [isProxyBlocked, setIsProxyBlocked] = useState(false);
   // Selecionar um endereço no aviso não deve reiniciar o player/fallback.
   const [fonteAviso, setFonteAviso] = useState<string | null>(null);
@@ -200,13 +201,22 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
     const timeout = setTimeout(() => controller.abort(), 6000);
     setIsLoading(true);
     setError(null);
+    setSoNosApps(false);
     resolveVodSources(fontesOriginais, controller.signal).then(sources => {
       if (!active) return;
       setFonteIdx(fonteInicial(sources, movie));
       setResolvidas({ movie, sources });
       if (sources.length === 0) {
         setIsLoading(false);
-        setError('Este título ainda não está disponível em nenhuma fonte. Tente de novo mais tarde.');
+        const ehSoApps = (sources as any).somenteApp || fontesOriginais.every(s => {
+          try { return new URL(s.url).pathname === '/api/stream'; } catch { return false; }
+        });
+        if (ehSoApps) {
+          setSoNosApps(true);
+          setError('Este título só funciona nos aplicativos. No site ele não vai funcionar.');
+        } else {
+          setError('Este título ainda não está disponível em nenhuma fonte. Tente de novo mais tarde.');
+        }
       }
     });
     return () => { active = false; clearTimeout(timeout); controller.abort(); };
@@ -1290,21 +1300,51 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
                 <path d="M12 8v4M12 16h.01" />
               </svg>
               <h3>{error}</h3>
+              {soNosApps && (
+                <div className="aviso-app" style={{ margin: '16px auto', maxWidth: '520px', textAlign: 'left' }}>
+                  <div>
+                    <strong>Disponível nos aplicativos do Saimo TV</strong>
+                    <span>
+                      Este título utiliza fontes que os navegadores bloqueiam. Nos aplicativos para TV Box, Celular, Windows e Mac ele abre normalmente.
+                    </span>
+                  </div>
+                  <a href={rota('/app')} className="aviso-app-botao" data-focusable="true">
+                    Baixar o aplicativo
+                  </a>
+                </div>
+              )}
               <div className="error-actions">
-                <button
-                  onClick={handleRetry}
-                  data-focusable="true"
-                  data-nav-group="error-actions"
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handleRetry();
-                    }
-                  }}
-                >
-                  Tentar novamente
-                </button>
+                {soNosApps ? (
+                  <button
+                    onClick={onBack}
+                    data-focusable="true"
+                    data-nav-group="error-actions"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onBack();
+                      }
+                    }}
+                  >
+                    Voltar
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleRetry}
+                    data-focusable="true"
+                    data-nav-group="error-actions"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleRetry();
+                      }
+                    }}
+                  >
+                    Tentar novamente
+                  </button>
+                )}
                 {externaHttp && (
                 <button
                   onClick={openInNewTab}

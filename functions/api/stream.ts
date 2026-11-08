@@ -785,7 +785,10 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
       // Provedor limitando não quer dizer que o título não existe: quem audita o
       // acervo precisa distinguir, senão filme bom sai do app.
       const limitado = resultados.some(r => r.status === 429);
-      return new Response(JSON.stringify({ error: 'Nenhum stream disponível para este título' }), {
+      return new Response(JSON.stringify({
+        error: 'Este título só funciona nos aplicativos do Saimo TV. No site não vai funcionar.',
+        somenteApp: true,
+      }), {
         status: limitado ? 503 : 404,
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' },
       });
