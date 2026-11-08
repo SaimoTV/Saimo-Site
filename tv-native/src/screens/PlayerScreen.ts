@@ -66,6 +66,10 @@ export class PlayerScreen {
 
     this.setupNextEpisodeButtons();
     window.addEventListener('keydown', (e) => this.handleKeyDown(e), true);
+    // Erro do player chega depois do play(): a fonte que caiu dá lugar à seguinte.
+    State.on('player-erro', () => {
+      if (State.currentScreen === 'player') this.failoverNextSource();
+    });
   }
 
   getElement(): HTMLElement {
@@ -105,8 +109,10 @@ export class PlayerScreen {
     this.osd.setInfo(title, `Fonte ${State.currentVariantIndex + 1} de ${Math.max(1, this.activeSources.length)}`);
     this.osd.show();
 
+    this.tituloAtual = title;
     if (this.activeSources.length === 0) {
       console.warn(`[PlayerScreen] Nenhuma fonte encontrada para ${title}`);
+      this.osd.setInfo(title, 'Este título ainda não está disponível em nenhuma fonte. Tente de novo mais tarde.');
       return;
     }
 
@@ -155,9 +161,15 @@ export class PlayerScreen {
   private falhas = 0;
   private chaveAtual = '';
 
+  private tituloAtual = '';
+
   private failoverNextSource() {
     this.falhas++;
-    if (this.activeSources.length <= 1 || this.falhas >= this.activeSources.length) return;
+    if (this.falhas >= this.activeSources.length) {
+      this.osd.setInfo(this.tituloAtual, 'Nenhuma fonte deste título abriu agora. Tente de novo mais tarde.');
+      this.osd.show();
+      return;
+    }
     State.currentVariantIndex = (State.currentVariantIndex + 1) % this.activeSources.length;
     this.enter();
   }

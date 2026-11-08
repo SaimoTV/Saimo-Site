@@ -25,6 +25,11 @@ export class LiveScreen {
   private numericBuffer = '';
   private numericTimer: any = null;
   private isTuning = false;
+  /** Fontes já tentadas no canal atual; acabadas, avisa em vez de rodar em círculo. */
+  private tentadas = new Set<number>();
+  /** Vigia: fonte que não anda em PRAZO_FONTE ms desce para a seguinte. */
+  private vigia: any = null;
+  private static PRAZO_FONTE = 12000;
 
   constructor(player: TVPlayerInstance) {
     this.player = player;
@@ -61,6 +66,9 @@ export class LiveScreen {
 
     // Listener de Teclas Específicas do Ao Vivo
     window.addEventListener('keydown', (e) => this.handleKeyDown(e), true);
+    State.on('player-erro', () => {
+      if (State.currentScreen === 'live' && !this.player2 && State.currentChannel) this.fonteFalhou();
+    });
   }
 
   getElement(): HTMLElement {
@@ -70,7 +78,6 @@ export class LiveScreen {
   enter() {
     this.element.classList.remove('hidden');
     this.sourceModal.close();
-    State.currentVariantIndex = 0;
 
     if (State.channels.length === 0) {
       State.channels = Api.getCachedChannelsSync();
@@ -197,12 +204,13 @@ export class LiveScreen {
     }
 
     if (State.currentChannel) {
-      this.tuneChannel(State.currentChannel, State.currentVariantIndex);
+      this.tuneChannel(State.currentChannel);
     }
   }
 
   leave() {
     this.element.classList.add('hidden');
+    clearTimeout(this.vigia);
     this.zapHud.hide();
     if (this.player2) this.sairMulti();
     this.fecharPainel();
@@ -221,23 +229,34 @@ export class LiveScreen {
       channel.name,
       variants,
       defaultVariant,
-      (idx) => this.tuneChannel(channel, idx)
+      (idx) => this.tuneChannel(channel, idx, true)
     );
   }
 
-  async tuneChannel(channel: Channel, variantIndex = 0) {
-    if (this.isTuning && State.currentChannel?.id === channel.id && State.currentVariantIndex === variantIndex) {
+  /**
+   * Sintoniza o canal. Sem índice, abre na fonte lembrada para o canal (a que a
+   * pessoa escolheu ou a última que tocou). `manual`: escolha feita no seletor,
+   * guardada na hora e ponto de partida para a troca automática.
+   */
+  async tuneChannel(channel: Channel, variantIndex?: number, manual = false) {
+    const total = channel.variants?.length || 0;
+    let idx = variantIndex ?? Storage.getFonteCanal(channel.name);
+    if (idx >= total) idx = 0;
+    if (this.isTuning && State.currentChannel?.id === channel.id && State.currentVariantIndex === idx) {
       return;
     }
+    if (State.currentChannel?.id !== channel.id || manual || variantIndex === undefined) this.tentadas.clear();
+    this.tentadas.add(idx);
+    if (manual) Storage.setFonteCanal(channel.name, idx);
 
     this.isTuning = true;
     State.currentChannel = channel;
-    State.currentVariantIndex = variantIndex;
+    State.currentVariantIndex = idx;
 
     // Salva nas preferências
     Storage.savePrefs({ ultimoCanal: channel.name });
 
-    const variant = channel.variants[variantIndex] || channel.variants[0];
+    const variant = channel.variants[idx];
     if (!variant) {
       console.warn(`[LiveScreen] Canal ${channel.name} sem variantes de streaming.`);
       this.isTuning = false;
@@ -245,7 +264,8 @@ export class LiveScreen {
     }
 
     // Exibe o Zap HUD imediatamente (< 1ms)
-    this.zapHud.show(channel, variantIndex);
+    this.zapHud.show(channel, idx);
+    this.vigiar(channel, idx);
 
     try {
       await this.player.play({
@@ -258,19 +278,44 @@ export class LiveScreen {
       });
     } catch (e) {
       console.warn(`[LiveScreen] Falha ao sintonizar ${channel.name}. Tentando próxima variante...`, e);
-      this.failoverNextVariant();
+      this.fonteFalhou();
     } finally {
       this.isTuning = false;
     }
   }
 
-  private failoverNextVariant() {
-    if (!State.currentChannel || State.currentChannel.variants.length <= 1) return;
-    const nextIdx = (State.currentVariantIndex + 1) % State.currentChannel.variants.length;
-    if (nextIdx !== State.currentVariantIndex) {
-      console.info(`[LiveScreen] Alternando para variante ${nextIdx + 1} de ${State.currentChannel.name}`);
-      this.tuneChannel(State.currentChannel, nextIdx);
+  /** Fonte que não andou no prazo é dada como morta; a que andou fica lembrada. */
+  private vigiar(channel: Channel, idx: number) {
+    clearTimeout(this.vigia);
+    const inicio = this.player.getCurrentTime();
+    this.vigia = setTimeout(() => {
+      if (State.currentChannel?.id !== channel.id || State.currentVariantIndex !== idx) return;
+      if (this.player.getCurrentTime() > inicio + 1) {
+        Storage.setFonteCanal(channel.name, idx);
+      } else {
+        this.fonteFalhou();
+      }
+    }, LiveScreen.PRAZO_FONTE);
+  }
+
+  /** Desce para a próxima fonte ainda não tentada; acabadas, avisa. */
+  private fonteFalhou() {
+    const canal = State.currentChannel;
+    if (!canal) return;
+    clearTimeout(this.vigia);
+    const total = canal.variants.length;
+    for (let passo = 1; passo < total; passo++) {
+      const proxima = (State.currentVariantIndex + passo) % total;
+      if (!this.tentadas.has(proxima)) {
+        console.info(`[LiveScreen] Alternando para a fonte ${proxima + 1} de ${canal.name}`);
+        this.zapHud.aviso(`Fonte ${State.currentVariantIndex + 1} não abriu. Tentando a fonte ${proxima + 1}…`, 4);
+        this.tuneChannel(canal, proxima);
+        return;
+      }
     }
+    this.zapHud.aviso(total > 1
+      ? 'Nenhuma fonte deste canal abriu agora. Tente de novo em alguns minutos.'
+      : 'Este canal está fora do ar agora. Tente de novo em alguns minutos.');
   }
 
   zapNext() {
@@ -335,10 +380,12 @@ export class LiveScreen {
       e.stopPropagation();
       this.abrirPainel();
     } else if (key === 39) {
-      // ESQUERDA/DIREITA: Seta Direita apenas mostra o ZapHUD com informações do canal, sem abrir modal
+      // DIREITA: escolher a fonte do canal (com uma fonte só, mostra a barra do canal)
       e.preventDefault();
       e.stopPropagation();
-      if (State.currentChannel) {
+      if (State.currentChannel && State.currentChannel.variants.length > 1) {
+        this.openCurrentChannelSources();
+      } else if (State.currentChannel) {
         this.zapHud.show(State.currentChannel, State.currentVariantIndex);
       }
     } else if (key === 415 || key === 19 || key === 10252) {

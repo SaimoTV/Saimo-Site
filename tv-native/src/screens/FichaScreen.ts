@@ -33,7 +33,9 @@ export class FichaScreen {
 
   constructor() {
     this.element = document.createElement('div');
-    this.element.className = 'tv-ficha-screen hidden';
+    // `tv-screen`: é por ela que a navegação acha os botões da tela ativa. Sem
+    // ela as setas só enxergavam o menu do topo (direita ia para Ao vivo).
+    this.element.className = 'tv-screen tv-ficha-screen hidden';
     this.element.id = 'screen-ficha';
 
     this.backdropEl = document.createElement('img');
@@ -115,6 +117,14 @@ export class FichaScreen {
     this.currentSeasonIdx = 0;
     State.currentVariantIndex = 0;
     this.sourceModal.close();
+    // O título anterior não pode vazar: temporadas, episódios e elenco somem
+    // até os dados deste chegarem.
+    this.seasonsContainer.innerHTML = '';
+    this.seasonsContainer.style.display = 'none';
+    this.episodesRail.setCards([]);
+    this.episodesRail.getElement().style.display = 'none';
+    this.castRail.setCards([]);
+    this.castRail.getElement().style.display = 'none';
     this.renderInitialDetails(vod);
 
     // Foca o botão assistir imediatamente
@@ -172,6 +182,8 @@ export class FichaScreen {
   private async loadFullDetails(item: VODItem) {
     // 1. Busca metadados TMDB (sinopse rica, backdrop 1280p, elenco)
     await Api.fetchTMDBDetails(item);
+    // Outro título foi aberto enquanto os dados deste chegavam.
+    if (this.currentItem !== item) return;
     if (item.backdrop) {
       this.backdropEl.src = item.backdrop;
     }
@@ -184,9 +196,11 @@ export class FichaScreen {
     if (!item.isSeries) {
       const sources = await Api.resolveMovieSources(item);
       item.sources = sources;
+      if (this.currentItem !== item) return;
       this.renderActionButtons(item);
     } else {
       await Api.resolveSeriesEpisodes(item);
+      if (this.currentItem !== item) return;
       this.renderSeasonsAndEpisodes(item);
     }
 
@@ -206,6 +220,7 @@ export class FichaScreen {
 
     // 4. Renderiza Parecidos
     this.renderSimilarTitles(item);
+    this.ligarNavegacao();
   }
 
   private renderActionButtons(item: VODItem) {
@@ -244,10 +259,14 @@ export class FichaScreen {
       favBtn.innerHTML = nowFav ? 'Nos favoritos' : 'Favoritar';
     });
     this.actionsContainer.appendChild(favBtn);
+    this.ligarNavegacao();
 
-    // Mantém o foco no botão de assistir pronto para tocar sem perguntar nada
+    // Foco no Assistir, a não ser que a pessoa já tenha descido para outra parte da ficha.
     setTimeout(() => {
-      SpatialNav.focus(playBtn);
+      const atual = SpatialNav.getCurrent();
+      if (!atual || !this.element.contains(atual) || this.actionsContainer.contains(atual) || !document.body.contains(atual)) {
+        SpatialNav.focus(playBtn);
+      }
     }, 10);
   }
 
@@ -268,6 +287,8 @@ export class FichaScreen {
       tab.addEventListener('click', () => {
         this.currentSeasonIdx = sIdx;
         this.renderSeasonsAndEpisodes(item);
+        // As abas são refeitas: o foco volta para a aba escolhida.
+        SpatialNav.focus(this.seasonsContainer.querySelector<HTMLElement>(`#season-tab-${sIdx}`));
       });
 
       this.seasonsContainer.appendChild(tab);
@@ -287,6 +308,40 @@ export class FichaScreen {
     }));
 
     this.episodesRail.setCards(episodeCards);
+    this.ligarNavegacao();
+  }
+
+  /**
+   * Caminho das setas entre as faixas da ficha: botões, temporadas, episódios,
+   * elenco e parecidos. A navegação por distância pulava as temporadas e subia
+   * do episódio direto para o menu do topo.
+   */
+  private ligarNavegacao() {
+    const visivel = (el: HTMLElement) => el.style.display !== 'none' && el.offsetParent !== null;
+    const faixas: HTMLElement[][] = [];
+    const botoes = [...this.actionsContainer.querySelectorAll<HTMLElement>('[data-nav="true"]')];
+    if (botoes.length) faixas.push(botoes);
+    if (visivel(this.seasonsContainer)) {
+      const abas = [...this.seasonsContainer.querySelectorAll<HTMLElement>('[data-nav="true"]')];
+      if (abas.length) faixas.push(abas);
+    }
+    for (const rail of [this.episodesRail, this.castRail, this.similarRail]) {
+      if (!visivel(rail.getElement())) continue;
+      const cards = [...rail.getElement().querySelectorAll<HTMLElement>('[data-nav="true"]')];
+      if (cards.length) faixas.push(cards);
+    }
+    const ancora = (faixa: HTMLElement[]) =>
+      faixa.find((el) => el.classList.contains('primary') && el.id.startsWith('season-tab')) || faixa[0];
+    faixas.forEach((faixa, i) => {
+      const acima = i > 0 ? ancora(faixas[i - 1]) : null;
+      const abaixo = i + 1 < faixas.length ? ancora(faixas[i + 1]) : null;
+      for (const el of faixa) {
+        if (acima) el.setAttribute('data-nav-up', acima.id);
+        else el.removeAttribute('data-nav-up');
+        if (abaixo) el.setAttribute('data-nav-down', abaixo.id);
+        else el.setAttribute('data-nav-down', 'none');
+      }
+    });
   }
 
   private renderSimilarTitles(item: VODItem) {
@@ -296,6 +351,7 @@ export class FichaScreen {
 
     if (similar.length === 0) {
       this.similarRail.getElement().style.display = 'none';
+      this.ligarNavegacao();
       return;
     }
 
@@ -313,5 +369,6 @@ export class FichaScreen {
     }));
 
     this.similarRail.setCards(cards);
+    this.ligarNavegacao();
   }
 }

@@ -44,7 +44,11 @@ class SaimoTVApp {
 
     // Instancia o player de hardware acelerado
     const player = PlayerFactory.create(this.videoEl, {
-      onError: (err) => console.warn('[SaimoTV] Erro no player:', err),
+      // Erro do player chega depois do play(): as telas decidem trocar de fonte.
+      onError: (err) => {
+        console.warn('[SaimoTV] Erro no player:', err);
+        State.emit('player-erro', err);
+      },
     });
 
     // Menu Global do Topo

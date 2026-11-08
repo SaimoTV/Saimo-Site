@@ -54,6 +54,28 @@ export class Storage {
   private static CACHED_DESTAQUES_KEY = 'saimo_tv_cached_destaques';
   private static CACHED_CHANNELS_KEY = 'saimo_tv_cached_channels';
 
+  // Fonte escolhida (ou a que tocou) em cada canal, pelo nome do canal.
+  private static FONTE_CANAL_KEY = 'saimo_tv_fonte_canal';
+
+  static getFonteCanal(canal: string): number {
+    try {
+      const mapa = JSON.parse(localStorage.getItem(this.FONTE_CANAL_KEY) || '{}');
+      const n = mapa[canal];
+      return typeof n === 'number' && n >= 0 ? n : 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  static setFonteCanal(canal: string, indice: number) {
+    try {
+      const mapa = JSON.parse(localStorage.getItem(this.FONTE_CANAL_KEY) || '{}');
+      if (mapa[canal] === indice) return;
+      mapa[canal] = indice;
+      localStorage.setItem(this.FONTE_CANAL_KEY, JSON.stringify(mapa));
+    } catch (e) {}
+  }
+
   static getPrefs(): TVPreferences {
     try {
       const data = localStorage.getItem(this.PREFS_KEY);

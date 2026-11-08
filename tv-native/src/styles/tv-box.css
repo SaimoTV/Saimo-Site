@@ -112,6 +112,7 @@ body, html {
 html.video-ativo, body.video-ativo { background: #000 !important; }
 html.tizen.video-ativo, html.tizen.video-ativo body { background: transparent !important; }
 .tv-screen { background: none; }
+.tv-screen.tv-ficha-screen { background: #070709; }
 
 /* Painel de canais: três faixas em volta da janela do vídeo */
 .tv-painel-canais { position: absolute; inset: 0; width: 1920px; height: 1080px; z-index: 20; }

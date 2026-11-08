@@ -43,6 +43,7 @@ export class ZapHUD {
         <div class="tv-zap-progress-container">
           <div class="tv-zap-progress-bar" id="zap-prog-bar" style="width: 0%;"></div>
         </div>
+        <div id="zap-dica" style="font-size:18px; color:rgba(255,255,255,0.6); margin-top:10px;">esquerda canais · cima/baixo troca</div>
       </div>
     `;
 
@@ -85,6 +86,10 @@ export class ZapHUD {
     this.qualityEl.textContent = currentVariant?.quality || 'FHD';
 
     const totalVariants = channel.variants?.length || 1;
+    const dica = this.element.querySelector('#zap-dica') as HTMLElement;
+    dica.textContent = totalVariants > 1
+      ? 'direita escolhe a fonte · esquerda canais · cima/baixo troca'
+      : 'esquerda canais · cima/baixo troca';
     if (totalVariants > 1) {
       this.sourcesBadgeEl.innerHTML = `<span>Fonte ${variantIndex + 1}/${totalVariants}</span>`;
       this.sourcesBadgeEl.style.display = 'block';
@@ -119,6 +124,14 @@ export class ZapHUD {
     this.hideTimer = setTimeout(() => {
       this.hide();
     }, 5500);
+  }
+
+  /** Mensagem no lugar do programa (canal fora do ar, trocando de fonte). */
+  aviso(texto: string, segundos = 8) {
+    this.currentProgramEl.textContent = texto;
+    this.element.classList.remove('hidden');
+    clearTimeout(this.hideTimer);
+    this.hideTimer = setTimeout(() => this.hide(), segundos * 1000);
   }
 
   hide() {
