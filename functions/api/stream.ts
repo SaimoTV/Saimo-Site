@@ -72,10 +72,16 @@ async function buscarRedeFlix(tmdbId: string, isSerie: boolean, season: string, 
       });
       clearTimeout(t1);
       if (debugObj) {
+        let listTest: any = null;
+        try {
+          const rList = await fetch('https://redeflixapi.click/list-movie-ids.txt', { headers: { 'User-Agent': AGENTE } });
+          listTest = { status: rList.status, ok: rList.ok };
+        } catch (e: any) { listTest = { err: e?.message }; }
         debugObj.r1 = {
           status: r1.status,
           ok: r1.ok,
           pagina,
+          listTest,
           headers: Object.fromEntries(r1.headers.entries())
         };
         if (!r1.ok) {
