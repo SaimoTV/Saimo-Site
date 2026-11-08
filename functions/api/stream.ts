@@ -58,12 +58,10 @@ async function buscarRedeFlix(tmdbId: string, isSerie: boolean, season: string, 
   const servidores = versao === 'leg' ? ['legendado', 'default'] : ['default', 'legendado'];
   const baseHeaders: Record<string, string> = {
     'User-Agent': AGENTE,
-    'Accept': 'text/html,*/*;q=0.8',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
     'Referer': `${REDEFLIX_BASE}/`,
   };
-  if (clientIp) {
-    baseHeaders['X-Forwarded-For'] = clientIp;
-  }
   for (const servidor of servidores) {
     try {
       const c1 = new AbortController();
@@ -73,7 +71,12 @@ async function buscarRedeFlix(tmdbId: string, isSerie: boolean, season: string, 
         signal: c1.signal,
       });
       clearTimeout(t1);
-      if (debugObj) debugObj.r1 = { status: r1.status, ok: r1.ok };
+      if (debugObj) {
+        debugObj.r1 = { status: r1.status, ok: r1.ok, pagina };
+        if (!r1.ok) {
+          try { debugObj.r1Body = (await r1.clone().text()).slice(0, 300); } catch (_) {}
+        }
+      }
       if (!r1.ok) continue;
       const html = await r1.text();
       const m = /playbackResolveTicket\s*=\s*["']([^"']+)["']/.exec(html);
@@ -84,14 +87,11 @@ async function buscarRedeFlix(tmdbId: string, isSerie: boolean, season: string, 
       const r2Headers: Record<string, string> = {
         'User-Agent': AGENTE,
         'X-Requested-With': 'RedeFlixPlayer',
-        'Accept': 'application/json',
+        'Accept': 'application/json, text/plain, */*',
         'Content-Type': 'application/json',
         'Referer': pagina,
         'Origin': REDEFLIX_BASE,
       };
-      if (clientIp) {
-        r2Headers['X-Forwarded-For'] = clientIp;
-      }
       const r2 = await fetch(`${REDEFLIX_BASE}/playback-resolve.php`, {
         method: 'POST',
         headers: r2Headers,
@@ -112,14 +112,11 @@ async function buscarRedeFlix(tmdbId: string, isSerie: boolean, season: string, 
       const r3Headers: Record<string, string> = {
         'User-Agent': AGENTE,
         'X-Requested-With': 'RedeFlixPlayer',
-        'Accept': 'application/json',
+        'Accept': 'application/json, text/plain, */*',
         'Content-Type': 'application/json',
-        'Referer': pagina,
+        'Referer': `${REDEFLIX_BASE}/playerkys/index.html`,
         'Origin': REDEFLIX_BASE,
       };
-      if (clientIp) {
-        r3Headers['X-Forwarded-For'] = clientIp;
-      }
       const r3 = await fetch(`${REDEFLIX_BASE}/playerkys/source.php`, {
         method: 'POST',
         headers: r3Headers,
