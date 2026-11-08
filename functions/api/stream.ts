@@ -13,7 +13,7 @@ const FENIX_BASE = 'https://fenixflix.fenixhub.online';
 const MAGNET_BASE = 'https://magnetflix.flixbr.online';
 const FROST_BASE = 'https://froststream.cloutteam.com';
 const HOLLY_BASE = 'https://embedplayer2.xyz';
-const REDEFLIX_BASE = 'https://redeflixapi.bar';
+const REDEFLIX_BASE = 'https://redeflixapi.click';
 const AGENTE = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 const AGENTE_FROST = 'OnePlay-Matrix/3.3.9 Kodi';
 
