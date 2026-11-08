@@ -313,36 +313,7 @@
   margin: 8px 0;
 }
 
-/* Center play button */
-.center-play {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 80px;
-  height: 80px;
-  background: rgba(139, 92, 246, 0.9);
-  border: none;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  z-index: 5;
-}
 
-.center-play:hover {
-  transform: translate(-50%, -50%) scale(1.1);
-  background: #8b5cf6;
-}
-
-.center-play svg {
-  width: 40px;
-  height: 40px;
-  color: #fff;
-  margin-left: 4px;
-}
 
 /* Bottom bar */
 .controls-bottom {
@@ -579,15 +550,7 @@
     height: 20px;
   }
 
-  .center-play {
-    width: 64px;
-    height: 64px;
-  }
 
-  .center-play svg {
-    width: 32px;
-    height: 32px;
-  }
 
   .volume-control:hover .volume-slider {
     width: 60px;
@@ -1435,14 +1398,7 @@
   background: var(--player-accent);
 }
 
-.center-play {
-  background: rgba(229, 9, 20, 0.92);
-  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.4);
-}
 
-.center-play:hover {
-  background: #f20d18;
-}
 
 .next-episode-number,
 .next-ep-btn::after {

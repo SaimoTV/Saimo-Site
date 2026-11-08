@@ -395,13 +395,35 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
 
     const reproduzir = () => {
       if (!atual()) return;
-      audioInteligenteService.conectar(video);
-      video.play().catch(() => {
-        if (!atual()) return;
-        video.muted = true;
-        setIsMuted(true);
-        video.play().catch(() => { /* interação manual continua disponível */ });
-      });
+      try {
+        audioInteligenteService.conectar(video);
+      } catch {
+        // Ignora falhas em navegadores sem suporte a Web Audio ou restrições de mídia
+      }
+      const promessa = video.play();
+      if (promessa !== undefined) {
+        promessa.catch((err) => {
+          if (!atual()) return;
+          console.warn('[MoviePlayer] Autoplay com som bloqueado pelo navegador, iniciando mudo:', err);
+          video.muted = true;
+          setIsMuted(true);
+          video.play().then(() => {
+            // Assim que o usuário clicar ou apertar qualquer tecla, restaura o áudio
+            const desmutar = () => {
+              video.muted = false;
+              setIsMuted(false);
+              window.removeEventListener('click', desmutar, true);
+              window.removeEventListener('keydown', desmutar, true);
+              window.removeEventListener('touchstart', desmutar, true);
+            };
+            window.addEventListener('click', desmutar, { once: true, capture: true });
+            window.addEventListener('keydown', desmutar, { once: true, capture: true });
+            window.addEventListener('touchstart', desmutar, { once: true, capture: true });
+          }).catch(() => {
+            /* interação manual continua disponível pela barra inferior */
+          });
+        });
+      }
     };
 
     const handleGenericError = (event: Event) => {
@@ -515,6 +537,9 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
       video.addEventListener('loadedmetadata', onLoadedMetadata);
       video.addEventListener('error', handleGenericError);
       erroNativoLigado = true;
+      if (video.readyState >= 1) {
+        onLoadedMetadata();
+      }
       video.load();
     }
 
@@ -1152,6 +1177,7 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
           data-monitor="1"
           className={`movie-video aspect-${aspectRatio}`}
           playsInline
+          autoPlay
           onClick={(e) => e.stopPropagation()}
         />
       </div>
@@ -1813,25 +1839,6 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
           </div>
         </div>
 
-        {/* Center play button */}
-        {!isPlaying && !isLoading && !error && (
-          <button 
-            className="center-play" 
-            onClick={togglePlay}
-            data-focusable="true"
-            data-nav-group="player-center"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                togglePlay();
-              }
-            }}
-          >
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-          </button>
-        )}
 
         {/* Bottom bar */}
         <div className="controls-bottom" onClick={(e) => e.stopPropagation()}>

@@ -483,15 +483,7 @@
    MOVIE PLAYER CONTROLS
    ============================================ */
 
-/* Botão central de play */
-.center-play[data-focusable="true"].dpad-focused,
-.center-play[data-focusable="true"]:focus-visible {
-  transform: scale(1.2);
-  background: rgba(var(--focus-ring-color-rgb), 0.4) !important;
-  box-shadow: 
-    0 0 50px rgba(var(--focus-ring-color-rgb), 0.7),
-    0 0 100px rgba(var(--focus-ring-color-rgb), 0.4);
-}
+
 
 /* Skip intro */
 .skip-intro-btn[data-focusable="true"].dpad-focused,
