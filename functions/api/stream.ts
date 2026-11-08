@@ -262,7 +262,6 @@ const FILMES_INEDITOS = new Set([
   '1137844', // Mayday (2026)
   '1503762', // Razão e Sensibilidade (2026)
   '941109',  // Jogo Sujo (2025)
-  '1507696', // Apocalipse Z: Novo Mundo (2026)
   '1384216', // Ponto Sem Retorno (2026)
   '340666',  // Animals. (2026)
   '1283515', // Verity (2026)
