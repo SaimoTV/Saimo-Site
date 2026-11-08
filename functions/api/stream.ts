@@ -72,7 +72,12 @@ async function buscarRedeFlix(tmdbId: string, isSerie: boolean, season: string, 
       });
       clearTimeout(t1);
       if (debugObj) {
-        debugObj.r1 = { status: r1.status, ok: r1.ok, pagina };
+        debugObj.r1 = {
+          status: r1.status,
+          ok: r1.ok,
+          pagina,
+          headers: Object.fromEntries(r1.headers.entries())
+        };
         if (!r1.ok) {
           try { debugObj.r1Body = (await r1.clone().text()).slice(0, 300); } catch (_) {}
         }
