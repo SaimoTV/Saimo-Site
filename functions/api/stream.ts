@@ -71,17 +71,23 @@ async function buscarRedeFlix(tmdbId: string, isSerie: boolean, season: string, 
         signal: c1.signal,
       });
       clearTimeout(t1);
-      if (debugObj) {
-        debugObj.r1 = {
-          status: r1.status,
-          ok: r1.ok,
-          pagina,
-          headers: Object.fromEntries(r1.headers.entries())
-        };
-        if (!r1.ok) {
-          try { debugObj.r1Body = (await r1.clone().text()).slice(0, 300); } catch (_) {}
-        }
+    if (debugObj) {
+      let workerHeadersTest: any = null;
+      try {
+        const hb = await fetch('https://httpbin.org/headers', { headers: baseHeaders });
+        workerHeadersTest = await hb.json();
+      } catch (e: any) { workerHeadersTest = e?.message; }
+      debugObj.workerHeadersTest = workerHeadersTest;
+      debugObj.r1 = {
+        status: r1.status,
+        ok: r1.ok,
+        pagina,
+        headers: Object.fromEntries(r1.headers.entries())
+      };
+      if (!r1.ok) {
+        try { debugObj.r1Body = (await r1.clone().text()).slice(0, 300); } catch (_) {}
       }
+    }
       if (!r1.ok) continue;
       const html = await r1.text();
       const m = /playbackResolveTicket\s*=\s*["']([^"']+)["']/.exec(html);
