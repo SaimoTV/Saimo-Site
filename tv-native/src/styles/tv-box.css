@@ -36,9 +36,9 @@ body, html {
 .tv-menu-logo img { width: 56px; height: 56px; border-radius: 14px; }
 .tv-menu-tabs { display: flex; gap: 2px; flex: 1; }
 .tv-menu-tab {
-  display: flex; align-items: center; gap: 12px; height: 64px; padding: 0 22px;
-  border: 0 !important; border-radius: 32px; background: none;
-  color: #fff; font-size: 32px; font-weight: 500; opacity: 1;
+  display: flex; align-items: center; gap: 10px; height: 64px; padding: 0 18px;
+  border: 0 !important; border-radius: 32px; background: none; white-space: nowrap;
+  color: #fff; font-size: 30px; font-weight: 500; opacity: 1;
 }
 .tv-menu-tab .tv-icone { width: 36px; height: 36px; }
 .tv-menu-tab.active { background: rgba(255,255,255,.12) !important; color: #fff; }
@@ -190,3 +190,28 @@ html.tizen.video-ativo, html.tizen.video-ativo body { background: transparent !i
 /* Multi tela */
 .tv-video-2 { display: none; position: absolute; left: 960px; top: 270px; width: 960px; height: 540px; z-index: 2; background: #000; object-fit: contain; }
 .tv-multi-aviso { position: absolute; left: 0; top: 860px; width: 1920px; text-align: center; font-size: 30px; color: #D5DCE5; }
+
+/* ===== Apoie o Saimo TV ===== */
+.tv-menu-tab.destaque { background: linear-gradient(135deg, #0fa89a, #2563eb); color: #fff; animation: tv-apoie-pulso 2.4s ease-in-out infinite; }
+.tv-menu-tab.destaque.active { background: linear-gradient(135deg, #0fa89a, #2563eb) !important; box-shadow: 0 0 0 3px rgba(255,255,255,.35); }
+.tv-menu-tab.destaque.nav-focused { background: #fff !important; color: #0e7490 !important; animation: none; }
+@keyframes tv-apoie-pulso { 0%, 100% { box-shadow: 0 0 0 0 rgba(79,227,208,.55); } 50% { box-shadow: 0 0 0 10px rgba(79,227,208,0); } }
+.tv-doacao { background: radial-gradient(1200px 700px at 85% 30%, rgba(20,184,166,.22), transparent 60%), radial-gradient(900px 600px at 10% 90%, rgba(37,99,235,.16), transparent 60%), #0a0d16; }
+.tv-doacao-corpo { position: absolute; top: 150px; left: 120px; right: 120px; bottom: 60px; display: flex; gap: 90px; align-items: center; }
+.tv-doacao-texto { flex: 1; color: #fff; }
+.tv-doacao-tag { display: inline-flex; align-items: center; gap: 10px; padding: 8px 18px; border-radius: 999px; background: rgba(79,227,208,.14); color: #7ff0e3; font-size: 24px; font-weight: 600; }
+.tv-doacao-tag .tv-icone { width: 26px; height: 26px; }
+.tv-doacao-titulo { font-size: 68px; line-height: 1.08; margin: 26px 0 14px; font-weight: 800; }
+.tv-doacao-titulo span { background: linear-gradient(90deg, #4fe3d0, #60a5fa); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.tv-doacao-sub { font-size: 32px; color: #c9d1e3; margin: 0 0 22px; }
+.tv-doacao-historia { font-size: 26px; line-height: 1.5; color: #aab4c8; max-width: 980px; margin: 0 0 34px; }
+.tv-doacao-vantagens { display: flex; gap: 22px; margin-bottom: 40px; }
+.tv-doacao-vantagem { flex: 1; display: flex; gap: 16px; align-items: flex-start; padding: 22px; border-radius: 20px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); }
+.tv-doacao-vantagem .tv-icone { width: 40px; height: 40px; color: #4fe3d0; flex: none; }
+.tv-doacao-vantagem strong { display: block; font-size: 26px; margin-bottom: 6px; }
+.tv-doacao-vantagem span { font-size: 21px; color: #9aa4b8; }
+.tv-doacao-qr-cartao { width: 520px; flex: none; padding: 40px; border-radius: 32px; background: #fff; color: #0b0f1a; text-align: center; box-shadow: 0 30px 80px rgba(0,0,0,.45), 0 0 0 6px rgba(79,227,208,.35); }
+.tv-doacao-qr-titulo { font-size: 30px; font-weight: 800; margin-bottom: 20px; }
+.tv-doacao-qr { width: 420px; height: 420px; display: block; margin: 0 auto; image-rendering: pixelated; }
+.tv-doacao-link { margin-top: 20px; font-size: 26px; font-weight: 700; color: #0e7490; word-break: break-all; }
+.tv-doacao-pix { margin-top: 10px; font-size: 20px; color: #5b6475; }

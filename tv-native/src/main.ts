@@ -25,6 +25,7 @@ import { SearchScreen } from './screens/SearchScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { FavoritesScreen } from './screens/FavoritesScreen';
 import { MinhasListasScreen } from './screens/MinhasListasScreen';
+import { DoacaoScreen } from './screens/DoacaoScreen';
 
 class SaimoTVApp {
   private videoEl: HTMLVideoElement;
@@ -69,6 +70,7 @@ class SaimoTVApp {
     this.screens.set('settings', new SettingsScreen());
     this.screens.set('favorites', new FavoritesScreen());
     this.screens.set('minhas', new MinhasListasScreen());
+    this.screens.set('doacao', new DoacaoScreen());
 
     // Adiciona elementos das telas ao contêiner
     this.screens.forEach((screen) => {

@@ -51,6 +51,7 @@ export class MenuGlobal {
       { id: 'on_demand', label: 'On Demand', icon: 'movie', screen: 'ondemand' },
       { id: 'favoritos', label: 'Favoritos', icon: 'star', screen: 'favorites' },
       { id: 'radios', label: 'Rádios', icon: 'radio', screen: 'radios' },
+      { id: 'apoie', label: 'Apoie', icon: 'favorite', screen: 'doacao' },
       { id: 'ajustes', label: '', icon: 'settings', screen: 'settings' },
     ];
 
@@ -60,7 +61,7 @@ export class MenuGlobal {
 
     tabs.forEach((t) => {
       const btn = document.createElement('div');
-      btn.className = `tv-menu-tab nav-focusable ${State.activeTab === t.id ? 'active' : ''}`;
+      btn.className = `tv-menu-tab nav-focusable ${t.id === 'apoie' ? 'destaque' : ''} ${State.activeTab === t.id ? 'active' : ''}`;
       btn.setAttribute('data-nav', 'true');
       btn.setAttribute('data-tab-id', t.id);
       btn.id = `menu-tab-${t.id}`;
