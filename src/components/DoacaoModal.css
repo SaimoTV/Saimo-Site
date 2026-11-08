@@ -1,0 +1,449 @@
+/* ==========================================================================
+   DoacaoModal.css
+   Estilo da mensagem flutuante discreta e modal de doação do Saimo TV
+   ========================================================================== */
+
+/* ── Botão Flutuante Discreto ─────────────────────────────────────────── */
+.saimo-doacao-trigger {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 850;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 9999px;
+  background: rgba(15, 17, 28, 0.82);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(168, 85, 247, 0.12);
+  color: #f8fafc;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease,
+              box-shadow 0.2s ease,
+              background 0.2s ease;
+  overflow: hidden;
+}
+
+.saimo-doacao-trigger:hover {
+  transform: translateY(-2px);
+  background: rgba(22, 24, 40, 0.92);
+  border-color: rgba(192, 132, 252, 0.55);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 0 24px rgba(168, 85, 247, 0.3);
+}
+
+.saimo-doacao-trigger:active {
+  transform: translateY(0);
+}
+
+/* Ícone de coração com pulso sutil */
+.saimo-doacao-trigger-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: #ec4899;
+  animation: saimoPulseHeart 2.4s ease-in-out infinite;
+}
+
+.saimo-doacao-trigger-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+@keyframes saimoPulseHeart {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 2px rgba(236, 72, 153, 0.6));
+  }
+  50% {
+    transform: scale(1.18);
+    filter: drop-shadow(0 0 6px rgba(236, 72, 153, 0.95));
+  }
+}
+
+.saimo-doacao-trigger-texto {
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+/* Tag discreta "Sem ads" */
+.saimo-doacao-trigger-badge {
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #d8b4fe;
+  background: rgba(168, 85, 247, 0.2);
+  border: 1px solid rgba(192, 132, 252, 0.3);
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+/* ── Modal de Doação (Backdrop) ────────────────────────────────────────── */
+.saimo-doacao-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(4, 6, 12, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: saimoModalFadeIn 0.22s ease-out;
+}
+
+@keyframes saimoModalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── Card do Modal ─────────────────────────────────────────────────────── */
+.saimo-doacao-card {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  background: linear-gradient(180deg, #161828 0%, #0d0f1c 100%);
+  border: 1px solid rgba(168, 85, 247, 0.28);
+  border-radius: 24px;
+  padding: 32px 28px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 50px rgba(147, 51, 234, 0.16);
+  color: #fff;
+  animation: saimoModalSlideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  scrollbar-width: thin;
+}
+
+@keyframes saimoModalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Botão Fechar */
+.saimo-doacao-fechar {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.saimo-doacao-fechar:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  transform: rotate(90deg);
+}
+
+/* Cabeçalho */
+.saimo-doacao-cabecalho {
+  margin-bottom: 20px;
+}
+
+.saimo-doacao-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #c084fc;
+  margin-bottom: 12px;
+}
+
+.saimo-doacao-tag-ponto {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #a855f7;
+  box-shadow: 0 0 8px #a855f7;
+}
+
+.saimo-doacao-titulo {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+  color: #f8fafc;
+}
+
+.saimo-doacao-destaque {
+  background: linear-gradient(135deg, #c084fc 0%, #f472b6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.saimo-doacao-subtitulo {
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0;
+}
+
+/* História e Manifesto */
+.saimo-doacao-historia {
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.82);
+  margin-bottom: 22px;
+}
+
+.saimo-doacao-historia p {
+  margin: 0 0 10px;
+}
+
+.saimo-doacao-historia strong {
+  color: #fff;
+}
+
+.saimo-doacao-destaque-bloco {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: rgba(168, 85, 247, 0.1);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-top: 14px;
+}
+
+.saimo-doacao-destaque-icone {
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.saimo-doacao-destaque-bloco p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #e9d5ff;
+}
+
+/* Grade de Vantagens */
+.saimo-doacao-vantagens {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.saimo-doacao-vantagem-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+}
+
+.saimo-doacao-vantagem-icone {
+  font-size: 18px;
+  width: 24px;
+  text-align: center;
+}
+
+.saimo-doacao-vantagem-conteudo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.saimo-doacao-vantagem-conteudo strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.saimo-doacao-vantagem-conteudo span {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* Ações (Botões) */
+.saimo-doacao-acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.saimo-doacao-btn-principal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #9333ea 0%, #db2777 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  color: #ffffff;
+  font-size: 14.5px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 10px 25px rgba(219, 39, 119, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  box-sizing: border-box;
+}
+
+.saimo-doacao-btn-principal:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+  box-shadow: 0 14px 32px rgba(219, 39, 119, 0.5);
+}
+
+.saimo-doacao-btn-principal:active {
+  transform: translateY(0);
+}
+
+.saimo-doacao-btn-icon {
+  font-size: 16px;
+}
+
+.saimo-doacao-seta {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.2s ease;
+}
+
+.saimo-doacao-btn-principal:hover .saimo-doacao-seta {
+  transform: translate(2px, -2px);
+}
+
+.saimo-doacao-btn-copiar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 18px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.saimo-doacao-btn-copiar:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.saimo-doacao-btn-copiar.copiado {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #4ade80;
+}
+
+/* Rodapé do Modal */
+.saimo-doacao-rodape {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.45);
+  text-align: center;
+}
+
+.saimo-doacao-agradecimento {
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+/* ── Responsividade Mobile ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* No mobile, o botão flutua logo acima da barra inferior de navegação */
+  .saimo-doacao-trigger {
+    bottom: calc(68px + env(safe-area-inset-bottom));
+    right: 14px;
+    padding: 7px 12px;
+    font-size: 12px;
+    gap: 6px;
+  }
+
+  .saimo-doacao-card {
+    padding: 24px 20px;
+    border-radius: 20px;
+  }
+
+  .saimo-doacao-titulo {
+    font-size: 20px;
+  }
+
+  .saimo-doacao-btn-principal {
+    font-size: 13.5px;
+    padding: 13px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Em telas muito estreitas, oculta a badge 'Sem ads' no botão flutuante */
+  .saimo-doacao-trigger-badge {
+    display: none;
+  }
+}
+
+/* ── REGRAS ESTRITAS DE TELA CHEIA E REPRODUÇÃO IMERSIVA ─────────────────
+   Em tela cheia nativa, overlay do filme, teatro ou celular deitado tocando:
+   NUNCA exibe o botão ou modal.
+   ──────────────────────────────────────────────────────────────────────── */
+:fullscreen .saimo-doacao-trigger,
+body:has(:fullscreen) .saimo-doacao-trigger,
+body:has(.movie-player-overlay) .saimo-doacao-trigger,
+body:has(.movie-player.fullscreen) .saimo-doacao-trigger,
+body:has(.tv-page.theater-mode) .saimo-doacao-trigger,
+body:has(.tv-page.deitado.tocando) .saimo-doacao-trigger,
+body:has(.video-player-container.fullscreen) .saimo-doacao-trigger,
+:fullscreen .saimo-doacao-backdrop,
+body:has(:fullscreen) .saimo-doacao-backdrop,
+body:has(.movie-player-overlay) .saimo-doacao-backdrop,
+body:has(.movie-player.fullscreen) .saimo-doacao-backdrop,
+body:has(.tv-page.theater-mode) .saimo-doacao-backdrop,
+body:has(.tv-page.deitado.tocando) .saimo-doacao-backdrop,
+body:has(.video-player-container.fullscreen) .saimo-doacao-backdrop {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}

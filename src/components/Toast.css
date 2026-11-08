@@ -1,6 +1,6 @@
 .toast {
   position: fixed;
-  bottom: 24px;
+  bottom: 76px;
   right: 24px;
   display: flex;
   align-items: center;
@@ -89,7 +89,7 @@
   .toast {
     left: 10px;
     right: 10px;
-    bottom: 10px;
+    bottom: calc(76px + env(safe-area-inset-bottom));
     padding: 10px 14px;
     border-radius: 10px;
   }

@@ -20,6 +20,7 @@ import type { Movie, SeriesEpisodeInfo } from './types/movie';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { DpadNavigationProvider } from './contexts/DpadContext';
 import { useControleTv } from './hooks/useControleTv';
+import { DoacaoModal } from './components/DoacaoModal';
 import './App.css';
 import { IconeMaterial } from './components/IconeMaterial';
 
@@ -659,6 +660,7 @@ function AppLayout() {
       )}
     </Routes>
     <NavegacaoMobile />
+    <DoacaoModal />
     </>
   );
 }
