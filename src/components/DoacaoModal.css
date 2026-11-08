@@ -3,7 +3,7 @@
    Estilo da mensagem flutuante discreta e modal de doação do Saimo TV
    ========================================================================== */
 
-/* ── Botão Flutuante Discreto ─────────────────────────────────────────── */
+/* ── Botão Flutuante Discreto e Arrastável ────────────────────────────── */
 .saimo-doacao-trigger {
   position: fixed;
   bottom: 24px;
@@ -14,8 +14,8 @@
   gap: 8px;
   padding: 8px 14px;
   border-radius: 9999px;
-  background: rgba(15, 17, 28, 0.82);
-  border: 1px solid rgba(168, 85, 247, 0.3);
+  background: rgba(15, 17, 28, 0.85);
+  border: 1px solid rgba(168, 85, 247, 0.35);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(168, 85, 247, 0.12);
@@ -23,8 +23,10 @@
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;
-  cursor: pointer;
+  cursor: grab;
   user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
   -webkit-tap-highlight-color: transparent;
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
               border-color 0.2s ease,
@@ -35,13 +37,38 @@
 
 .saimo-doacao-trigger:hover {
   transform: translateY(-2px);
-  background: rgba(22, 24, 40, 0.92);
-  border-color: rgba(192, 132, 252, 0.55);
+  background: rgba(22, 24, 40, 0.94);
+  border-color: rgba(192, 132, 252, 0.6);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 0 24px rgba(168, 85, 247, 0.3);
 }
 
-.saimo-doacao-trigger:active {
-  transform: translateY(0);
+.saimo-doacao-trigger:active,
+.saimo-doacao-trigger.arrastando {
+  cursor: grabbing;
+}
+
+.saimo-doacao-trigger.arrastando {
+  transition: none !important;
+  transform: scale(1.06) !important;
+  border-color: rgba(216, 180, 254, 0.8) !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.75), 0 0 32px rgba(168, 85, 247, 0.5) !important;
+  z-index: 890;
+}
+
+/* Alça sutil de arraste (grip) */
+.saimo-doacao-grip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.35);
+  margin-right: -2px;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.saimo-doacao-trigger:hover .saimo-doacao-grip,
+.saimo-doacao-trigger.arrastando .saimo-doacao-grip {
+  color: rgba(255, 255, 255, 0.75);
 }
 
 /* Ícone de coração com pulso sutil */

@@ -1,19 +1,46 @@
 /**
  * DoacaoModal.tsx
  *
- * Mensagem elegante, bonita e discreta sobre doações para manter o Saimo TV
+ * Mensagem elegante, bonita, discreta e ARRASTÁVEL sobre doações para manter o Saimo TV
  * 100% gratuito, sem anúncios e sem mensalidade.
  *
- * - Botão flutuante sutil que acompanha todas as telas da plataforma.
- * - Ao clicar, abre modal informativo com explicação e botão direto para Deflow.
+ * - Botão flutuante totalmente ARRASTÁVEL (Mouse e Touch) para não atrapalhar nenhuma tela.
+ * - Lembra a posição escolhida pelo usuário no localStorage.
+ * - Ao clicar (sem arrastar), abre modal informativo com explicação e botão direto para Deflow.
  * - Desaparece IMEDIATAMENTE e COMPLETAMENTE em qualquer modo de tela cheia,
  *   theater mode ou player de vídeo/filme.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { elementoEmTelaCheia, EVENTOS_TELA_CHEIA } from '../utils/telaCheia';
 import { LINK_DOACAO, EVENTO_ABRIR_DOACAO } from '../services/doacaoService';
 import './DoacaoModal.css';
+
+interface Posicao {
+  x: number;
+  y: number;
+}
+
+const CHAVE_POSICAO = 'saimo-doacao-pos-v2';
+
+function lerPosicaoSalva(): Posicao | null {
+  try {
+    const salvo = localStorage.getItem(CHAVE_POSICAO);
+    if (salvo) {
+      const parsed = JSON.parse(salvo);
+      if (typeof parsed.x === 'number' && typeof parsed.y === 'number') {
+        const larguraJanela = typeof window !== 'undefined' ? window.innerWidth : 1000;
+        const alturaJanela = typeof window !== 'undefined' ? window.innerHeight : 800;
+        const x = Math.max(10, Math.min(larguraJanela - 100, parsed.x));
+        const y = Math.max(10, Math.min(alturaJanela - 50, parsed.y));
+        return { x, y };
+      }
+    }
+  } catch {
+    /* leitura inválida: mantém null */
+  }
+  return null;
+}
 
 /**
  * Detecta se a interface está em qualquer modo de reprodução de tela cheia ou imersivo:
@@ -69,6 +96,21 @@ function useOcultarDoacao(): boolean {
 export function DoacaoModal() {
   const [aberto, setAberto] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [posicao, setPosicao] = useState<Posicao | null>(lerPosicaoSalva);
+  const [arrastando, setArrastando] = useState(false);
+  const btnRef = useRef<HTMLButtonElement | null>(null);
+
+  const dragRef = useRef({
+    ativo: false,
+    inicioX: 0,
+    inicioY: 0,
+    btnX: 0,
+    btnY: 0,
+    moveu: false,
+    ultimoX: 0,
+    ultimoY: 0,
+  });
+
   const deveOcultar = useOcultarDoacao();
 
   // Escuta evento global para abrir o modal de outros componentes
@@ -76,6 +118,25 @@ export function DoacaoModal() {
     const aoAbrir = () => setAberto(true);
     window.addEventListener(EVENTO_ABRIR_DOACAO, aoAbrir);
     return () => window.removeEventListener(EVENTO_ABRIR_DOACAO, aoAbrir);
+  }, []);
+
+  // Mantém a posição dentro dos limites se a tela for redimensionada
+  useEffect(() => {
+    const aoRedimensionar = () => {
+      setPosicao((atual) => {
+        if (!atual) return null;
+        const btnLargura = btnRef.current?.offsetWidth || 160;
+        const btnAltura = btnRef.current?.offsetHeight || 44;
+        const clampedX = Math.max(10, Math.min(window.innerWidth - btnLargura - 10, atual.x));
+        const clampedY = Math.max(10, Math.min(window.innerHeight - btnAltura - 10, atual.y));
+        if (clampedX !== atual.x || clampedY !== atual.y) {
+          return { x: clampedX, y: clampedY };
+        }
+        return atual;
+      });
+    };
+    window.addEventListener('resize', aoRedimensionar);
+    return () => window.removeEventListener('resize', aoRedimensionar);
   }, []);
 
   // Fecha com a tecla Esc
@@ -123,6 +184,104 @@ export function DoacaoModal() {
     }
   }, []);
 
+  // Controle de Arraste (Pointer Events universais para Mouse e Touch)
+  const aoPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (e.button !== 0) return; // Apenas clique principal
+
+    const rect = btnRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    dragRef.current = {
+      ativo: true,
+      inicioX: e.clientX,
+      inicioY: e.clientY,
+      btnX: rect.left,
+      btnY: rect.top,
+      moveu: false,
+      ultimoX: rect.left,
+      ultimoY: rect.top,
+    };
+
+    setArrastando(true);
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      /* ponteiro não capturado */
+    }
+  };
+
+  const aoPointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!dragRef.current.ativo) return;
+
+    const dx = e.clientX - dragRef.current.inicioX;
+    const dy = e.clientY - dragRef.current.inicioY;
+
+    // Distância mínima para diferenciar clique simples de arraste
+    if (!dragRef.current.moveu && Math.hypot(dx, dy) > 5) {
+      dragRef.current.moveu = true;
+    }
+
+    if (dragRef.current.moveu) {
+      const btnLargura = btnRef.current?.offsetWidth || 160;
+      const btnAltura = btnRef.current?.offsetHeight || 44;
+
+      const novoX = Math.max(10, Math.min(window.innerWidth - btnLargura - 10, dragRef.current.btnX + dx));
+      const novoY = Math.max(10, Math.min(window.innerHeight - btnAltura - 10, dragRef.current.btnY + dy));
+
+      dragRef.current.ultimoX = novoX;
+      dragRef.current.ultimoY = novoY;
+
+      setPosicao({ x: novoX, y: novoY });
+    }
+  };
+
+  const aoPointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!dragRef.current.ativo) return;
+
+    const moveu = dragRef.current.moveu;
+    const finalX = dragRef.current.ultimoX;
+    const finalY = dragRef.current.ultimoY;
+
+    dragRef.current.ativo = false;
+    setArrastando(false);
+
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      /* captura já liberada */
+    }
+
+    if (moveu) {
+      // Salva a nova posição escolhida pelo usuário
+      try {
+        localStorage.setItem(CHAVE_POSICAO, JSON.stringify({ x: finalX, y: finalY }));
+      } catch {
+        /* storage indisponível */
+      }
+    } else {
+      // Se não arrastou, abre o modal!
+      setAberto(true);
+    }
+  };
+
+  const aoPointerCancel = (e: React.PointerEvent<HTMLButtonElement>) => {
+    dragRef.current.ativo = false;
+    setArrastando(false);
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      /* captura cancelada */
+    }
+  };
+
+  const aoClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    // Suporte a ativação por teclado
+    if (e.detail === 0) {
+      setAberto(true);
+    }
+  };
+
   // Se o player estiver em tela cheia ou cinema, não renderiza absolutamente nada
   if (deveOcultar) {
     return null;
@@ -130,15 +289,42 @@ export function DoacaoModal() {
 
   return (
     <>
-      {/* Botão flutuante discreto */}
+      {/* Botão flutuante discreto e arrastável */}
       {!aberto && (
         <button
+          ref={btnRef}
           type="button"
-          className="saimo-doacao-trigger"
-          onClick={() => setAberto(true)}
-          title="Apoie o projeto Saimo TV"
-          aria-label="Apoiar o projeto Saimo TV"
+          className={`saimo-doacao-trigger ${arrastando ? 'arrastando' : ''}`}
+          style={
+            posicao
+              ? {
+                  left: `${posicao.x}px`,
+                  top: `${posicao.y}px`,
+                  right: 'auto',
+                  bottom: 'auto',
+                }
+              : undefined
+          }
+          onPointerDown={aoPointerDown}
+          onPointerMove={aoPointerMove}
+          onPointerUp={aoPointerUp}
+          onPointerCancel={aoPointerCancel}
+          onClick={aoClick}
+          title="Arraste para onde quiser ou clique para apoiar"
+          aria-label="Apoiar o projeto Saimo TV (arrastável)"
         >
+          {/* Alça visual de arraste */}
+          <span className="saimo-doacao-grip" aria-hidden="true" title="Arraste">
+            <svg viewBox="0 0 10 16" width="6" height="12" fill="currentColor">
+              <circle cx="2" cy="2" r="1.5" />
+              <circle cx="8" cy="2" r="1.5" />
+              <circle cx="2" cy="8" r="1.5" />
+              <circle cx="8" cy="8" r="1.5" />
+              <circle cx="2" cy="14" r="1.5" />
+              <circle cx="8" cy="14" r="1.5" />
+            </svg>
+          </span>
+
           <span className="saimo-doacao-trigger-glow" aria-hidden="true" />
           <span className="saimo-doacao-trigger-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="currentColor">
