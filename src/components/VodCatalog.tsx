@@ -489,19 +489,52 @@ export function VodCatalog({
     const out: { titulo: string; genero: string; itens: ItemDestaque[] }[] = [];
 
     if (secao === 'animes') {
+      // Fileira dedicada aos animes populares e novidades
+      const popularesNomes = [
+        'solo leveling', 'jujutsu kaisen', 'demon slayer', 'kimetsu no yaiba',
+        'chainsaw man', 'frieren', 'dandadan', 'kaiju no. 8', 'attack on titan',
+        'ataque dos titas', 'spy x family', 'boku no hero', 'one piece',
+        'black clover', 'bleach', 'naruto', 'hunter x hunter', 'death note',
+        'fullmetal alchemist', 'tokyo ghoul', 'mashle', 'hell\'s paradise',
+        'dragon ball', 'yu yu hakusho', 'overlord', 'dr. stone',
+      ];
+      const popularesItens: ItemDestaque[] = [];
+      for (const pop of popularesNomes) {
+        const achado = animesColecao.find((s) => s.titulo.toLowerCase().includes(pop));
+        if (achado) {
+          const c = capaDaFicha(generos, achado.titulo, true, achado.tmdbId) || '';
+          if (c && !popularesItens.some((i) => i.titulo === achado.titulo)) {
+            popularesItens.push({
+              tipo: 'a',
+              titulo: achado.titulo,
+              letra: '#',
+              ano: achado.ano,
+              capa: c,
+            });
+          }
+        }
+      }
+      if (popularesItens.length >= 3) {
+        out.push({
+          titulo: 'Populares e em alta',
+          genero: 'Populares',
+          itens: popularesItens,
+        });
+      }
+
       for (const g of generosAlvo) {
         const doGenero = animesColecao
-          .filter((s) => temGenero(generos, s.titulo, true, g))
+          .filter((s) => temGenero(generos, s.titulo, true, g, s.tmdbId))
           .map((s) => ({
             tipo: 'a',
             titulo: s.titulo,
             letra: '#',
             ano: s.ano,
-            capa: capaDaFicha(generos, s.titulo, true) || '',
+            capa: capaDaFicha(generos, s.titulo, true, s.tmdbId) || '',
           }))
           .filter((s) => !!s.capa)
           .slice(0, 25);
-        if (doGenero.length >= 4) {
+        if (doGenero.length >= 3) {
           out.push({
             titulo: g,
             genero: g,
@@ -855,13 +888,13 @@ export function VodCatalog({
       seriesName: aberto.rotulo,
       seasonNumber: e.temporada,
       episodeNumber: e.numero,
-      tmdbId: (generos && idDaFicha(generos, aberto.titulo, true)) || tmdbFallbackId || undefined,
+      tmdbId: (generos && idDaFicha(generos, aberto.titulo, true)) || (aberto.colecao?.tmdbId ? Number(aberto.colecao.tmdbId) : undefined) || tmdbFallbackId || undefined,
       origem: {
         tipo: aberto.chave.startsWith('animes') ? 'a' : aberto.chave.startsWith('doramas') ? 'd' : 's',
         titulo: aberto.titulo,
         letra: aberto.letra,
         ano: aberto.ano ?? '',
-        capa: (generos && capaDaFicha(generos, aberto.titulo, true)) || '',
+        capa: (generos && capaDaFicha(generos, aberto.titulo, true, aberto.colecao?.tmdbId)) || '',
       },
     })).filter((m) => !!m.url);
   }, [aberto, episodiosAgrupados, generos]);
@@ -980,7 +1013,7 @@ export function VodCatalog({
 
     if (secao === 'animes') {
       return animesColecao
-        .filter((s) => !generoFiltro || temGenero(generos!, s.titulo, true, generoFiltro))
+        .filter((s) => !generoFiltro || temGenero(generos!, s.titulo, true, generoFiltro, s.tmdbId))
         .map((s) => ({
           chave: `animes:${s.tmdbId}:${s.titulo}`,
           titulo: s.titulo,
@@ -1448,7 +1481,7 @@ export function VodCatalog({
           {/* Grade de Cartões */}
           <div className="vod-grade-cards">
             {itensGrade.slice(0, visiveis).map((item) => {
-              const capaSrc = generos ? capaDaFicha(generos, item.titulo, item.serie) : null;
+              const capaSrc = generos ? capaDaFicha(generos, item.titulo, item.serie, item.colecao?.tmdbId) : null;
               const fav = ehFavorito({ tipo: item.serie ? 's' : 'f', titulo: item.titulo, letra: item.letra, ano: item.ano || '', capa: capaSrc || '' });
               return (
                 <button

@@ -617,6 +617,9 @@ function chavesCandidatas(marca: string, titulo: string): string[] {
     // Variações de dois pontos
     chaves.add(`${marca}|${t.replace(/:\s*/g, ': ')}`);
     chaves.add(`${marca}|${t.replace(/:\s*/g, ':')}`);
+    // Sem pontuação (dois pontos, traços - ex: Demon Slayer: Kimetsu no Yaiba -> Demon Slayer Kimetsu no Yaiba)
+    chaves.add(`${marca}|${t.replace(/[:\-–—]/g, ' ').replace(/\s+/g, ' ').trim()}`);
+    chaves.add(`${marca}|${t.replace(/[:\-–—]/g, '').replace(/\s+/g, ' ').trim()}`);
     // Espaços em branco normais
     chaves.add(`${marca}|${t.replace(/\s+/g, ' ').trim()}`);
   }
@@ -630,11 +633,21 @@ function chavesCandidatas(marca: string, titulo: string): string[] {
  * lento, e errado quando dois filmes se chamam igual. Quem não tem ficha fica
  * sem capa, e a tela põe uma marca no lugar.
  */
-export function capaDaFicha(g: Generos, titulo: string, serie: boolean): string | null {
+export function capaDaFicha(g: Generos, titulo: string, serie: boolean, tmdbId?: string | number): string | null {
   const marca = serie ? 's' : 'f';
   for (const c of chavesCandidatas(marca, titulo)) {
     const val = g.capas.get(c);
     if (val) return val;
+  }
+  if (tmdbId) {
+    const numId = Number(tmdbId);
+    if (Number.isFinite(numId) && numId > 0) {
+      const orig = g.porId.get(serie ? -numId : numId);
+      if (orig) {
+        const val = g.capas.get(`${marca}|${orig}`);
+        if (val) return val;
+      }
+    }
   }
   return null;
 }
@@ -654,12 +667,31 @@ export function tituloDoId(g: Generos, id: number, serie: boolean): string | nul
   return g.porId.get(serie ? -id : id) ?? null;
 }
 
-export function temGenero(g: Generos, titulo: string, serie: boolean, genero: string): boolean {
+export function temGenero(g: Generos, titulo: string, serie: boolean, genero: string, tmdbId?: string | number): boolean {
   if (!genero) return true;
   const marca = serie ? 's' : 'f';
+  let lista: string[] | undefined;
   for (const c of chavesCandidatas(marca, titulo)) {
-    const lista = g.mapa.get(c);
-    if (lista) return lista.includes(genero);
+    lista = g.mapa.get(c);
+    if (lista) break;
+  }
+  if (!lista && tmdbId) {
+    const numId = Number(tmdbId);
+    if (Number.isFinite(numId) && numId > 0) {
+      const orig = g.porId.get(serie ? -numId : numId);
+      if (orig) {
+        lista = g.mapa.get(`${marca}|${orig}`);
+      }
+    }
+  }
+  if (!lista) return false;
+  if (lista.includes(genero)) return true;
+  // Casamento flexível para categorias compostas de TV do TMDB
+  if (genero === 'Ação' || genero === 'Aventura') {
+    return lista.includes('Ação e aventura') || lista.includes('Ação') || lista.includes('Aventura');
+  }
+  if (genero === 'Ficção científica' || genero === 'Fantasia') {
+    return lista.includes('Ficção e fantasia') || lista.includes('Ficção científica') || lista.includes('Fantasia');
   }
   return false;
 }

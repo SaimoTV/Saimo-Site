@@ -8,7 +8,7 @@ import { buscarLegendas, carregarLegenda, idiomaGuardado, guardarIdioma, type Le
 import Hls from 'hls.js';
 import { criarCarregadorDireto } from '../utils/segmentoDireto';
 import { aoBloquearExtensao, extensaoBloqueada } from '../plataforma/bloqueioExtensoes';
-import type { Movie, SeriesEpisodeInfo } from '../types/movie';
+import type { Movie, SeriesEpisodeInfo, MovieSource } from '../types/movie';
 import { getProxiedUrl, needsProxy } from '../utils/proxyUrl';
 import { isHls } from '../utils/streamUrl';
 import { httpsFirst, initialSourceIndex } from '../utils/sourceOrder';
@@ -42,6 +42,31 @@ const fonteInicial = (lista: readonly { url: string; versao?: string }[], filme?
 /** Pula para um ponto do vídeo; ignora valor não finito (duração ainda desconhecida em TV). */
 function posicionar(video: HTMLVideoElement, segundos: number): void {
   if (Number.isFinite(segundos)) video.currentTime = Math.max(0, segundos);
+}
+
+function rotuloDaFonte(f: MovieSource, pos: number): { principal: string } {
+  const versao = f.versao === 'leg' ? 'Legendado' : f.versao === 'dub' ? 'Dublado' : null;
+  let provedor = `Fonte ${pos + 1}`;
+  try {
+    const u = new URL(f.url);
+    if (u.hostname.includes('maximaimg.online')) provedor = 'Ani-tupi (HLS Direto)';
+    else if (u.hostname.includes('embedplayer')) provedor = 'EmbedPlayer (HLS)';
+    else if (u.hostname.includes('fenixflix') || u.hostname.includes('fenixhub')) provedor = 'FenixFlix';
+    else if (u.hostname.includes('magnetflix') || u.hostname.includes('flixbr')) provedor = 'MagnetFlix';
+    else if (u.hostname.includes('r2.cloudflarestorage.com') || u.hostname.includes('redeflix')) provedor = 'RedeFlix (R2 Direct)';
+    else if (u.pathname.includes('/api/stream')) provedor = 'Relay Dinâmico';
+    else if (u.protocol === 'http:') provedor = 'Servidor Alternativo (HTTP)';
+  } catch { /* ignore */ }
+
+  const principal = versao ? `${provedor} · ${versao}` : provedor;
+  return { principal };
+}
+
+function rotuloBadgeFonte(f: MovieSource | undefined, pos: number, total: number): string {
+  if (!f || total <= 0) return 'Fonte';
+  const v = f.versao === 'leg' ? ' (Leg)' : f.versao === 'dub' ? ' (Dub)' : '';
+  if (total === 1) return `Fonte 1${v}`;
+  return `Fonte ${pos + 1}/${total}${v}`;
 }
 
 export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo, onEpisodeChange }: MoviePlayerProps) {
@@ -85,6 +110,7 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showExternalMenu, setShowExternalMenu] = useState(false);
   const [showEpisodeMenu, setShowEpisodeMenu] = useState(false);
+  const [showSources, setShowSources] = useState(false);
   const [episodeMenuSeason, setEpisodeMenuSeason] = useState<number | null>(null);
   const [drawerDetalhes, setDrawerDetalhes] = useState<Record<number, EpisodioTmdb>>({});
 
@@ -1314,6 +1340,17 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
                 </div>
               )}
               <div className="error-actions">
+                {fontes.length > 1 && (
+                  <button
+                    onClick={() => setShowSources(true)}
+                    className="source-retry-btn"
+                    data-focusable="true"
+                    data-nav-group="error-actions"
+                    style={{ background: 'rgba(139, 92, 246, 0.25)', borderColor: '#8b5cf6' }}
+                  >
+                    Trocar fonte / servidor ({fontes.length})
+                  </button>
+                )}
                 {soNosApps ? (
                   <button
                     onClick={onBack}
@@ -1429,6 +1466,68 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
               </>)}
             </>
           )}
+        </div>
+      )}
+
+      {/* Modal de Escolha de Fonte / Servidor (igual à TV ao vivo) */}
+      {showSources && (
+        <div className="cast-modal-overlay" onClick={() => setShowSources(false)}>
+          <div className="cast-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="2" y="3" width="20" height="14" rx="2" />
+                <path d="M8 21h8M12 17v4" />
+              </svg>
+              Fontes de "{seriesInfo?.seriesName ?? movie.name}"
+            </h3>
+            <p>
+              {fontes.length} {fontes.length === 1 ? 'fonte publicada' : 'fontes publicadas'} no catálogo.
+              Escolha uma para forçar o player a tocar por ela.
+            </p>
+
+            <div className="cast-options">
+              {fontes.map((f, pos) => {
+                const info = rotuloDaFonte(f, pos);
+                const ehHttp = f.url.startsWith('http://');
+                const ehHls = f.url.includes('.m3u8') || f.url.includes('.txt');
+                const extras = [
+                  ehHls ? 'HLS' : 'MP4',
+                  ehHttp ? 'HTTP' : 'HTTPS',
+                  f.versao === 'dub' ? 'Dublado' : f.versao === 'leg' ? 'Legendado' : null,
+                ].filter(Boolean).join(' · ');
+
+                return (
+                  <button
+                    key={`${f.url}-${pos}`}
+                    className={`cast-option ${pos === fonteIdx ? 'active' : ''}`}
+                    onClick={() => {
+                      setFonteIdx(pos);
+                      setShowSources(false);
+                      setIsLoading(true);
+                      setError(null);
+                      setIsProxyBlocked(false);
+                      setSoNosApps(false);
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="2" y="3" width="20" height="14" rx="2" />
+                      <path d="M8 21h8M12 17v4" />
+                    </svg>
+                    <div>
+                      <span style={{ fontWeight: 600, display: 'block' }}>
+                        {info.principal} {pos === fonteIdx ? ' (em uso)' : ''}
+                      </span>
+                      {extras && <small style={{ color: '#aaa', fontSize: '11px' }}>{extras}</small>}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <button className="cast-modal-close" onClick={() => setShowSources(false)}>
+              Fechar
+            </button>
+          </div>
         </div>
       )}
 
@@ -1565,6 +1664,22 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
             </span>
           </div>
           <div className="top-actions">
+            {/* Badge de Seleção de Fonte (estilo TV ao vivo) */}
+            {fontes.length > 0 && (
+              <button
+                className={`source-badge-mac ${showSources ? 'active' : ''}`}
+                onClick={() => { setShowControls(true); setShowSources((v) => !v); }}
+                title={`Fontes do título (${fontes.length} disponíveis)`}
+                data-focusable="true"
+                data-nav-group="player-top"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14, flexShrink: 0 }}>
+                  <rect x="2" y="3" width="20" height="14" rx="2" />
+                  <path d="M8 21h8M12 17v4" />
+                </svg>
+                <span>{rotuloBadgeFonte(fontes[fonteIdx], fonteIdx, fontes.length)}</span>
+              </button>
+            )}
             {seriesInfo && (
               <button
                 className={`control-btn episodes-menu-btn${showEpisodeMenu ? ' active' : ''}`}
