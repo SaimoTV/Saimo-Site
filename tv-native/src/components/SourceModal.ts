@@ -1,6 +1,6 @@
 /**
  * Diálogo "Escolher Fonte" (Source Selector Modal).
- * Lista todas as origens disponíveis com qualidade, servidor e status de conexão.
+ * Lista as fontes como "Fonte N" e a qualidade: o servidor e o endereço nunca aparecem.
  */
 
 import { ChannelVariant } from '../core/Api';
@@ -59,12 +59,6 @@ export class SourceModal {
       variants.forEach((v, idx) => {
         const isString = typeof v === 'string';
         const quality = !isString ? (v as ChannelVariant).quality || 'HD' : 'HD';
-        const urlStr = isString ? (v as string) : (v as ChannelVariant).url;
-
-        let host = 'Servidor CDN';
-        try {
-          host = new URL(urlStr).hostname.replace('www.', '');
-        } catch (e) {}
 
         const btn = document.createElement('div');
         const isActive = (idx === currentIndex);
@@ -85,7 +79,6 @@ export class SourceModal {
             <span style="font-size:13px; background:rgba(255,255,255,0.15); padding:2px 8px; border-radius:6px; color:#ffffff;">${quality}</span>
             ${isActive ? '<span style="font-size:13px; color:#0b0e14; font-weight:700; background:#00e3ff; padding:2px 8px; border-radius:6px;">EM USO</span>' : ''}
           </div>
-          <span style="font-size:14px; opacity:0.8; font-family:monospace;">${host}</span>
         `;
 
         btn.addEventListener('click', () => {

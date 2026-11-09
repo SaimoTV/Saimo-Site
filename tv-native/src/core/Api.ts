@@ -33,6 +33,14 @@ export interface EpgProgram {
   progress: number; // 0 a 1
 }
 
+/** Ano, nota (0 a 10), idade (0 = Livre, -1 = não informada) e popularidade. */
+export interface Detalhe {
+  ano: number;
+  nota: number;
+  idade: number;
+  popularidade: number;
+}
+
 export interface VODItem {
   id: string;
   title: string;
@@ -401,6 +409,50 @@ export class Api {
     }
   }
 
+  // ===== DETALHES (FILTROS DO ON DEMAND) =====
+  // Ano, nota, classificação indicativa e popularidade de cada título
+  // (detalhes.txt, gerado do TMDB). Chave: "f|título" ou "s|título".
+  private static detalhesMap: Map<string, Detalhe> | null = null;
+  private static detalhesPedido: Promise<Map<string, Detalhe>> | null = null;
+
+  static detalhesProntos(): boolean {
+    return !!this.detalhesMap && this.detalhesMap.size > 0;
+  }
+
+  static detalheDe(item: VODItem): Detalhe | undefined {
+    const m = this.detalhesMap;
+    if (!m) return undefined;
+    const k = item.isSeries ? 's|' : 'f|';
+    return m.get(k + item.title) || m.get(k + item.title.replace(/\s*\(\d{4}\)\s*$/, ''));
+  }
+
+  static fetchDetalhes(): Promise<Map<string, Detalhe>> {
+    if (this.detalhesMap) return Promise.resolve(this.detalhesMap);
+    if (this.detalhesPedido) return this.detalhesPedido;
+    this.detalhesPedido = fetch(`${this.getBaseUrl('filmes')}detalhes.txt`, { cache: 'default' })
+      .then((r) => (r.ok ? r.text() : ''))
+      .then((texto) => {
+        const mapa = new Map<string, Detalhe>();
+        for (const linha of texto.split('\n')) {
+          if (!linha || linha[0] === '#') continue;
+          const c = linha.split('\t');
+          if (c.length < 6) continue;
+          const idade = c[4] === 'L' ? 0 : c[4] ? parseInt(c[4], 10) : -1;
+          mapa.set(`${c[0]}|${c[1]}`, {
+            ano: parseInt(c[2], 10) || 0,
+            nota: parseFloat(c[3]) || 0,
+            idade: isNaN(idade) ? -1 : idade,
+            popularidade: parseInt(c[5], 10) || 0,
+          });
+        }
+        this.detalhesMap = mapa;
+        return mapa;
+      })
+      .catch(() => new Map<string, Detalhe>())
+      .finally(() => { this.detalhesPedido = null; });
+    return this.detalhesPedido;
+  }
+
   // ===== FICHAS DO ACERVO COMPLETO =====
   static async fetchFichas(): Promise<VODItem[]> {
     if (this.vodCache.length > 0) return this.vodCache;
@@ -413,6 +465,7 @@ export class Api {
       const lines = text.split('\n');
 
       for (const line of lines) {
+        if (!line || line[0] === '#' || line.startsWith('capa:')) continue;
         const p = line.split('\t');
         if (p.length < 5) continue;
         const isSeries = p[0] === 's';

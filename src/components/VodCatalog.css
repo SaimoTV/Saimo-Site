@@ -1654,3 +1654,15 @@ body:has(.barra-topo.oculta) .vod-letras-barra {
     flex-shrink: 0;
   }
 }
+
+/* Filtros: ano, idade, nota e ordem */
+.vod-filtros-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 4px 0 16px; }
+.vod-filtro { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 6px 0 14px; border-radius: 19px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); color: #fff; font-size: 13px; }
+.vod-filtro > span { color: rgba(255,255,255,.6); font-weight: 600; }
+.vod-filtro select { background: transparent; color: #fff; border: 0; font-size: 13px; font-weight: 600; padding: 6px 4px; cursor: pointer; outline: none; }
+.vod-filtro select option { background: #12151d; color: #fff; }
+.vod-filtro.ativo { background: rgba(79,227,208,.16); border-color: rgba(79,227,208,.6); }
+.vod-filtro.ativo > span, .vod-filtro.ativo select { color: #7ff0e3; }
+.vod-filtro:focus-within { outline: 2px solid #fff; outline-offset: 2px; }
+.vod-filtro-limpar { height: 38px; padding: 0 16px; border-radius: 19px; border: 1px solid rgba(255,255,255,.2); background: transparent; color: #fff; font-size: 13px; cursor: pointer; }
+.vod-filtro-total { margin-left: auto; color: rgba(255,255,255,.55); font-size: 13px; }

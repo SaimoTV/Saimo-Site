@@ -215,3 +215,15 @@ html.tizen.video-ativo, html.tizen.video-ativo body { background: transparent !i
 .tv-doacao-qr { width: 420px; height: 420px; display: block; margin: 0 auto; image-rendering: pixelated; }
 .tv-doacao-link { margin-top: 20px; font-size: 26px; font-weight: 700; color: #0e7490; word-break: break-all; }
 .tv-doacao-pix { margin-top: 10px; font-size: 20px; color: #5b6475; }
+
+/* ===== Filtros do On Demand ===== */
+.tv-filtros { display: flex; flex-wrap: wrap; gap: 12px; padding: 0 70px 26px; }
+.tv-filtro { display: flex; align-items: center; gap: 6px; height: 52px; padding: 0 18px 0 22px; border-radius: 26px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); color: #fff; font-size: 22px; font-weight: 500; white-space: nowrap; }
+.tv-filtro .tv-icone { width: 26px; height: 26px; opacity: .8; }
+.tv-filtro.ativo { background: rgba(79,227,208,.18); border-color: rgba(79,227,208,.7); color: #7ff0e3; }
+.tv-filtro.nav-focused { background: #fff; color: #0b0e14; border-color: #fff; }
+.tv-filtro-aviso { padding: 40px 70px; font-size: 26px; color: #a8b4c0; }
+.tv-escolha { width: 620px; max-width: 92%; background: #10141e; border: 1px solid rgba(255,255,255,.14); border-radius: 24px; padding: 32px 36px; }
+.tv-escolha-titulo { font-size: 30px; font-weight: 800; color: #fff; margin-bottom: 20px; }
+.tv-escolha-lista { display: flex; flex-direction: column; gap: 10px; max-height: 640px; overflow-y: auto; }
+.tv-escolha-lista .tv-btn { font-size: 22px; padding: 14px 22px; border-radius: 14px; }

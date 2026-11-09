@@ -69,6 +69,7 @@ import {
   aoMudar as aoMudarFavoritos,
   contem as ehFavorito,
 } from '../services/vodFavoritos';
+import { carregarDetalhes, detalheDe, faixasDeAno, type Detalhes } from '../services/infoDosTitulos';
 import './VodCatalog.css';
 
 export type Secao = 'filmes' | 'series' | 'animes' | 'doramas' | 'extra';
@@ -192,6 +193,14 @@ export function VodCatalog({
   // Modo de exibição: 'fileiras' (carrosséis como no Mac) ou 'explorar' (grade A-Z)
   const [modo, setModo] = useState<'fileiras' | 'explorar'>('fileiras');
   const [generoFiltro, setGeneroFiltro] = useState<string>('');
+  // Filtros como nos grandes serviços: ano, idade, nota e ordem (detalhes.txt).
+  const [anosFiltro, setAnosFiltro] = useState<string>('');
+  const [idadeFiltro, setIdadeFiltro] = useState<string>('');
+  const [notaFiltro, setNotaFiltro] = useState<string>('');
+  const [ordemFiltro, setOrdemFiltro] = useState<'az' | 'novos' | 'populares' | 'melhores'>('az');
+  const [detalhes, setDetalhes] = useState<Detalhes | null>(null);
+  useEffect(() => { carregarDetalhes().then((m) => setDetalhes(m.size ? m : null)); }, []);
+  const filtrosExtras = !!(anosFiltro || idadeFiltro || notaFiltro || ordemFiltro !== 'az');
   const [letraFiltro, setLetraFiltro] = useState<string>('A');
   const [termoBusca, setTermoBusca] = useState<string>('');
 
@@ -277,7 +286,7 @@ export function VodCatalog({
   }, [aberto]);
 
   // Paginação da Grade A-Z sem efeito cascata
-  const filtroAtual = `${secao || 'ondemand'}:${generoFiltro}:${letraFiltro}:${termoBusca.trim()}:${modo}`;
+  const filtroAtual = `${secao || 'ondemand'}:${generoFiltro}:${letraFiltro}:${termoBusca.trim()}:${modo}:${anosFiltro}:${idadeFiltro}:${notaFiltro}:${ordemFiltro}`;
   const [pagina, setPagina] = useState({ filtro: '', quantos: PAGINA });
   const visiveis = pagina.filtro === filtroAtual ? pagina.quantos : PAGINA;
   const sentinelaRef = useRef<HTMLDivElement | null>(null);
@@ -1041,7 +1050,8 @@ export function VodCatalog({
 
     const base = secao === 'series' ? todasSeries : todosFilmes;
     let filtrados = base;
-    if (letraFiltro) {
+    // Com ano, idade, nota ou ordem escolhidos, a busca é na seção inteira.
+    if (letraFiltro && !filtrosExtras) {
       filtrados = filtrados.filter((a) => a.letra === letraFiltro);
     }
     if (generoFiltro && generos) {
@@ -1055,7 +1065,37 @@ export function VodCatalog({
       letra: a.letra,
       ano: a.ano,
     }));
-  }, [buscaAtiva, buscaAchados, secao, animesColecao, doramasColecao, todasSeries, todosFilmes, letraFiltro, generoFiltro, generos]);
+  }, [buscaAtiva, buscaAchados, secao, animesColecao, doramasColecao, todasSeries, todosFilmes, letraFiltro, generoFiltro, generos, filtrosExtras]);
+
+  // Ano, idade, nota e ordem sobre o que a seção (e o gênero) deixou.
+  const itensFiltrados = useMemo(() => {
+    if (!filtrosExtras) return itensGrade;
+    const faixa = faixasDeAno().find((f) => f.rotulo === anosFiltro)?.anos;
+    const idadeMax = idadeFiltro === '' ? null : Number(idadeFiltro);
+    const notaMin = Number(notaFiltro) || 0;
+    const anoDe = (i: { titulo: string; serie: boolean; ano?: string }) =>
+      detalheDe(detalhes, i.titulo, i.serie)?.ano || Number(i.ano) || Number((i.titulo.match(/\((\d{4})\)\s*$/) || [])[1]) || 0;
+    let lista = itensGrade.filter((i) => {
+      const d = detalheDe(detalhes, i.titulo, i.serie);
+      if (faixa) { const a = anoDe(i); if (a < faixa[0] || a > faixa[1]) return false; }
+      if (idadeMax !== null && !(d && d.idade >= 0 && d.idade <= idadeMax)) return false;
+      if (notaMin && !(d && d.nota >= notaMin)) return false;
+      return true;
+    });
+    // O mesmo título em duas pastas ("Jack" e "Jack (1993)") aparece uma vez só.
+    const vistos = new Set<string>();
+    lista = lista.filter((i) => {
+      const base = i.titulo.replace(/\s*\(\d{4}\)\s*$/, '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+      const chave = `${i.serie ? 's' : 'f'}|${base}|${anoDe(i)}`;
+      if (vistos.has(chave)) return false;
+      vistos.add(chave);
+      return true;
+    });
+    if (ordemFiltro === 'novos') lista = [...lista].sort((a, b) => anoDe(b) - anoDe(a));
+    else if (ordemFiltro === 'populares') lista = [...lista].sort((a, b) => (detalheDe(detalhes, b.titulo, b.serie)?.popularidade || 0) - (detalheDe(detalhes, a.titulo, a.serie)?.popularidade || 0));
+    else if (ordemFiltro === 'melhores') lista = [...lista].sort((a, b) => (detalheDe(detalhes, b.titulo, b.serie)?.nota || 0) - (detalheDe(detalhes, a.titulo, a.serie)?.nota || 0));
+    return lista;
+  }, [itensGrade, filtrosExtras, anosFiltro, idadeFiltro, notaFiltro, ordemFiltro, detalhes]);
 
   return (
     <div className="vod-catalog">
@@ -1175,9 +1215,9 @@ export function VodCatalog({
           <button
             className={`vod-sub-btn-modo${modo === 'explorar' ? ' ativo' : ''}`}
             onClick={() => setModo((m) => (m === 'fileiras' ? 'explorar' : 'fileiras'))}
-            title={modo === 'fileiras' ? 'Explorar grade A a Z' : 'Ver em fileiras'}
+            title={modo === 'fileiras' ? 'Filtrar por gênero, ano, idade e nota' : 'Ver em fileiras'}
           >
-            {modo === 'fileiras' ? 'A a Z' : 'Fileiras ▤'}
+            {modo === 'fileiras' ? 'Filtrar' : 'Fileiras'}
           </button>
         </div>
       </nav>
@@ -1442,8 +1482,8 @@ export function VodCatalog({
       {/* ── Exibição: EXPLORAR / GRADE A-Z (Modo Grade) ── */}
       {modo === 'explorar' && (
         <div className="vod-conteudo-grade">
-          {/* Barra de Letras A-Z */}
-          {secao !== 'animes' && secao !== 'doramas' && (
+          {/* Barra de Letras A-Z (com filtros de ano, idade, nota ou ordem, a busca é na seção inteira) */}
+          {secao !== 'animes' && secao !== 'doramas' && !filtrosExtras && (
             <div className="vod-letras-barra" role="tablist" aria-label="Letras do alfabeto">
               {LETRAS.map((l) => (
                 <button
@@ -1478,9 +1518,52 @@ export function VodCatalog({
             </div>
           )}
 
+          {/* Filtros: ano, idade, nota e ordem */}
+          {detalhes && (
+            <div className="vod-filtros-barra">
+              <label className={`vod-filtro${anosFiltro ? ' ativo' : ''}`}>
+                <span>Ano</span>
+                <select value={anosFiltro} onChange={(e) => setAnosFiltro(e.target.value)}>
+                  <option value="">Todos</option>
+                  {faixasDeAno().map((f) => <option key={f.rotulo} value={f.rotulo}>{f.rotulo}</option>)}
+                </select>
+              </label>
+              <label className={`vod-filtro${idadeFiltro ? ' ativo' : ''}`}>
+                <span>Idade</span>
+                <select value={idadeFiltro} onChange={(e) => setIdadeFiltro(e.target.value)}>
+                  <option value="">Todas</option>
+                  <option value="0">Livre</option>
+                  {[10, 12, 14, 16].map((i) => <option key={i} value={String(i)}>Até {i} anos</option>)}
+                </select>
+              </label>
+              <label className={`vod-filtro${notaFiltro ? ' ativo' : ''}`}>
+                <span>Nota</span>
+                <select value={notaFiltro} onChange={(e) => setNotaFiltro(e.target.value)}>
+                  <option value="">Qualquer</option>
+                  {[6, 7, 8].map((n) => <option key={n} value={String(n)}>{n} ou mais</option>)}
+                </select>
+              </label>
+              <label className={`vod-filtro${ordemFiltro !== 'az' ? ' ativo' : ''}`}>
+                <span>Ordem</span>
+                <select value={ordemFiltro} onChange={(e) => setOrdemFiltro(e.target.value as typeof ordemFiltro)}>
+                  <option value="az">A–Z</option>
+                  <option value="populares">Mais populares</option>
+                  <option value="melhores">Mais bem avaliados</option>
+                  <option value="novos">Mais novos</option>
+                </select>
+              </label>
+              {filtrosExtras && (
+                <button className="vod-filtro-limpar" onClick={() => { setAnosFiltro(''); setIdadeFiltro(''); setNotaFiltro(''); setOrdemFiltro('az'); }}>
+                  Limpar filtros
+                </button>
+              )}
+              <span className="vod-filtro-total">{itensFiltrados.length.toLocaleString('pt-BR')} títulos</span>
+            </div>
+          )}
+
           {/* Grade de Cartões */}
           <div className="vod-grade-cards">
-            {itensGrade.slice(0, visiveis).map((item) => {
+            {itensFiltrados.slice(0, visiveis).map((item) => {
               const capaSrc = generos ? capaDaFicha(generos, item.titulo, item.serie, item.colecao?.tmdbId) : null;
               const fav = ehFavorito({ tipo: item.serie ? 's' : 'f', titulo: item.titulo, letra: item.letra, ano: item.ano || '', capa: capaSrc || '' });
               return (
@@ -1525,7 +1608,7 @@ export function VodCatalog({
 
           <div ref={sentinelaRef} className="vod-sentinela" aria-hidden="true" />
 
-          {itensGrade.length === 0 && !carregandoDados && (
+          {itensFiltrados.length === 0 && !carregandoDados && (
             <p className="vod-aviso">Nenhum título encontrado com os filtros atuais.</p>
           )}
         </div>
