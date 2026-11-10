@@ -16,7 +16,7 @@ import './AppDownload.css';
 /** Código do Saimo TV no app Downloader (AFTVnews): digitar no lugar do endereço. */
 const CODIGO_DOWNLOADER = '1506768';
 
-type AppId = 'tvbox' | 'cell' | 'roku' | 'samsung' | 'lg' | 'windows' | 'mac';
+type AppId = 'tvbox' | 'cell' | 'roku' | 'samsung' | 'lg' | 'windows' | 'mac' | 'ios';
 
 interface App {
   id: AppId;
@@ -29,9 +29,23 @@ interface App {
   botao: string;
   requisitos: string[];
   passos: { titulo: string; texto: string }[];
+  /** Ainda não foi lançado: a aba mostra o aviso "em breve" em vez do download. */
+  emBreve?: boolean;
 }
 
 const APPS: App[] = [
+  {
+    id: 'ios',
+    aba: 'iPhone',
+    titulo: 'Saimo para iPhone e iPad',
+    subtitulo: 'Em breve na App Store',
+    arquivo: '',
+    atalho: '/app',
+    botao: '',
+    emBreve: true,
+    requisitos: ['iPhone ou iPad com iOS 16 ou mais novo', 'Conexão com a internet'],
+    passos: [],
+  },
   {
     id: 'tvbox',
     aba: 'TV Box',
@@ -192,8 +206,8 @@ function detectar(): Deteccao {
     return { recomendado: 'tvbox', aparelho, aviso: null };
   }
   if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && toques > 1)) {
-    return { recomendado: null, aparelho,
-      aviso: 'Ainda não existe app para iPhone e iPad. Assista por este site: no Safari, toque em Compartilhar › Adicionar à Tela de Início para abrir como app.' };
+    return { recomendado: 'ios', aparelho,
+      aviso: 'O app para iPhone e iPad está chegando em breve. Enquanto isso, assista por este site: no Safari, toque em Compartilhar › Adicionar à Tela de Início para abrir como app.' };
   }
   if (/Android/.test(ua)) return { recomendado: 'cell', aparelho, aviso: null };
   if (/Windows/.test(ua)) return { recomendado: 'windows', aparelho, aviso: null };
@@ -205,7 +219,7 @@ function detectar(): Deteccao {
     aviso: 'Não há app para Linux. No computador, assista por este site mesmo.' };
 }
 
-const PLATAFORMA: Record<AppId, Plataforma> = { tvbox: 'tvbox', cell: 'celular', mac: 'mac', windows: 'windows', samsung: 'tizen', lg: 'webos', roku: 'roku' };
+const PLATAFORMA: Partial<Record<AppId, Plataforma>> = { tvbox: 'tvbox', cell: 'celular', mac: 'mac', windows: 'windows', samsung: 'tizen', lg: 'webos', roku: 'roku' };
 
 function megas(bytes?: number): string {
   return bytes ? `${Math.round(bytes / 1024 / 1024)} MB` : '';
@@ -218,6 +232,9 @@ function Icone({ id }: { id: AppId }) {
   };
   if (id === 'tvbox') {
     return <svg {...comum}><rect x="2" y="4" width="20" height="13" rx="2" /><path d="M8 21h8M12 17v4" /></svg>;
+  }
+  if (id === 'ios') {
+    return <svg {...comum}><rect x="6" y="2" width="12" height="20" rx="3" /><path d="M10 5h4" /><path d="M9.5 13.5 12 11l2.5 2.5M12 11v5" /></svg>;
   }
   if (id === 'cell') {
     return <svg {...comum}><rect x="6" y="2" width="12" height="20" rx="2.5" /><path d="M11 18h2" /></svg>;
@@ -261,7 +278,8 @@ export function AppDownload() {
 
   const app = APPS.find(a => a.id === aba)!;
   const linkCurto = `${window.location.host}${app.atalho}`;
-  const arquivo = lancamento?.arquivos[PLATAFORMA[app.id]];
+  const plataforma = PLATAFORMA[app.id];
+  const arquivo = plataforma ? lancamento?.arquivos[plataforma] : undefined;
   const detalhes = [
     lancamento ? `Versão ${lancamento.versao}` : '',
     megas(arquivo?.bytes),
@@ -319,7 +337,13 @@ export function AppDownload() {
             </div>
           </div>
 
-          {arquivo ? (
+          {app.emBreve ? (
+            <div className="download-embreve" role="status">
+              <span className="download-embreve-selo"><i aria-hidden="true" /> Em breve</span>
+              <p>O Saimo para iPhone e iPad está a caminho da App Store. Quando sair, o botão de download aparece aqui.</p>
+              <p className="download-embreve-dica">Enquanto isso, o Saimo funciona direto no navegador: no Safari, toque em Compartilhar › Adicionar à Tela de Início.</p>
+            </div>
+          ) : arquivo ? (
             <a
               className="download-button"
               href={arquivo.url}
@@ -346,11 +370,11 @@ export function AppDownload() {
               <span>{estado === 'carregando' ? 'Carregando…' : 'Não consegui buscar o download. Tentar novamente'}</span>
             </button>
           )}
-          {detalhes && <p className="download-meta">{detalhes}</p>}
+          {!app.emBreve && detalhes && <p className="download-meta">{detalhes}</p>}
 
-          <p className="download-short">
+          {!app.emBreve && <p className="download-short">
             {app.id === 'tvbox' ? 'No Downloader, digite:' : 'Para baixar em outro aparelho, abra:'} <code>{linkCurto}</code>
-          </p>
+          </p>}
           {app.id === 'tvbox' && (
             <p className="download-short">
               Ou, no Downloader, digite o código: <code>{CODIGO_DOWNLOADER}</code>
@@ -368,7 +392,7 @@ export function AppDownload() {
           )}
 
           <div className="download-columns">
-            <div>
+            {app.passos.length > 0 && <div>
               <h3>Como instalar</h3>
               <ol className="install-steps">
                 {app.passos.map((p, i) => (
@@ -381,7 +405,7 @@ export function AppDownload() {
                   </li>
                 ))}
               </ol>
-            </div>
+            </div>}
             <div>
               <h3>Requisitos</h3>
               <ul className="requirements">
