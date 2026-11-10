@@ -343,7 +343,7 @@ async function buscarNoCatalogo(id: string, isSerie: boolean, season: string, ep
 
     const norm = tituloAchado.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').trim();
     const inicial = norm.charAt(0).toUpperCase();
-    const l = (inicial >= 'A' && inicial <= 'Z') ? inicial : '#';
+    const l = (inicial >= 'A' && inicial <= 'Z') ? inicial : '%23';
 
     if (!isSerie) {
       const fRes = await fetch(`${CATALOG_BASE}/filmes-${l}.txt?t=${Date.now()}`);
