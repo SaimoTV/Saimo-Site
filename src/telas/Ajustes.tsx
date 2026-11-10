@@ -233,7 +233,7 @@ export function Ajustes() {
         <section className="ajustes-bloco">
           <h2>Mais</h2>
           <div className="ajustes-botoes">
-            <button className="ajustes-botao" onClick={() => navigate('/app')}>Baixar o app (TV Box, celular, Mac, Windows)</button>
+            <button className="ajustes-botao" onClick={() => navigate('/app')}>Baixar o app (TV Box, Roku, Smart TVs, celular, PC/Mac)</button>
             <button className="ajustes-botao" onClick={() => navigate('/novidades')}>Novidades</button>
             <button type="button" className="ajustes-botao destaque" onClick={abrirModalDoacao}>Apoiar o projeto ❤️</button>
             <a className="ajustes-botao" href="https://discord.gg/BrWbQQhfh7" target="_blank" rel="noreferrer noopener">Comunidade no Discord</a>

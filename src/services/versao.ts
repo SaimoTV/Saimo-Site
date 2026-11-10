@@ -13,7 +13,7 @@
  * verdade para baixar.
  */
 
-export type Plataforma = 'tvbox' | 'celular' | 'mac' | 'windows' | 'tizen' | 'webos';
+export type Plataforma = 'tvbox' | 'celular' | 'mac' | 'windows' | 'tizen' | 'webos' | 'roku';
 
 export interface ArquivoApp {
   nome: string;
@@ -36,7 +36,7 @@ export const URL_VERSAO =
 /** Última release do repositório, com o nome e o endereço de cada anexo. */
 export const URL_RELEASE = `https://api.github.com/repos/${REPO_DOWNLOADS}/releases/latest`;
 
-const PLATAFORMAS: Plataforma[] = ['tvbox', 'celular', 'mac', 'windows', 'tizen', 'webos'];
+const PLATAFORMAS: Plataforma[] = ['tvbox', 'celular', 'mac', 'windows', 'tizen', 'webos', 'roku'];
 
 /** Nome do anexo de cada plataforma dentro do release. */
 const PLATAFORMA_DO_ARQUIVO: Record<string, Plataforma> = {
@@ -46,6 +46,7 @@ const PLATAFORMA_DO_ARQUIVO: Record<string, Plataforma> = {
   'SaimoTV-Windows.zip': 'windows',
   'SaimoTV-Samsung.wgt': 'tizen',
   'SaimoTV-LG.ipk': 'webos',
+  'SaimoTV-Roku.zip': 'roku',
 };
 
 /** Só vale link https de release do GitHub; qualquer outro é ignorado. */

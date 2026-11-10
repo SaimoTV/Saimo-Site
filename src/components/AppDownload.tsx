@@ -16,7 +16,7 @@ import './AppDownload.css';
 /** Código do Saimo TV no app Downloader (AFTVnews): digitar no lugar do endereço. */
 const CODIGO_DOWNLOADER = '1506768';
 
-type AppId = 'tvbox' | 'cell' | 'mac' | 'windows' | 'samsung' | 'lg';
+type AppId = 'tvbox' | 'cell' | 'roku' | 'samsung' | 'lg' | 'windows' | 'mac';
 
 interface App {
   id: AppId;
@@ -62,6 +62,22 @@ const APPS: App[] = [
       { titulo: 'Abra o arquivo', texto: 'Toque na notificação de download concluído, ou abra o arquivo pela pasta Downloads.' },
       { titulo: 'Permita a instalação', texto: 'Se o Android pedir, ative “Permitir desta fonte” para o navegador e volte.' },
       { titulo: 'Pronto', texto: 'Instale e abra o Saimo TV. As próximas versões são oferecidas dentro do próprio app.' },
+    ],
+  },
+  {
+    id: 'roku',
+    aba: 'Roku',
+    titulo: 'Saimo TV para Roku',
+    subtitulo: 'TVs Roku (TCL, AOC, Philips, Philco, Semp…) e aparelhos Roku Express / Premiere / Streaming Stick',
+    arquivo: 'SaimoTV-Roku.zip',
+    atalho: '/roku',
+    botao: 'Baixar para Roku',
+    requisitos: ['TV Roku ou dispositivo Roku (Express, Premiere, Stick)', 'Modo desenvolvedor ativo na TV Roku', 'Computador ou celular na mesma rede Wi-Fi'],
+    passos: [
+      { titulo: 'Ative o modo desenvolvedor na TV', texto: 'No controle da TV, aperte a sequência: Home 3x › Cima 2x › Direita 1x › Esquerda 1x › Direita 1x › Esquerda 1x › Direita 1x. Ative o Developer Mode, defina uma senha e anote o IP exibido na tela.' },
+      { titulo: 'Baixe o pacote do canal', texto: 'Clique no botão acima para baixar o arquivo SaimoTV-Roku.zip no computador ou celular.' },
+      { titulo: 'Acesse o instalador da TV', texto: 'No navegador do computador ou celular na mesma rede Wi-Fi, acesse http://IP-DA-TV (ex: http://192.168.1.50). Digite o usuário rokudev e a senha que você definiu.' },
+      { titulo: 'Envie e instale', texto: 'Na página do Roku, clique em “Upload”, selecione o SaimoTV-Roku.zip e clique em “Install”. O Saimo TV abrirá instantaneamente na sua TV!' },
     ],
   },
   {
@@ -165,6 +181,10 @@ function detectar(): Deteccao {
     return { recomendado: 'lg', aparelho,
       aviso: 'Para instalar o app numa TV LG é preciso um computador e o modo desenvolvedor da TV (passos abaixo). Sem isso, assista por este site.' };
   }
+  if (/Roku/i.test(ua)) {
+    return { recomendado: 'roku', aparelho,
+      aviso: 'Para instalar o canal Saimo TV no Roku é preciso um computador ou celular na mesma rede para ativar o modo desenvolvedor (passos abaixo).' };
+  }
   if (deviceType === 'tv') return { recomendado: 'tvbox', aparelho, aviso: null };
   // Navegador de TV Box Android costuma se anunciar como tablet ("Android 9; X96",
   // sem "Mobile"), mas tablet tem tela de toque e TV Box não.
@@ -185,7 +205,7 @@ function detectar(): Deteccao {
     aviso: 'Não há app para Linux. No computador, assista por este site mesmo.' };
 }
 
-const PLATAFORMA: Record<AppId, Plataforma> = { tvbox: 'tvbox', cell: 'celular', mac: 'mac', windows: 'windows', samsung: 'tizen', lg: 'webos' };
+const PLATAFORMA: Record<AppId, Plataforma> = { tvbox: 'tvbox', cell: 'celular', mac: 'mac', windows: 'windows', samsung: 'tizen', lg: 'webos', roku: 'roku' };
 
 function megas(bytes?: number): string {
   return bytes ? `${Math.round(bytes / 1024 / 1024)} MB` : '';
@@ -201,6 +221,15 @@ function Icone({ id }: { id: AppId }) {
   }
   if (id === 'cell') {
     return <svg {...comum}><rect x="6" y="2" width="12" height="20" rx="2.5" /><path d="M11 18h2" /></svg>;
+  }
+  if (id === 'roku') {
+    return (
+      <svg {...comum}>
+        <rect x="2" y="4" width="20" height="13" rx="2" />
+        <path d="M8 21h8M12 17v4" />
+        <path d="M9.5 8h2.5a2 2 0 0 1 0 4H9.5V8Zm2.5 4 2 3" />
+      </svg>
+    );
   }
   if (id === 'samsung' || id === 'lg') {
     return <svg {...comum}><rect x="2" y="4" width="20" height="13" rx="2" /><path d="M8 21h8M12 17v4M9 10.5l2 2 4-4" /></svg>;
@@ -325,6 +354,11 @@ export function AppDownload() {
           {app.id === 'tvbox' && (
             <p className="download-short">
               Ou, no Downloader, digite o código: <code>{CODIGO_DOWNLOADER}</code>
+            </p>
+          )}
+          {app.id === 'roku' && (
+            <p className="download-short">
+              Canal nativo oficial: rápido, leve e com suporte total ao controle remoto do Roku.
             </p>
           )}
           {app.id === 'windows' && (

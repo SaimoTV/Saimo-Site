@@ -16,6 +16,7 @@ const ARQUIVO: Record<string, string> = {
   windows: 'SaimoTV-Windows.zip',
   tizen: 'SaimoTV-Samsung.wgt',
   webos: 'SaimoTV-LG.ipk',
+  roku: 'SaimoTV-Roku.zip',
 };
 
 function linkDoGitHub(url: unknown): string | null {
