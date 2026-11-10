@@ -171,8 +171,11 @@ export function buildAttempts(sources: ChannelSource[]): Attempt[] {
     // pelo hls.js (o mesmo caminho do site, que já se provou), depois pelo decodificador da
     // própria TV (sem CORS), e por último o proxy. Muitas TVs dizem que tocam HLS sozinhas e
     // depois recusam ("The element has no supported sources").
-    if (tv) out.push({ source, url: source.url, viaProxy: false });
-    if (tv && isHls(source.url) && hlsNativo()) out.push({ source, url: source.url, viaProxy: false, nativo: true });
+    // Fonte que exige Referer ou User-Agent só abre pelo proxy: o navegador da TV não deixa
+    // definir esses cabeçalhos, e a tentativa direta sempre leva 403 (ex.: cdn13embed).
+    const direta = tv && !source.referer && !source.userAgent;
+    if (direta) out.push({ source, url: source.url, viaProxy: false });
+    if (direta && isHls(source.url) && hlsNativo()) out.push({ source, url: source.url, viaProxy: false, nativo: true });
     if (!tv && !needsProxy(source) && !precisaComecarPeloProxy(source)) {
       out.push({ source, url: source.url, viaProxy: false });
     }

@@ -43,6 +43,13 @@ interface VideoPlayerProps {
 
 const CHAVE_DICA_APP = 'saimo-dica-app-fechada';
 
+/** Erros fatais do hls.js em que a playlist não abre: insistir na mesma fonte não adianta. */
+const PLAYLIST_FATAL = new Set<string>([
+  Hls.ErrorDetails.MANIFEST_LOAD_ERROR, Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT,
+  Hls.ErrorDetails.MANIFEST_PARSING_ERROR, Hls.ErrorDetails.LEVEL_LOAD_ERROR,
+  Hls.ErrorDetails.LEVEL_EMPTY_ERROR,
+]);
+
 /** O aviso do app some por 7 dias depois de fechado. */
 function dicaAppLiberada(): boolean {
   try {
@@ -361,7 +368,9 @@ export const VideoPlayer = memo(function VideoPlayer({
 
     const marcarAvanco = () => {
       const t = video.currentTime;
-      if (t > ultimoTempo + 0.2) {
+      // O load() dispara um timeupdate com o tempo em 0: isso não é vídeo andando, e marcava
+      // a fonte como viva, prendendo o player numa fonte quebrada para sempre.
+      if (!video.paused && video.readyState >= 2 && t > 0.1 && t > ultimoTempo + 0.2) {
         ultimoTempo = t;
         ultimoAvanco = performance.now();
         tocou = true;
@@ -581,6 +590,12 @@ export const VideoPlayer = memo(function VideoPlayer({
 
       hls.on(Hls.Events.ERROR, (_, data) => {
         if (!data.fatal) return;
+        // Playlist que não abre (404/403/400, vazia, ilegível) não volta com startLoad(): o
+        // player ficava parado esperando o vigia. Vai direto para a próxima fonte.
+        if (PLAYLIST_FATAL.has(data.details)) {
+          falhar(`hls: ${data.details}`);
+          return;
+        }
         recoveryAttemptsRef.current++;
         if (recoveryAttemptsRef.current > maxRecoveryAttempts) {
           falhar(`hls: ${data.details}`);

@@ -46,6 +46,16 @@ test('na TV cada fonte é tentada direto primeiro e o proxy fica de reserva', ()
   }
 });
 
+test('na TV, fonte que exige Referer ou User-Agent vai só pelo proxy (o navegador não manda esses cabeçalhos)', () => {
+  globalThis.document = { createElement: () => ({ canPlayType: () => 'maybe' }) };
+  for (const fonte of [{ ...https, referer: 'https://site.exemplo/' }, { ...https, userAgent: 'VLC/3.0' }]) {
+    const t = buildAttempts([fonte]);
+    assert.equal(t.length, 1);
+    assert.equal(t[0].viaProxy, true);
+  }
+  delete globalThis.document;
+});
+
 test('o proxy de reserva é o do site, não a origem local do pacote', () => {
   assert.equal(proxyBase(), 'https://saimo-tv.pages.dev');
   assert.ok(buildAttempts([http])[1].url.startsWith('https://saimo-tv.pages.dev/api/proxy?url='));
