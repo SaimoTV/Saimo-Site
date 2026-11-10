@@ -14,6 +14,7 @@ import { NavegacaoMobile } from './components/NavegacaoMobile';
 import { useVoltarFecha } from './hooks/useVoltarFecha';
 import { useCanais } from './hooks/useCanais';
 import { useListas } from './services/listas';
+import { useTemMinhasListas } from './hooks/useTemMinhasListas';
 import { SemLista } from './components/Telas';
 import type { Channel } from './types/channel';
 import type { Movie, SeriesEpisodeInfo } from './types/movie';
@@ -109,6 +110,9 @@ function TVPage() {
   // A grade vem do endereço de canais que a pessoa informou (ver `useCanais`).
   const channels = useCanais();
   const listas = useListas();
+  // Sem endereço do Saimo mas com lista própria (M3U ou usuário e senha), o Ao vivo funciona.
+  const temMinhas = useTemMinhasListas();
+  const temCanais = !!listas.canais || temMinhas;
 
   // Sem canal escolhido nesta visita, vale o último da visita anterior — assim
   // que a lista (que vem da rede) o trouxer. Derivado, e não copiado para o
@@ -246,8 +250,8 @@ function TVPage() {
       {/* Header Global com auto-hide no Live TV (aparece apenas ao passar o mouse no topo da tela) */}
       {!isTheaterMode && <BarraTopo autoHide={true} />}
 
-      {!listas.canais && <SemLista tipo="canais" />}
-      {listas.canais && <Suspense fallback={<LoadingFallback />}>
+      {!temCanais && <SemLista tipo="canais" />}
+      {temCanais && <Suspense fallback={<LoadingFallback />}>
         {/* Celular: o vídeo fica no alto, e a lista de canais rola embaixo dele */}
         {isMobile && (
           <div className="mobile-content">

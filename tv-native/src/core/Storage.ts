@@ -42,8 +42,8 @@ const DEFAULT_PREFS: TVPreferences = {
   tamanhoLegenda: 1,
   legendaFundo: true,
   ultimoCanal: '',
-  urlCanais: 'https://canais-saimo.pages.dev/',
-  urlFilmes: 'https://filmes-saimo.pages.dev/',
+  urlCanais: '',
+  urlFilmes: '',
 };
 
 export class Storage {
@@ -73,25 +73,6 @@ export class Storage {
       if (mapa[canal] === indice) return;
       mapa[canal] = indice;
       localStorage.setItem(this.FONTE_CANAL_KEY, JSON.stringify(mapa));
-    } catch (e) {}
-  }
-
-  /**
-   * 2.8.0: quem nunca escolheu um endereço fica com o de fábrica GRAVADO, e
-   * não só implícito no código: o app segue com a mesma lista mesmo quando o
-   * padrão sair de uma versão futura. Endereço trocado não é mexido.
-   */
-  static guardarLinksDeFabrica() {
-    try {
-      const bruto = localStorage.getItem(this.PREFS_KEY);
-      const gravado = bruto ? JSON.parse(bruto) : {};
-      const faltaCanais = typeof gravado.urlCanais !== 'string' || !gravado.urlCanais.trim();
-      const faltaFilmes = typeof gravado.urlFilmes !== 'string' || !gravado.urlFilmes.trim();
-      if (!faltaCanais && !faltaFilmes) return;
-      const novo = { ...gravado };
-      if (faltaCanais) novo.urlCanais = DEFAULT_PREFS.urlCanais;
-      if (faltaFilmes) novo.urlFilmes = DEFAULT_PREFS.urlFilmes;
-      localStorage.setItem(this.PREFS_KEY, JSON.stringify(novo));
     } catch (e) {}
   }
 

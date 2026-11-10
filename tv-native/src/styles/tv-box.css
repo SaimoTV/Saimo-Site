@@ -227,3 +227,9 @@ html.tizen.video-ativo, html.tizen.video-ativo body { background: transparent !i
 .tv-escolha-titulo { font-size: 30px; font-weight: 800; color: #fff; margin-bottom: 20px; }
 .tv-escolha-lista { display: flex; flex-direction: column; gap: 10px; max-height: 640px; overflow-y: auto; }
 .tv-escolha-lista .tv-btn { font-size: 22px; padding: 14px 22px; border-radius: 14px; }
+
+/* Boas-vindas (sem lista nenhuma) */
+.tv-boas-vindas { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 160px; text-align: center; background: transparent; z-index: 5; }
+.tv-boas-vindas.hidden { display: none; }
+.tv-boas-vindas-t { font-size: 64px; font-weight: 500; }
+.tv-boas-vindas-p { font-size: 32px; color: #A8B4C0; margin: 16px 0 40px; max-width: 1400px; }

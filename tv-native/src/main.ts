@@ -37,7 +37,6 @@ class SaimoTVApp {
 
   constructor() {
     Platform.init();
-    Storage.guardarLinksDeFabrica();
     SpatialNav.init();
     if (Platform.isTizen) document.documentElement.classList.add('tizen');
 

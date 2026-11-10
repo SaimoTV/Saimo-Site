@@ -44,7 +44,20 @@ export class HomeScreen {
     this.scrollContainer.appendChild(this.liveRail.getElement());
 
     this.element.appendChild(this.scrollContainer);
+
+    // Sem lista nenhuma: boas-vindas com o caminho para adicionar uma.
+    this.boasVindas = document.createElement('div');
+    this.boasVindas.className = 'tv-boas-vindas hidden';
+    this.boasVindas.innerHTML = `
+      <div class="tv-boas-vindas-t">Bem-vindo ao Saimo!</div>
+      <div class="tv-boas-vindas-p">Para começar, adicione uma lista M3U (só o link já basta) ou uma lista com usuário e senha.</div>
+      <div id="bv-add" class="tv-btn nav-focusable" data-nav="true">Adicionar lista</div>
+    `;
+    this.boasVindas.querySelector('#bv-add')!.addEventListener('click', () => State.setScreen('minhas'));
+    this.element.appendChild(this.boasVindas);
   }
+
+  private boasVindas: HTMLElement;
 
   getElement(): HTMLElement {
     return this.element;
@@ -61,7 +74,13 @@ export class HomeScreen {
     this.loadDestaquesSync();
 
     // 2. Foco instantâneo para resposta a comandos do controle remoto
-    this.focusFirstItem();
+    const semListas = Api.semListas();
+    this.boasVindas.classList.toggle('hidden', !semListas);
+    if (semListas) {
+      SpatialNav.focus(this.boasVindas.querySelector<HTMLElement>('#bv-add'));
+    } else {
+      this.focusFirstItem();
+    }
 
     // 3. Atualização em segundo plano não bloqueante (fire and forget)
     if (!this.isLoaded) {

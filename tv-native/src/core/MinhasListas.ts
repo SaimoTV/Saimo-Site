@@ -4,6 +4,7 @@
  */
 
 import { chaveDoNome, ehRestrito, lerM3u } from '../../../src/utils/leitorM3u';
+import { canaisXtream, deLink, ErroXtream } from '../../../src/utils/xtream';
 import type { CanalLido } from '../../../src/utils/leitorM3u';
 import { State } from './State';
 import type { Channel } from './Api';
@@ -44,13 +45,13 @@ async function ler(id: string): Promise<CanalLido[]> {
   return r;
 }
 
-async function baixar(link: string): Promise<CanalLido[]> {
-  if (!/^https?:\/\//i.test(link)) throw new Error('O link precisa começar com http:// ou https://');
+/** Baixa um texto (M3U ou resposta da API). Erro genérico, sem o endereço. */
+async function buscarTexto(url: string): Promise<string> {
   const ctrl = new AbortController();
   const prazo = setTimeout(() => ctrl.abort(), 30000);
   let texto = '';
   try {
-    const r = await fetch(link, { signal: ctrl.signal, redirect: 'follow', cache: 'no-store' });
+    const r = await fetch(url, { signal: ctrl.signal, redirect: 'follow', cache: 'no-store' });
     if (!r.ok) throw new Error();
     texto = await r.text();
   } catch {
@@ -59,6 +60,21 @@ async function baixar(link: string): Promise<CanalLido[]> {
     clearTimeout(prazo);
   }
   if (texto.length > 30 * 1024 * 1024) throw new Error('A lista passa de 30 MB');
+  return texto;
+}
+
+async function baixar(link: string): Promise<CanalLido[]> {
+  if (!/^https?:\/\//i.test(link)) throw new Error('O link precisa começar com http:// ou https://');
+  // Conta com usuário e senha (Xtream): lê pela API do servidor.
+  const conta = deLink(link);
+  if (conta) {
+    try {
+      return await canaisXtream(conta, buscarTexto, lerM3u);
+    } catch (e) {
+      throw e instanceof ErroXtream ? new Error(e.message) : e;
+    }
+  }
+  const texto = await buscarTexto(link);
   const limpo = texto.replace(/^﻿+/, '').trimStart();
   if (!limpo.toUpperCase().startsWith('#EXTM3U') && !/#EXTINF/i.test(limpo)) throw new Error('Isso não parece uma lista .m3u');
   const canais = lerM3u(texto);

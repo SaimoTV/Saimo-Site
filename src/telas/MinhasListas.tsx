@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  adicionarLista, aoMudar, atualizarLista, baixarLista, definirAtiva, ErroDeLista,
+  adicionarLista, aoMudar, atualizarLista, baixarLista, definirAtiva, ErroDeLista, linkDoFormulario,
   lerListaBaixada, listas, MAXIMO_LISTAS, removerLista, type MinhaLista,
 } from '../services/minhasListas';
 import '../components/Listas.css';
@@ -20,12 +20,24 @@ export function MinhasListas({ aviso }: { aviso: (msg: string) => void }) {
   const [itens, setItens] = useState<MinhaLista[]>(listas);
   const [link, setLink] = useState('');
   const [nome, setNome] = useState('');
+  const [usuario, setUsuario] = useState('');
+  const [senha, setSenha] = useState('');
   const [ocupado, setOcupado] = useState<string | null>(null); // 'novo' ou o id da lista
   const [erro, setErro] = useState('');
   const [confirmando, setConfirmando] = useState<string | null>(null);
   const arquivo = useRef<HTMLInputElement>(null);
 
   useEffect(() => aoMudar(() => setItens(listas())), []);
+  // Veio da tela vazia ("Adicionar lista"): rola até aqui e põe o cursor no link.
+  useEffect(() => {
+    if (window.location.hash !== '#minhas-listas') return;
+    const t = window.setTimeout(() => {
+      const campo = document.getElementById('minha-lista-link') as HTMLInputElement | null;
+      campo?.scrollIntoView({ block: 'center' });
+      campo?.focus();
+    }, 250);
+    return () => window.clearTimeout(t);
+  }, []);
   useEffect(() => {
     if (!confirmando) return;
     const t = window.setTimeout(() => setConfirmando(null), 4000);
@@ -37,11 +49,14 @@ export function MinhasListas({ aviso }: { aviso: (msg: string) => void }) {
   const adicionar = async () => {
     setErro('');
     if (!link.trim()) { setErro('Cole o link da lista'); return; }
+    // Com usuário e senha, o campo de cima é o servidor; sem eles, é o link da lista.
+    const f = linkDoFormulario(link, usuario, senha);
+    if ('erro' in f) { setErro(f.erro); return; }
     setOcupado('novo');
     try {
-      const canais = await baixarLista(link);
-      await adicionarLista(nome, link.trim(), canais);
-      setLink(''); setNome('');
+      const canais = await baixarLista(f.link);
+      await adicionarLista(nome, f.link, canais);
+      setLink(''); setNome(''); setUsuario(''); setSenha('');
       aviso(`${canais.length} canais adicionados`);
     } catch (e) {
       setErro(mensagem(e));
@@ -120,11 +135,26 @@ export function MinhasListas({ aviso }: { aviso: (msg: string) => void }) {
       {itens.length < MAXIMO_LISTAS ? (
         <form className="listas-form" onSubmit={(e) => { e.preventDefault(); void adicionar(); }} noValidate>
           <div className="listas-campo">
-            <label htmlFor="minha-lista-link">Link da lista (.m3u)</label>
+            <p className="listas-ajuda">Cole o link da sua lista M3U: só isso já basta. Usuário e senha são opcionais, para listas que pedem login.</p>
+            <label htmlFor="minha-lista-link">Link da lista (M3U) ou servidor</label>
             <input
               id="minha-lista-link" type="text" inputMode="url" autoComplete="off" spellCheck={false}
               placeholder="https://…/lista.m3u" value={link} onChange={(e) => setLink(e.target.value)}
               disabled={ocupado !== null} className={erro ? 'invalido' : ''}
+            />
+          </div>
+          <div className="listas-campo">
+            <label htmlFor="minha-lista-usuario">Usuário (opcional: deixe em branco se a lista é só um link)</label>
+            <input
+              id="minha-lista-usuario" type="text" autoComplete="off" autoCapitalize="none" spellCheck={false}
+              value={usuario} onChange={(e) => setUsuario(e.target.value)} disabled={ocupado !== null}
+            />
+          </div>
+          <div className="listas-campo">
+            <label htmlFor="minha-lista-senha">Senha (opcional)</label>
+            <input
+              id="minha-lista-senha" type="password" autoComplete="off"
+              value={senha} onChange={(e) => setSenha(e.target.value)} disabled={ocupado !== null}
             />
           </div>
           <div className="listas-campo">

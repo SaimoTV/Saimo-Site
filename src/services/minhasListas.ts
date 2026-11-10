@@ -16,6 +16,8 @@ import { proxyBase } from '../utils/streamUrl';
 
 import { chaveDoNome, ehRestrito, lerM3u } from '../utils/leitorM3u';
 import type { CanalLido } from '../utils/leitorM3u';
+import { canaisXtream, deLink, ErroXtream } from '../utils/xtream';
+export { linkDoFormulario } from '../utils/xtream';
 
 export { chaveDoNome, ehRestrito, lerM3u };
 export type { CanalLido, FonteLida } from '../utils/leitorM3u';
@@ -76,26 +78,36 @@ export function lerListaBaixada(texto: string): CanalLido[] {
  * navegador, de graça); se não der, pede ao proxy do site, que repassa o
  * texto (um pedido por atualização).
  */
-export async function baixarLista(link: string): Promise<CanalLido[]> {
-  if (!/^https?:\/\//i.test(link.trim())) throw new ErroDeLista('O link precisa começar com http:// ou https://');
-  const url = link.trim();
-  let texto: string | null = null;
+/** Baixa um texto (M3U ou resposta da API): direto, e pelo proxy do site se o navegador não deixar. */
+async function buscarTexto(url: string): Promise<string> {
   // Página https não pode pedir http (conteúdo misto): vai direto ao proxy.
   const direto = !(window.location.protocol === 'https:' && url.startsWith('http://'));
   if (direto) {
-    try { texto = await pedir(url, 12_000); } catch (e) {
+    try { return await pedir(url, 12_000); } catch (e) {
       if (e instanceof ErroDeLista) throw e;
     }
   }
-  if (texto === null) {
+  try {
+    return await pedir(`${proxyBase()}/api/proxy?raw=1&url=${encodeURIComponent(url)}`, PRAZO_MS);
+  } catch (e) {
+    if (e instanceof ErroDeLista) throw e;
+    throw new ErroDeLista('Não consegui baixar essa lista');
+  }
+}
+
+export async function baixarLista(link: string): Promise<CanalLido[]> {
+  if (!/^https?:\/\//i.test(link.trim())) throw new ErroDeLista('O link precisa começar com http:// ou https://');
+  const url = link.trim();
+  // Conta com usuário e senha (Xtream): lê pela API do servidor.
+  const conta = deLink(url);
+  if (conta) {
     try {
-      texto = await pedir(`${proxyBase()}/api/proxy?raw=1&url=${encodeURIComponent(url)}`, PRAZO_MS);
+      return await canaisXtream(conta, buscarTexto, lerM3u);
     } catch (e) {
-      if (e instanceof ErroDeLista) throw e;
-      throw new ErroDeLista('Não consegui baixar essa lista');
+      throw e instanceof ErroXtream ? new ErroDeLista(e.message) : e;
     }
   }
-  return lerListaBaixada(texto);
+  return lerListaBaixada(await buscarTexto(url));
 }
 
 // ───────────────────────────── guardar ─────────────────────────────

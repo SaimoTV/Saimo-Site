@@ -1,8 +1,8 @@
 /**
- * Os dois endereços de onde o site lê tudo o que não é dele: a lista de canais
- * e a de filmes e séries. Já vêm preenchidos (as duas constantes abaixo, o único
- * lugar do site com endereço de lista), e a pessoa pode trocá-los, desligá-los
- * ou restaurá-los em Ajustes > Listas.
+ * Os dois endereços (no formato do Saimo) de onde o site lê a lista de canais e
+ * a de filmes e séries. O site não traz endereço nenhum: a pessoa informa em
+ * Ajustes > Listas (ou adiciona uma lista M3U / com usuário e senha em "Minhas
+ * listas"). Quem já usava um endereço o tem gravado e continua com ele.
  *
  *   linkCanais  catalogo.txt, canais.txt, restritos.txt, radios.txt, guia.txt
  *   linkFilmes  a pasta vod/: indice.txt, filmes-A.txt, imdb/…, novidades.json
@@ -15,11 +15,6 @@ import { normalizarEndereco, resolverEndereco } from '../utils/enderecoLista';
 
 export { normalizarEndereco };
 
-/** Endereços padrão: as únicas listas conhecidas do site. */
-export const PADRAO: Record<'canais' | 'filmes', string> = {
-  canais: 'https://canais-saimo.pages.dev/',
-  filmes: 'https://filmes-saimo.pages.dev/',
-};
 
 const CHAVE_CANAIS = 'saimo-link-canais';
 const CHAVE_FILMES = 'saimo-link-filmes';
@@ -31,51 +26,19 @@ export type Lista = 'canais' | 'filmes';
 /** Arquivo que prova que o endereço é de uma lista de verdade. */
 const ARQUIVO_DE_TESTE: Record<Lista, string> = { canais: 'catalogo.txt', filmes: 'indice.txt' };
 
-function ler(chave: string, padrao: string): string {
-  try { return resolverEndereco(localStorage.getItem(chave), padrao); } catch { return padrao; }
+function ler(chave: string): string {
+  try { return resolverEndereco(localStorage.getItem(chave), ''); } catch { return ''; }
 }
 
 // Sem localStorage (aba privada estrita) o endereço vale só até recarregar.
-const memoria: Record<Lista, string> = { ...PADRAO };
+const memoria: Record<Lista, string> = { canais: '', filmes: '' };
 let lidoDoDisco = false;
-
-const CHAVE_PADRAO_DE_VOLTA = 'saimo-listas-padrao-v2';
-
-/**
- * As versões "sem listas" gravavam endereço vazio e o aparelho abria pedindo
- * lista (o caso das TVs LG que carregam o site). Uma vez só, o vazio herdado
- * delas volta ao padrão; quem desligar a lista depois disso continua desligado.
- */
-function devolverPadraoUmaVez(): void {
-  try {
-    if (localStorage.getItem(CHAVE_PADRAO_DE_VOLTA)) return;
-    for (const chave of [CHAVE_CANAIS, CHAVE_FILMES]) {
-      if (localStorage.getItem(chave)?.trim() === '') localStorage.removeItem(chave);
-    }
-    localStorage.setItem(CHAVE_PADRAO_DE_VOLTA, '1');
-  } catch { /* sem localStorage: já vale o padrão */ }
-}
 
 function carregar(): void {
   if (lidoDoDisco) return;
   lidoDoDisco = true;
-  devolverPadraoUmaVez();
-  guardarPadroesDeQuemNuncaEscolheu();
-  memoria.canais = ler(CHAVE_CANAIS, PADRAO.canais);
-  memoria.filmes = ler(CHAVE_FILMES, PADRAO.filmes);
-}
-
-/**
- * 2.8.0: quem nunca escolheu um endereço fica com o de fábrica GRAVADO neste
- * navegador, e não só implícito no código: o site segue com a mesma lista
- * mesmo quando o padrão sair de uma versão futura. Texto vazio (lista
- * desligada de propósito) e endereço trocado não são mexidos.
- */
-function guardarPadroesDeQuemNuncaEscolheu(): void {
-  try {
-    if (localStorage.getItem(CHAVE_CANAIS) === null) localStorage.setItem(CHAVE_CANAIS, PADRAO.canais);
-    if (localStorage.getItem(CHAVE_FILMES) === null) localStorage.setItem(CHAVE_FILMES, PADRAO.filmes);
-  } catch { /* sem localStorage: vale o padrão desta visita */ }
+  memoria.canais = ler(CHAVE_CANAIS);
+  memoria.filmes = ler(CHAVE_FILMES);
 }
 
 /** Endereço-base da lista de canais, com barra no fim; `''` se não houver. */
@@ -92,14 +55,6 @@ export function definirLink(lista: Lista, endereco: string): void {
   window.dispatchEvent(new Event(EVENTO));
 }
 
-/** Volta uma lista ao endereço padrão. */
-export function restaurarPadrao(lista: Lista): void {
-  carregar();
-  memoria[lista] = PADRAO[lista];
-  try { localStorage.setItem(lista === 'canais' ? CHAVE_CANAIS : CHAVE_FILMES, PADRAO[lista]); } catch { /* só memória */ }
-  window.dispatchEvent(new Event(EVENTO));
-}
-
 function assinar(aviso: () => void): () => void {
   window.addEventListener(EVENTO, aviso);
   return () => window.removeEventListener(EVENTO, aviso);
@@ -110,7 +65,7 @@ const instantaneo = () => `${linkCanais()}\n${linkFilmes()}`;
 
 /** Re-renderiza a tela quando um dos endereços muda. */
 export function useListas(): { canais: string; filmes: string } {
-  const valor = useSyncExternalStore(assinar, instantaneo, () => `${PADRAO.canais}\n${PADRAO.filmes}`);
+  const valor = useSyncExternalStore(assinar, instantaneo, () => '\n');
   const [canais, filmes] = valor.split('\n');
   return { canais, filmes };
 }

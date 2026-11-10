@@ -131,11 +131,10 @@ export function Ajustes() {
             permitirApagar
             aoSalvar={() => notificar('Listas salvas')}
             aoApagar={() => notificar('Lista desligada')}
-            aoRestaurar={() => notificar('Endereço padrão restaurado')}
           />
         </section>
 
-        <MinhasListas aviso={notificar} />
+        <div id="minhas-listas"><MinhasListas aviso={notificar} /></div>
 
         <section className="ajustes-bloco">
           <h2>Ao iniciar</h2>

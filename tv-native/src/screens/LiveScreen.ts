@@ -84,6 +84,11 @@ export class LiveScreen {
 
     if (State.channels.length === 0) {
       State.channels = Api.getCachedChannelsSync();
+      // Sem lista nenhuma não há o que tocar: leva a quem adiciona uma.
+      if (State.channels.length === 0 && Api.semListas()) {
+        setTimeout(() => State.setScreen('minhas'), 0);
+        return;
+      }
       if (State.channels.length === 0) {
         Api.fetchChannels().then((c) => {
           State.channels = c;

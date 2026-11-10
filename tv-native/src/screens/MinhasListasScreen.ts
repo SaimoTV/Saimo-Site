@@ -4,6 +4,7 @@ import { SpatialNav } from '../core/SpatialNav';
 import { MinhasListas } from '../core/MinhasListas';
 import { Api } from '../core/Api';
 import { State } from '../core/State';
+import { linkDoFormulario } from '../../../src/utils/xtream';
 
 export class MinhasListasScreen {
   private element: HTMLElement;
@@ -16,8 +17,10 @@ export class MinhasListasScreen {
     this.element.id = 'screen-minhas';
     this.element.innerHTML = `
       <div class="tv-minhas-titulo">Minhas listas</div>
-      <div class="tv-minhas-ajuda">Cole o link de uma lista .m3u. Ela fica só neste aparelho.</div>
-      <input id="ml-link" class="tv-campo nav-focusable" data-nav="true" type="text" placeholder="Link da lista (.m3u)" />
+      <div class="tv-minhas-ajuda">Cole o link da sua lista M3U: só isso já basta. Usuário e senha são opcionais, para listas que pedem login. Ela fica só neste aparelho.</div>
+      <input id="ml-link" class="tv-campo nav-focusable" data-nav="true" type="text" placeholder="Link da lista (M3U) ou servidor" />
+      <input id="ml-usuario" class="tv-campo nav-focusable" data-nav="true" type="text" placeholder="Usuário (opcional: deixe em branco se a lista é só um link)" />
+      <input id="ml-senha" class="tv-campo nav-focusable" data-nav="true" type="password" placeholder="Senha (opcional)" />
       <input id="ml-nome" class="tv-campo nav-focusable" data-nav="true" type="text" placeholder="Nome (opcional)" />
       <div id="ml-add" class="tv-btn nav-focusable" data-nav="true">Adicionar lista</div>
       <div id="ml-aviso" class="tv-minhas-aviso"></div>
@@ -61,10 +64,17 @@ export class MinhasListasScreen {
   private adicionar() {
     const link = this.element.querySelector<HTMLInputElement>('#ml-link')!;
     const nome = this.element.querySelector<HTMLInputElement>('#ml-nome')!;
+    const usuario = this.element.querySelector<HTMLInputElement>('#ml-usuario')!;
+    const senha = this.element.querySelector<HTMLInputElement>('#ml-senha')!;
+    // Com usuário e senha, o campo de cima é o servidor; sem eles, é o link da lista.
+    const f = linkDoFormulario(link.value, usuario.value, senha.value);
+    if ('erro' in f) { this.aviso.textContent = f.erro; return; }
     this.fazer('Baixando a lista...', async () => {
-      await MinhasListas.adicionar(link.value, nome.value);
+      await MinhasListas.adicionar(f.link, nome.value);
       link.value = '';
       nome.value = '';
+      usuario.value = '';
+      senha.value = '';
     });
   }
 

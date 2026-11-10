@@ -108,12 +108,22 @@ export class Api {
   private static basesCache: string[] = [];
   private static fichasMap: Map<string, { tmdbId?: number; poster?: string; genres: string[] }> = new Map();
 
-  static getBaseUrl(type: 'canais' | 'filmes'): string {
+  /** Sem endereço, os pedidos falham na hora (".invalid" nunca resolve) e as telas ficam vazias. */
+  private static readonly SEM_ENDERECO = 'https://sem-lista.invalid/';
+
+  /** O endereço (no formato do Saimo) que a pessoa informou, ou '' se não há. */
+  static enderecoSaimo(type: 'canais' | 'filmes'): string {
     const prefs = Storage.getPrefs();
-    const salvo = (type === 'canais' ? prefs.urlCanais : prefs.urlFilmes) || '';
-    // A TV não tem onde digitar lista: endereço vazio herdado volta ao padrão.
-    if (salvo.trim()) return salvo;
-    return type === 'canais' ? 'https://canais-saimo.pages.dev/' : 'https://filmes-saimo.pages.dev/';
+    return ((type === 'canais' ? prefs.urlCanais : prefs.urlFilmes) || '').trim();
+  }
+
+  static getBaseUrl(type: 'canais' | 'filmes'): string {
+    return this.enderecoSaimo(type) || this.SEM_ENDERECO;
+  }
+
+  /** Ainda não há lista nenhuma: nem endereço do Saimo, nem lista da própria pessoa. */
+  static semListas(): boolean {
+    return !this.enderecoSaimo('canais') && !this.enderecoSaimo('filmes') && MinhasListas.listas().length === 0;
   }
 
   // ===== CANAIS AO VIVO =====
@@ -136,6 +146,14 @@ export class Api {
     const cached = Storage.getCachedChannels();
     if (cached && cached.length > 0 && this.channelsCache.length === 0) {
       this.channelsCache = cached;
+    }
+
+    // Sem endereço do Saimo: os canais são só os das listas da própria pessoa.
+    if (!this.enderecoSaimo('canais')) {
+      const minhas = await MinhasListas.canais().catch(() => []);
+      minhas.forEach((c, i) => { c.number = i + 1; });
+      this.channelsCache = minhas;
+      return this.channelsCache;
     }
 
     try {

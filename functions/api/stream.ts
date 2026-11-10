@@ -241,14 +241,20 @@ async function buscarAddon(url: string, timeoutMs: number = 5000, customAgent?: 
   }
 }
 
+// O catálogo de apoio (fichas e fontes) fica num endereço de configuração do
+// projeto (variável CATALOGO_FILMES no Cloudflare Pages), não neste código. Sem
+// ela, o relay segue com o que o provedor listou e não consulta catálogo.
+let CATALOGO_BASE = '';
+
 // As bases de filmes e séries vêm do indice.txt publicado, como nos apps:
 // nenhum endereço de fonte fica neste código.
 let BASES_CACHE: Record<string, string> = {};
 let basesLidasEm = 0;
 
 async function carregarBases(): Promise<void> {
+  if (!CATALOGO_BASE) return;
   if (Object.keys(BASES_CACHE).length > 0 && Date.now() - basesLidasEm < 10 * 60 * 1000) return;
-  const res = await fetch('https://filmes-saimo.pages.dev/indice.txt');
+  const res = await fetch(`${CATALOGO_BASE}/indice.txt`);
   if (!res.ok) return;
   const bases: Record<string, string> = {};
   for (const linha of (await res.text()).split('\n')) {
@@ -317,9 +323,9 @@ const FILMES_INEDITOS = new Set([
 ]);
 
 async function buscarNoCatalogo(id: string, isSerie: boolean, season: string, episode: string, versao: string): Promise<string | null> {
-  if (FILMES_INEDITOS.has(id)) return null;
+  if (FILMES_INEDITOS.has(id) || !CATALOGO_BASE) return null;
   await carregarBases().catch(() => {});
-  const CATALOG_BASE = 'https://filmes-saimo.pages.dev';
+  const CATALOG_BASE = CATALOGO_BASE;
   try {
     const fichasRes = await fetch(`${CATALOG_BASE}/fichas.txt?t=${Date.now()}`);
     if (!fichasRes.ok) return null;
@@ -456,7 +462,6 @@ const SERVIDORES_MORTOS = [
   'clickhost.xyz',
   'playercdnx.workers.dev',
   '146.0.32.89',
-  'corruptx.org',
   'governosptx.org',
   'desativado.invalid',
 ];
@@ -569,7 +574,8 @@ async function respondeVideo(url: string): Promise<string | null> {
   }
 }
 
-export const onRequestGet: PagesFunction = async ({ request }) => {
+export const onRequestGet: PagesFunction<{ CATALOGO_FILMES?: string }> = async ({ request, env }) => {
+  CATALOGO_BASE = String(env?.CATALOGO_FILMES ?? '').trim().replace(/\/+$/, '');
   const url = new URL(request.url);
   const tipo = (url.searchParams.get('tipo') || url.searchParams.get('type') || 'movie').toLowerCase();
   let id = (url.searchParams.get('id') || '').trim();
