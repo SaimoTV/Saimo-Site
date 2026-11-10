@@ -7,7 +7,8 @@
     "/mac",
     "/windows",
     "/samsung",
-    "/lg"
+    "/lg",
+    "/roku"
   ],
   "exclude": []
 }
