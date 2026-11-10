@@ -29,7 +29,10 @@ export class LiveScreen {
   private tentadas = new Set<number>();
   /** Vigia: fonte que não anda em PRAZO_FONTE ms desce para a seguinte. */
   private vigia: any = null;
-  private static PRAZO_FONTE = 12000;
+  private static PRAZO_FONTE = 15000;
+  /** A fonte no ar já tocou: um erro depois disso tenta ela de novo antes de trocar. */
+  private confirmada = false;
+  private retentou = false;
 
   constructor(player: TVPlayerInstance) {
     this.player = player;
@@ -210,7 +213,7 @@ export class LiveScreen {
 
   leave() {
     this.element.classList.add('hidden');
-    clearTimeout(this.vigia);
+    clearInterval(this.vigia);
     this.zapHud.hide();
     if (this.player2) this.sairMulti();
     this.fecharPainel();
@@ -284,25 +287,54 @@ export class LiveScreen {
     }
   }
 
-  /** Fonte que não andou no prazo é dada como morta; a que andou fica lembrada. */
+  /**
+   * Fonte que não andou no prazo é dada como morta; a que andou fica lembrada.
+   * O tempo de partida é o primeiro que o fluxo novo informa — o do canal
+   * anterior ficava no player e fazia trocar de fonte com o canal tocando.
+   */
   private vigiar(channel: Channel, idx: number) {
-    clearTimeout(this.vigia);
-    const inicio = this.player.getCurrentTime();
-    this.vigia = setTimeout(() => {
-      if (State.currentChannel?.id !== channel.id || State.currentVariantIndex !== idx) return;
-      if (this.player.getCurrentTime() > inicio + 1) {
+    clearInterval(this.vigia);
+    this.confirmada = false;
+    const comeco = Date.now();
+    let base: number | null = null;
+    this.vigia = setInterval(() => {
+      if (State.currentChannel?.id !== channel.id || State.currentVariantIndex !== idx) {
+        clearInterval(this.vigia);
+        return;
+      }
+      const agora = this.player.getCurrentTime();
+      if (base === null) {
+        if (agora > 0) base = agora;
+      } else if (agora > base + 1) {
+        clearInterval(this.vigia);
+        this.confirmada = true;
+        this.retentou = false;
         Storage.setFonteCanal(channel.name, idx);
-      } else {
+        return;
+      }
+      if (Date.now() - comeco >= LiveScreen.PRAZO_FONTE) {
+        clearInterval(this.vigia);
         this.fonteFalhou();
       }
-    }, LiveScreen.PRAZO_FONTE);
+    }, 1000);
   }
 
   /** Desce para a próxima fonte ainda não tentada; acabadas, avisa. */
   private fonteFalhou() {
     const canal = State.currentChannel;
     if (!canal) return;
-    clearTimeout(this.vigia);
+    clearInterval(this.vigia);
+    // A fonte já estava tocando: um tropeço da rede não é motivo para trocar.
+    // Ela é reaberta uma vez; caindo de novo, aí sim desce para a seguinte.
+    if (this.confirmada && !this.retentou) {
+      this.retentou = true;
+      this.confirmada = false;
+      this.zapHud.aviso('Reconectando…', 3);
+      const idx = State.currentVariantIndex;
+      this.tentadas.delete(idx);
+      void this.tuneChannel(canal, idx);
+      return;
+    }
     const total = canal.variants.length;
     for (let passo = 1; passo < total; passo++) {
       const proxima = (State.currentVariantIndex + passo) % total;

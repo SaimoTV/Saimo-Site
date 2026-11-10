@@ -24,6 +24,7 @@ lidos na hora; o [`versao.json`](https://canais-saimo.pages.dev/versao.json) só
 - **Saimo Connect:** Controle do player via celular pela rede local.
 - **Guia de programação (EPG):** Grade completa com linha do "agora", sinopse do programa e botão para assistir (tecla **G** abre e fecha).
 - **Filmes e séries On Demand:** Catálogo com capas, sinopse, temporadas, episódios e favoritos.
+- **Troca de fonte nas TVs Samsung/LG** (2.7.1): o vigia do Ao vivo mede o andamento do fluxo novo a partir do primeiro tempo que ele informa (o player do Tizen guardava o tempo do canal anterior e trocava de fonte com o canal tocando); erro do `<video>` com o hls.js no comando é ignorado (ele mesmo se recupera); fonte que já tocou e cai é reaberta uma vez antes de trocar.
 - **Filtros do On Demand** (site e TVs Samsung/LG): ano, idade (classificação indicativa), nota mínima e ordem (mais populares, mais bem avaliados, mais novos, A–Z) junto do gênero, sobre a seção inteira. No site, o botão "Filtrar" abre a grade com os filtros; na TV, a barra de filtros abre um seletor navegável pelo controle. Dados do `detalhes.txt` do catálogo.
 - **Continuidade inteligente:** O episódio seguinte lembra a fonte preferida anterior (mesmo servidor, mesma faixa de áudio dublado/legendado).
 - **Busca universal:** Pesquisa rápida em todo o acervo (filmes, séries, animes e novelas).

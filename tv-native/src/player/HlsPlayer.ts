@@ -35,6 +35,10 @@ export class HlsPlayer implements TVPlayerInstance {
     });
 
     this.video.addEventListener('error', () => {
+      // Com o hls.js no comando, ele mesmo se recupera dos erros de mídia e
+      // avisa os fatais pelo evento dele. Repassar este derrubava a fonte que
+      // estava tocando (a troca de fonte sem motivo).
+      if (this.hls) return;
       this.events.onError?.('Erro no elemento de vídeo');
     });
   }

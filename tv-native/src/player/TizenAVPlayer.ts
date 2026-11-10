@@ -148,6 +148,10 @@ export class TizenAVPlayer implements TVPlayerInstance {
 
   stop() {
     this.isPrepared = false;
+    // O tempo do fluxo anterior não pode sobrar para o próximo: o vigia da
+    // troca de fonte compara o tempo antes e depois de sintonizar.
+    this.currentPosition = 0;
+    this.currentDuration = 0;
     clearInterval(this.timer);
     try {
       this.avplay.stop();
