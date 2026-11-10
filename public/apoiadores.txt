@@ -20,7 +20,6 @@ Adilson B.	20
 Lucas G.	20
 Matheus A.	20
 Marco A.	20
-Antonio C.	15
 Lucas B.	15
 Sidney G.	15
 Christiam C.	15
@@ -37,6 +36,7 @@ Hamilton R.	10
 Dirceu A.	10
 Loheber L.	10
 Roberto R.	10
+Antonio C.	10
 Luiz E.	10
 Ricardo S.	10
 Fabio G.	10
@@ -74,6 +74,7 @@ Adelmo L.	5
 Lucas A.	5
 Jociel T.	5
 Lucio N.	5
+Antonio C.	5
 Rafael G.	5
 Anthony R.	5
 Arthur H.	5
