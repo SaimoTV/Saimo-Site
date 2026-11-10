@@ -144,6 +144,16 @@ function pedirParaSair(): void {
   window.setTimeout(() => aviso.remove(), 2500);
 }
 
+/**
+ * Em TV 4K o app monta o layout com 3840 px de largura e cabem ~20 capas por fileira, minúsculas.
+ * O zoom fica no <html> (o React não mexe nele) e reduz a área lógica: 4K real = 1,6; 1440p = 1,3.
+ */
+function ajustarZoom4k(w: Window): void {
+  const largura = (w.screen?.width || w.innerWidth || 0) * (w.devicePixelRatio || 1);
+  const zoom = largura >= 3200 ? 1.6 : largura >= 2200 ? 1.3 : 1;
+  (document.documentElement.style as CSSStyleDeclaration & { zoom: string }).zoom = String(zoom);
+}
+
 let ligado = false;
 
 /** Liga o suporte de TV. Chamar uma vez, antes de montar o app. */
@@ -154,6 +164,8 @@ export function iniciarTv(): void {
   if (!marca) return;
   ligado = true;
   document.documentElement.classList.add('modo-tv', `tv-${marca}`);
+  ajustarZoom4k(w);
+  w.addEventListener('resize', () => ajustarZoom4k(w));
   // Samsung só entrega ao app as teclas que ele pede.
   if (marca === 'tizen') {
     for (const nome of TECLAS_SAMSUNG) {

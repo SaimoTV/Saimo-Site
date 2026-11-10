@@ -3,6 +3,7 @@
  * o destaque do alto, a fileira que corre para o lado com setas de vidro, e os
  * cartões. É a mesma linguagem visual do Mac e da TV Box, feita para o mouse.
  */
+import { ImagemLazy } from './ImagemLazy';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Telas.css';
@@ -90,7 +91,7 @@ export function CartaoCapa({ titulo, capa, rotulo, progresso, aoAbrir, aoPassar,
     <button className="cartao-capa" onClick={aoAbrir} onMouseEnter={aoPassar} onFocus={aoPassar} title={titulo}>
       <div className="cartao-capa-img">
         {capa
-          ? <img src={capa} alt="" loading="lazy" referrerPolicy="no-referrer" />
+          ? <ImagemLazy src={capa} alt="" referrerPolicy="no-referrer" />
           : <span aria-hidden="true">{titulo.charAt(0)}</span>}
         {progresso != null && <i className="cartao-capa-prog"><b style={{ width: `${Math.round(progresso * 100)}%` }} /></i>}
         {extra}
@@ -115,7 +116,7 @@ export function CartaoLargo({ titulo, linha, logo, selo, progresso, aoAbrir, aoP
     <button className="cartao-largo" onClick={aoAbrir} onMouseEnter={aoPassar} onFocus={aoPassar} title={titulo}>
       {selo && <em className="selo-vivo"><i />{selo}</em>}
       <div className="cartao-largo-logo">
-        {logo ? <img src={logo} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span>{titulo.charAt(0)}</span>}
+        {logo ? <ImagemLazy src={logo} alt="" referrerPolicy="no-referrer" /> : <span>{titulo.charAt(0)}</span>}
       </div>
       <strong>{titulo}</strong>
       {linha && <small>{linha}</small>}

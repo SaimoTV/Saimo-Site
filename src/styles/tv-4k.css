@@ -1,0 +1,42 @@
+/* Ajustes de TV (Samsung/LG) para 4K e vista de longe. Só vale com .modo-tv no <html>. */
+
+/* Menu do topo maior: 52px é pequeno a 3 m de distância */
+.modo-tv .barra-topo {
+  width: calc(100vw - 96px); max-width: 1720px; height: 80px; border-radius: 40px;
+  padding: 0 20px; gap: 20px; top: 18px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(20, 22, 38, 0.94);
+}
+.modo-tv .barra-logo { font-size: 1.25rem; gap: 12px; padding: 6px 14px; }
+.modo-tv .barra-logo svg, .modo-tv .barra-logo img { width: 50px; height: 50px; border-radius: 12px; }
+.modo-tv .barra-abas { gap: 8px; padding: 5px; border-radius: 32px; }
+.modo-tv .barra-abas button { height: 58px; padding: 0 26px; font-size: 1.02rem; gap: 10px; border-radius: 29px; }
+.modo-tv .barra-abas button svg { width: 26px; height: 26px; }
+.modo-tv .barra-capsula { height: 58px; border-radius: 29px; }
+.modo-tv .barra-direita { gap: 14px; font-size: 1.05rem; }
+.modo-tv .barra-direita svg { width: 28px; height: 28px; }
+.modo-tv .tela, .modo-tv .tela-com-barra { padding-top: 140px; }
+
+/* Capas e cartões maiores (~6 por fileira) e margem lateral de 7% */
+.modo-tv { font-size: 23px; }
+.modo-tv .fileira { padding-left: 7%; padding-right: 7%; }
+.modo-tv .fileira > header { padding-left: 0; padding-right: 0; }
+.modo-tv .fileira-trilho { padding-left: 0; padding-right: 0; scroll-padding-left: 7%; }
+.modo-tv .fileira h2 { font-size: 1.45rem; margin-bottom: 6px; }
+.modo-tv .cartao-capa { width: 236px; gap: 10px; }
+.modo-tv .cartao-capa strong { font-size: 0.92rem; }
+.modo-tv .cartao-capa small { font-size: 0.78rem; }
+.modo-tv .cartao-largo { width: 360px; padding: 20px 20px 24px; gap: 6px; border-radius: 22px; }
+.modo-tv .cartao-largo-logo { height: 112px; border-radius: 16px; }
+.modo-tv .cartao-largo-logo img { max-height: 90px; }
+.modo-tv .cartao-largo strong { font-size: 1.05rem; }
+.modo-tv .cartao-largo small { font-size: 0.85rem; }
+.modo-tv .selo-vivo { font-size: 0.7rem; padding: 3px 10px; }
+.modo-tv .cartao-capa-prog, .modo-tv .cartao-largo-prog { height: 6px; }
+
+/* Desempenho: a TV rasteriza gradientes e sombras na CPU a cada rolagem (teclas levavam 4-16 s) */
+.modo-tv .tela, .modo-tv .tela-com-barra { background: #0b0d18; }
+.modo-tv .cartao-capa-img { background: #1b1e30; transition: transform 0.15s ease, border-color 0.15s ease; }
+.modo-tv .cartao-largo { transition: transform 0.15s ease, border-color 0.15s ease; }
+.modo-tv .cartao-capa:focus .cartao-capa-img, .modo-tv .cartao-capa.dpad-focused .cartao-capa-img { box-shadow: none; }
+.modo-tv .fileira-seta { backdrop-filter: none; -webkit-backdrop-filter: none; width: 52px; font-size: 2.2rem; }
+.modo-tv .fileira { content-visibility: auto; contain-intrinsic-size: 0 420px; }
