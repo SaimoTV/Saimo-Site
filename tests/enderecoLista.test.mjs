@@ -10,8 +10,8 @@ test('vazio é "sem endereço"', () => {
 });
 
 test('sem esquema ganha https e barra final', () => {
-  assert.equal(n('saimo-canais.pages.dev'), 'https://saimo-canais.pages.dev/');
-  assert.equal(n('  saimo-canais.pages.dev/  '), 'https://saimo-canais.pages.dev/');
+  assert.equal(n('lista-exemplo.dev'), 'https://lista-exemplo.dev/');
+  assert.equal(n('  lista-exemplo.dev/  '), 'https://lista-exemplo.dev/');
 });
 
 test('tira query, fragmento e o nome do arquivo colado', () => {

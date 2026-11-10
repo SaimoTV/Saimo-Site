@@ -7,10 +7,19 @@
 Canais ao vivo, guia de programação, filmes e séries direto no navegador:
 **<https://saimo-tv.pages.dev>**. Versão atual: **2.5.1**.
 
-O site não embute lista nenhuma (nem de canais, nem de filmes, nem tabelas do guia).
-Os endereços padrão são servidos de forma rápida e estável via Cloudflare Pages
-(`canais-saimo.pages.dev` e `filmes-saimo.pages.dev`). Em Ajustes > Listas o usuário pode
-alternar, restaurar o padrão ou configurar fontes personalizadas. Os links de download e os
+O site não embute lista nenhuma (nem de canais, nem de filmes, nem tabelas do guia)
+nem endereço de lista. Na primeira visita a tela mostra "Bem-vindo ao Saimo!" com
+**Adicionar lista** (Ajustes > Minhas listas: link **M3U** ou **servidor + usuário +
+senha**, que são opcionais; `src/utils/xtream.ts`, compartilhado com as TVs Samsung e
+LG) e **Endereços do Saimo** (Ajustes > Listas, formato do Saimo; sem padrão). O que a
+pessoa já tinha gravado continua. O relay `/api/stream` lê o catálogo de apoio da variável
+`CATALOGO_FILMES` do projeto no Cloudflare Pages (sem ela, não consulta catálogo).
+**Páginas institucionais** (`src/landing/`): a raiz mostra a apresentação do projeto
+para quem chega pelo navegador (TVs, app instalado e quem já abriu o Saimo no
+navegador vão direto ao app; a apresentação fica em `/sobre`), mais
+`/privacidade`, `/termos`, `/conteudo`, `/exclusao-de-dados` e `/suporte`. O e-mail de
+contato e o responsável legal ficam em `src/landing/config.ts`. A aba iPhone de `/app`
+avisa que o app para iPhone vem em breve. Os links de download e os
 atalhos `/tvbox`, `/celular`, `/mac`, `/windows`, `/samsung` e `/lg` saem dos anexos da última
 release de [`SaimoTV/saimo-downloads`](https://github.com/SaimoTV/saimo-downloads/releases/latest),
 lidos na hora; o [`versao.json`](https://github.com/SaimoTV/saimo-downloads/releases/latest/download/versao.json) só informa a versão. Desde a 2.8.0 o endereço de fábrica de quem nunca escolheu fica gravado (`localStorage` no site, `Storage.guardarLinksDeFabrica` na TV).
