@@ -279,6 +279,7 @@ function expandBaseUrl(u: string): string {
 }
 
 const FILMES_INEDITOS = new Set([
+  '1514026', // Buddy (2026) - Inédito/sem stream; scrapers puxam filme indiano homônimo de 2024
   '1058424', // Hope: O Primeiro Impacto (2026)
   '1400940', // Clayface (2026)
   '1257147', // Minha Melhor Amiga (2026) - estreia na Netflix em 02/11/2026
@@ -600,7 +601,7 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
 
   const cleanId = id.replace(/^(tmdb:|imdb:)/i, '');
 
-  const BLACKLIST_IDS = new Set(['1400940', '1058424']); // 1400940 = Clayface (2026), 1058424 = Hope (2026)
+  const BLACKLIST_IDS = new Set(['1400940', '1058424', '1514026']); // 1400940 = Clayface (2026), 1058424 = Hope (2026), 1514026 = Buddy (2026)
   if (BLACKLIST_IDS.has(cleanId)) {
     return new Response(JSON.stringify({ error: 'Título indisponível ou somente em cartaz nos cinemas' }), {
       status: 404,
