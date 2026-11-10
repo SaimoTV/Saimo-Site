@@ -277,9 +277,20 @@ function writeCache(cache: CachedCatalog): void {
 
 async function baixar(url: string): Promise<string> {
   const targetUrl = `${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`;
-  const response = await fetch(targetUrl, { cache: 'no-store' });
-  if (!response.ok) throw new Error(`HTTP ${response.status} em ${url}`);
-  return response.text();
+  try {
+    const response = await fetch(targetUrl, { cache: 'no-store' });
+    if (response.ok) return await response.text();
+  } catch {
+    // Se falhar direto (bloqueio CORS, rede ou firewall), tenta via proxy do site
+  }
+  try {
+    const proxyUrl = `/api/proxy?url=${encodeURIComponent(targetUrl)}`;
+    const proxied = await fetch(proxyUrl, { cache: 'no-store' });
+    if (proxied.ok) return await proxied.text();
+  } catch {
+    // Falha em ambos
+  }
+  throw new Error(`Falha ao baixar ${url}`);
 }
 
 function montar(catalogo: string, canais: string): Channel[] {

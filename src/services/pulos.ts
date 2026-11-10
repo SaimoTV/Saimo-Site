@@ -29,7 +29,14 @@ export async function buscarPulos(tmdbId?: number, temporada = 0, episodio = 0):
       for (const t of (json?.[campo] ?? []) as { start_ms: number | null; end_ms: number | null }[]) {
         const inicio = (t.start_ms ?? 0) / 1000;
         const fim = t.end_ms == null ? null : t.end_ms / 1000;
+        // Trecho de menos de três segundos é marcação errada.
         if (fim != null && fim - inicio < 3) continue;
+        // Trecho sem fim só é válido para créditos; abertura/recap/prévia sem fim é dado quebrado
+        // que prenderia o botão na tela ou pularia o vídeo inteiro até o final.
+        if (tipo !== 'creditos' && fim == null) continue;
+        // Recapitulação ("Previously on...") só acontece no comecinho do episódio (primeiros 5 min)
+        // e não dura mais de 5 minutos. Marcações fora disso invadem o episódio de verdade.
+        if (tipo === 'recapitulacao' && fim != null && (inicio > 300 || fim - inicio > 300 || fim > 420)) continue;
         out.push({ tipo, inicio, fim });
       }
     }
@@ -40,8 +47,11 @@ export async function buscarPulos(tmdbId?: number, temporada = 0, episodio = 0):
   }
 }
 
-export function trechoEm(trechos: Trecho[], t: number, duracao: number): Trecho | null {
-  return trechos.find((x) => x.tipo !== 'creditos' && t >= x.inicio && t < (x.fim ?? duracao) - 1) ?? null;
+export function trechoEm(trechos: Trecho[], t: number, _duracao: number): Trecho | null {
+  return trechos.find((x) => {
+    if (x.tipo === 'creditos' || x.fim == null) return false;
+    return t >= x.inicio && t < x.fim - 1;
+  }) ?? null;
 }
 
 export function inicioDosCreditos(trechos: Trecho[], duracao: number): number | null {

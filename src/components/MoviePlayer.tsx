@@ -878,8 +878,36 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
       .then((t) => { if (vivo) setTrechos(t); });
     return () => { vivo = false; };
   }, [movie?.tmdbId, movie?.seasonNumber, movie?.episodeNumber]);
+  const [trechoDispensado, setTrechoDispensado] = useState<Trecho | null>(null);
+  const [trechoVisivelPorTempo, setTrechoVisivelPorTempo] = useState(true);
+  const trechoRef = useRef<Trecho | null>(null);
+
   const trechoAtual = trechoEm(trechos, currentTime, duration);
-  const showSkipIntro = !!trechoAtual && trechoAtual !== trechoPulado;
+
+  useEffect(() => {
+    if (trechoAtual !== trechoRef.current) {
+      trechoRef.current = trechoAtual;
+      if (trechoAtual) setTrechoVisivelPorTempo(true);
+    }
+  }, [trechoAtual]);
+
+  // Auto-esconde após 8 segundos se o usuário não tocar nos controles (evita ficar cobrindo o vídeo)
+  useEffect(() => {
+    if (!trechoAtual || trechoAtual === trechoPulado || trechoAtual === trechoDispensado) return;
+    if (showControls) {
+      setTrechoVisivelPorTempo(true);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setTrechoVisivelPorTempo(false);
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, [trechoAtual, trechoPulado, trechoDispensado, showControls]);
+
+  const showSkipIntro = !!trechoAtual &&
+    trechoAtual !== trechoPulado &&
+    trechoAtual !== trechoDispensado &&
+    (trechoVisivelPorTempo || showControls);
 
   // Save skip time preference
   useEffect(() => {
@@ -1029,8 +1057,11 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
   // Pula até o fim do trecho marcado (abertura, recapitulação ou prévia).
   const skipIntro = useCallback(() => {
     const video = videoRef.current;
-    if (!video || !trechoAtual) return;
-    posicionar(video, Math.min(video.duration, trechoAtual.fim ?? video.duration));
+    if (!video || !trechoAtual || trechoAtual.fim == null) return;
+    const destino = Math.min(Math.max(0, video.duration - 1), trechoAtual.fim);
+    if (destino > video.currentTime) {
+      posicionar(video, destino);
+    }
     setTrechoPulado(trechoAtual);
   }, [trechoAtual]);
 
@@ -1182,26 +1213,42 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
         />
       </div>
 
-      {/* Skip Intro Button */}
-      {showSkipIntro && (
-        <button 
-          className="skip-intro-btn" 
-          onClick={(e) => { e.stopPropagation(); skipIntro(); }}
-          data-focusable="true"
-          data-nav-group="player-actions"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              e.stopPropagation();
-              skipIntro();
-            }
-          }}
+      {/* Skip Intro / Recap Button */}
+      {showSkipIntro && trechoAtual && (
+        <div
+          className={`skip-intro-container ${showControls ? 'com-controles' : 'sem-controles'}`}
+          onClick={(e) => e.stopPropagation()}
         >
-          <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
-            <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
-          </svg>
-          {trechoAtual ? rotuloTrecho[trechoAtual.tipo] : 'Pular abertura'}
-        </button>
+          <button 
+            className="skip-intro-btn" 
+            onClick={(e) => { e.stopPropagation(); skipIntro(); }}
+            data-focusable="true"
+            data-nav-group="player-actions"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                skipIntro();
+              }
+            }}
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+              <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+            </svg>
+            {rotuloTrecho[trechoAtual.tipo] || 'Pular'}
+          </button>
+          <button
+            className="skip-intro-close-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              setTrechoDispensado(trechoAtual);
+            }}
+            title="Fechar aviso"
+            aria-label="Fechar aviso"
+          >
+            ✕
+          </button>
+        </div>
       )}
 
       {/* Loading overlay */}
