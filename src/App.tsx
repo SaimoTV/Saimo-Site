@@ -15,6 +15,9 @@ import { useVoltarFecha } from './hooks/useVoltarFecha';
 import { useCanais } from './hooks/useCanais';
 import { useListas } from './services/listas';
 import { useTemMinhasListas } from './hooks/useTemMinhasListas';
+import { RaizDoSite } from './landing/RaizDoSite';
+import { Landing } from './landing/Landing';
+import { Privacidade, Termos, Conteudo, Exclusao, Suporte } from './landing/Legal';
 import { SemLista } from './components/Telas';
 import type { Channel } from './types/channel';
 import type { Movie, SeriesEpisodeInfo } from './types/movie';
@@ -634,7 +637,14 @@ function AppLayout() {
   return (
     <>
     <Routes>
-      <Route path="/" element={<Inicio key={chave} />} />
+      {/* Página institucional (só para quem ainda não abriu o app no navegador; TVs e PWA vão direto ao app). */}
+      <Route path="/" element={<RaizDoSite app={<Inicio key={chave} />} />} />
+      <Route path="/sobre" element={<Landing />} />
+      <Route path="/privacidade" element={<Privacidade />} />
+      <Route path="/termos" element={<Termos />} />
+      <Route path="/conteudo" element={<Conteudo />} />
+      <Route path="/exclusao-de-dados" element={<Exclusao />} />
+      <Route path="/suporte" element={<Suporte />} />
       <Route path="/busca" element={<Busca key={chave} />} />
       <Route path="/eventos" element={<Eventos />} />
       <Route path="/favoritos" element={<Favoritos key={chave} />} />
