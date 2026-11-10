@@ -742,11 +742,15 @@ function Perguntas() {
         <h2 className="titulo-grande rv d1">Ficou com <span className="grad">dúvida?</span></h2>
         <div className="faq">
           {PERGUNTAS.map(([q, r], i) => (
-            <div key={q} className={`faq-item rv ${aberta === i ? 'aberta' : ''}`}>
-              <button type="button" aria-expanded={aberta === i} onClick={() => setAberta(aberta === i ? null : i)}>
-                <span>{q}</span><i aria-hidden="true" />
-              </button>
-              <div className="faq-resp"><p>{r}</p></div>
+            // O .rv fica num invólucro fixo: se a classe dele mudasse com o clique, o React
+            // apagaria o "in" posto pelo observador e o item sumiria.
+            <div key={q} className="rv">
+              <div className={`faq-item ${aberta === i ? 'aberta' : ''}`}>
+                <button type="button" aria-expanded={aberta === i} onClick={() => setAberta(aberta === i ? null : i)}>
+                  <span>{q}</span><i aria-hidden="true" />
+                </button>
+                <div className="faq-resp"><p>{r}</p></div>
+              </div>
             </div>
           ))}
         </div>
