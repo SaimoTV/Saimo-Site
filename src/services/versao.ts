@@ -29,9 +29,9 @@ export interface Versao {
 /** O repositório dos downloads — o único nome escrito no site. */
 export const REPO_DOWNLOADS = 'SaimoTV/saimo-downloads';
 
-/** versao.json publicado, com a versão e as notas do release. */
+/** versao.json anexado à última release (não depende de endereço de lista). */
 export const URL_VERSAO =
-  'https://canais-saimo.pages.dev/versao.json';
+  `https://github.com/${REPO_DOWNLOADS}/releases/latest/download/versao.json`;
 
 /** Última release do repositório, com o nome e o endereço de cada anexo. */
 export const URL_RELEASE = `https://api.github.com/repos/${REPO_DOWNLOADS}/releases/latest`;

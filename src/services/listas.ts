@@ -60,8 +60,22 @@ function carregar(): void {
   if (lidoDoDisco) return;
   lidoDoDisco = true;
   devolverPadraoUmaVez();
+  guardarPadroesDeQuemNuncaEscolheu();
   memoria.canais = ler(CHAVE_CANAIS, PADRAO.canais);
   memoria.filmes = ler(CHAVE_FILMES, PADRAO.filmes);
+}
+
+/**
+ * 2.8.0: quem nunca escolheu um endereço fica com o de fábrica GRAVADO neste
+ * navegador, e não só implícito no código: o site segue com a mesma lista
+ * mesmo quando o padrão sair de uma versão futura. Texto vazio (lista
+ * desligada de propósito) e endereço trocado não são mexidos.
+ */
+function guardarPadroesDeQuemNuncaEscolheu(): void {
+  try {
+    if (localStorage.getItem(CHAVE_CANAIS) === null) localStorage.setItem(CHAVE_CANAIS, PADRAO.canais);
+    if (localStorage.getItem(CHAVE_FILMES) === null) localStorage.setItem(CHAVE_FILMES, PADRAO.filmes);
+  } catch { /* sem localStorage: vale o padrão desta visita */ }
 }
 
 /** Endereço-base da lista de canais, com barra no fim; `''` se não houver. */
@@ -82,7 +96,7 @@ export function definirLink(lista: Lista, endereco: string): void {
 export function restaurarPadrao(lista: Lista): void {
   carregar();
   memoria[lista] = PADRAO[lista];
-  try { localStorage.removeItem(lista === 'canais' ? CHAVE_CANAIS : CHAVE_FILMES); } catch { /* só memória */ }
+  try { localStorage.setItem(lista === 'canais' ? CHAVE_CANAIS : CHAVE_FILMES, PADRAO[lista]); } catch { /* só memória */ }
   window.dispatchEvent(new Event(EVENTO));
 }
 

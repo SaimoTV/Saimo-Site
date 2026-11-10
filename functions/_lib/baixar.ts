@@ -6,7 +6,7 @@
  */
 const REPO = 'SaimoTV/saimo-downloads';
 const RELEASE = `https://api.github.com/repos/${REPO}/releases/latest`;
-const VERSAO = 'https://canais-saimo.pages.dev/versao.json';
+const VERSAO = `https://github.com/${REPO}/releases/latest/download/versao.json`;
 
 /** Nome do anexo de cada plataforma dentro do release. */
 const ARQUIVO: Record<string, string> = {

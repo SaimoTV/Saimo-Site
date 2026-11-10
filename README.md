@@ -13,7 +13,7 @@ Os endereços padrão são servidos de forma rápida e estável via Cloudflare P
 alternar, restaurar o padrão ou configurar fontes personalizadas. Os links de download e os
 atalhos `/tvbox`, `/celular`, `/mac`, `/windows`, `/samsung` e `/lg` saem dos anexos da última
 release de [`SaimoTV/saimo-downloads`](https://github.com/SaimoTV/saimo-downloads/releases/latest),
-lidos na hora; o [`versao.json`](https://canais-saimo.pages.dev/versao.json) só informa a versão.
+lidos na hora; o [`versao.json`](https://github.com/SaimoTV/saimo-downloads/releases/latest/download/versao.json) só informa a versão. Desde a 2.8.0 o endereço de fábrica de quem nunca escolheu fica gravado (`localStorage` no site, `Storage.guardarLinksDeFabrica` na TV).
 
 ---
 
