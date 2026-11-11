@@ -62,6 +62,14 @@ export class SpatialNav {
   static focus(el: HTMLElement | null, scrollIntoView = true) {
     if (!el || el === this.currentElement) return;
 
+    // Campo de texto com o teclado da TV aberto: ao ir para outro elemento ele é
+    // solto (blur). Sem isto o teclado seguia preso ao primeiro campo, e o que se
+    // digitava depois caía de novo nele ("só dá para digitar em um campo").
+    const ativo = document.activeElement as HTMLElement | null;
+    if (ativo && ativo !== el && (ativo.tagName === 'INPUT' || ativo.tagName === 'TEXTAREA')) {
+      ativo.blur();
+    }
+
     if (this.currentElement) {
       this.currentElement.classList.remove('nav-focused');
       this.currentElement.dispatchEvent(new CustomEvent('nav-blur'));
@@ -84,6 +92,18 @@ export class SpatialNav {
     // Painel com teclas próprias aberto: só o menu do topo continua aqui.
     if (this.pausado && !this.noMenu()) return false;
     const key = e.keyCode;
+
+    // Digitando num campo: "Concluído"/OK do teclado da TV (13, 65376) fecha o teclado e desce
+    // para o próximo item; "Cancelar" (65385) só fecha o teclado.
+    const digitando = document.activeElement as HTMLElement | null;
+    if (digitando && digitando.tagName === 'INPUT' && digitando === this.currentElement
+        && (key === 13 || key === 65376 || key === 65385)) {
+      e.preventDefault();
+      e.stopPropagation();
+      digitando.blur();
+      if (key !== 65385) this.move('down');
+      return true;
+    }
 
     let dir: Direction | null = null;
     if (key === 38) dir = 'up';

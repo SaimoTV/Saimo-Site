@@ -19,7 +19,7 @@ export class MinhasListasScreen {
     this.element.id = 'screen-minhas';
     this.element.innerHTML = `
       <div class="tv-minhas-titulo">Minhas listas</div>
-      <div class="tv-minhas-ajuda">Cole o link da sua lista M3U: só isso já basta. Usuário e senha são opcionais, para listas que pedem login. Ela fica só neste aparelho.</div>
+      <div class="tv-minhas-ajuda">Aperte OK no campo para digitar e, no teclado da TV, em Concluído para ir ao próximo. Só o link já basta: usuário e senha são opcionais, para listas que pedem login. A lista fica só neste aparelho.</div>
       <input id="ml-link" class="tv-campo nav-focusable" data-nav="true" type="text" placeholder="Link da lista (M3U) ou servidor" />
       <input id="ml-usuario" class="tv-campo nav-focusable" data-nav="true" type="text" placeholder="Usuário (opcional: deixe em branco se a lista é só um link)" />
       <input id="ml-senha" class="tv-campo nav-focusable" data-nav="true" type="password" placeholder="Senha (opcional)" />
@@ -37,8 +37,17 @@ export class MinhasListasScreen {
     this.corpo = this.element.querySelector('#ml-corpo')!;
     this.aviso = this.element.querySelector('#ml-aviso')!;
     this.element.querySelector('#ml-add')!.addEventListener('click', () => this.adicionar());
+    // OK num campo: solta o campo que estava com o teclado, e só então abre o deste (o teclado
+    // da TV não troca de campo sozinho), com o cursor no fim do que já está escrito.
     this.element.querySelectorAll<HTMLInputElement>('input').forEach((c) => {
-      c.addEventListener('click', () => c.focus());
+      c.addEventListener('click', () => {
+        const ativo = document.activeElement as HTMLElement | null;
+        if (ativo && ativo !== c && ativo.tagName === 'INPUT') ativo.blur();
+        window.setTimeout(() => {
+          c.focus();
+          try { const n = c.value.length; c.setSelectionRange(n, n); } catch (e) { /* campo sem seleção */ }
+        }, 30);
+      });
     });
   }
 
