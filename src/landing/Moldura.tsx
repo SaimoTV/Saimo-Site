@@ -76,6 +76,7 @@ export function Rodape() {
           <Link to="/sobre">Sobre</Link>
           <Link to="/app">Baixar</Link>
           <Link to="/suporte">Suporte</Link>
+          <Link to="/formato">Formato de lista</Link>
         </div>
         <div>
           <h4>Legal</h4>

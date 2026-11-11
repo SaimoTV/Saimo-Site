@@ -50,3 +50,12 @@
   .legal-texto p, .legal-texto ul, .legal-texto td { color: #222; }
   .legal-miolo { padding-top: 20px; }
 }
+
+/* Página "Formato de lista": código e tabelas largas rolam dentro da própria caixa. */
+.formato-codigo { margin: 4px 0 18px; padding: 16px 18px; border-radius: 14px; border: 1px solid var(--borda); background: rgba(0, 0, 0, 0.35); overflow-x: auto; font-size: 13.5px; line-height: 1.6; }
+.formato-codigo code { background: none; padding: 0; word-break: normal; white-space: pre; }
+.formato-rolagem { overflow-x: auto; margin: 0 0 18px; }
+.formato-rolagem .legal-tabela { margin: 0; min-width: 560px; }
+.formato-lista { padding-left: 24px; }
+@media (max-width: 860px) { .legal-corpo { grid-template-columns: 1fr; } .legal-indice { position: static; max-height: none; } }
+.legal-destaque p strong { display: inline; color: inherit; letter-spacing: 0; text-transform: none; font-size: inherit; margin: 0; }

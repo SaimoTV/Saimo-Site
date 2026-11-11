@@ -18,6 +18,7 @@ import { useTemMinhasListas } from './hooks/useTemMinhasListas';
 import { RaizDoSite } from './landing/RaizDoSite';
 import { Landing } from './landing/Landing';
 import { Privacidade, Termos, Conteudo, Exclusao, Suporte } from './landing/Legal';
+import Formato from './landing/Formato';
 import { SemLista } from './components/Telas';
 import type { Channel } from './types/channel';
 import type { Movie, SeriesEpisodeInfo } from './types/movie';
@@ -645,6 +646,7 @@ function AppLayout() {
       <Route path="/conteudo" element={<Conteudo />} />
       <Route path="/exclusao-de-dados" element={<Exclusao />} />
       <Route path="/suporte" element={<Suporte />} />
+      <Route path="/formato" element={<Formato />} />
       <Route path="/busca" element={<Busca key={chave} />} />
       <Route path="/eventos" element={<Eventos />} />
       <Route path="/favoritos" element={<Favoritos key={chave} />} />
