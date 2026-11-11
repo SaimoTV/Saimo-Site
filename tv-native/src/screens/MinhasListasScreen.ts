@@ -5,6 +5,8 @@ import { MinhasListas } from '../core/MinhasListas';
 import { Api } from '../core/Api';
 import { State } from '../core/State';
 import { linkDoFormulario } from '../../../src/utils/xtream';
+import { normalizarEndereco } from '../../../src/utils/enderecoLista';
+import { Storage } from '../core/Storage';
 
 export class MinhasListasScreen {
   private element: HTMLElement;
@@ -13,7 +15,7 @@ export class MinhasListasScreen {
 
   constructor() {
     this.element = document.createElement('div');
-    this.element.className = 'tv-screen tv-minhas hidden';
+    this.element.className = 'tv-screen tv-minhas tv-screen-scroll tv-scroll-v hidden';
     this.element.id = 'screen-minhas';
     this.element.innerHTML = `
       <div class="tv-minhas-titulo">Minhas listas</div>
@@ -25,7 +27,13 @@ export class MinhasListasScreen {
       <div id="ml-add" class="tv-btn nav-focusable" data-nav="true">Adicionar lista</div>
       <div id="ml-aviso" class="tv-minhas-aviso"></div>
       <div id="ml-corpo"></div>
+      <div class="tv-minhas-titulo tv-minhas-sub">Endereços do Saimo (opcional)</div>
+      <div class="tv-minhas-ajuda">Para quem tem uma lista no formato do Saimo: o endereço da lista de canais e o da lista de filmes e séries.</div>
+      <input id="ml-url-canais" class="tv-campo nav-focusable" data-nav="true" type="text" placeholder="Endereço da lista de canais" />
+      <input id="ml-url-filmes" class="tv-campo nav-focusable" data-nav="true" type="text" placeholder="Endereço da lista de filmes e séries" />
+      <div id="ml-url-salvar" class="tv-btn nav-focusable" data-nav="true">Salvar endereços</div>
     `;
+    this.element.querySelector('#ml-url-salvar')!.addEventListener('click', () => this.salvarEnderecos());
     this.corpo = this.element.querySelector('#ml-corpo')!;
     this.aviso = this.element.querySelector('#ml-aviso')!;
     this.element.querySelector('#ml-add')!.addEventListener('click', () => this.adicionar());
@@ -41,6 +49,8 @@ export class MinhasListasScreen {
   enter() {
     this.element.classList.remove('hidden');
     this.aviso.textContent = '';
+    this.element.querySelector<HTMLInputElement>('#ml-url-canais')!.value = Api.enderecoSaimo('canais');
+    this.element.querySelector<HTMLInputElement>('#ml-url-filmes')!.value = Api.enderecoSaimo('filmes');
     this.desenhar();
     SpatialNav.focus(this.element.querySelector<HTMLElement>('#ml-link'));
   }
@@ -59,6 +69,19 @@ export class MinhasListasScreen {
       this.aviso.textContent = e.message || 'Não consegui baixar essa lista';
     }
     this.desenhar();
+  }
+
+  /** Os dois endereços no formato do Saimo (em branco = lista desligada). */
+  private salvarEnderecos() {
+    const c = this.element.querySelector<HTMLInputElement>('#ml-url-canais')!.value.trim();
+    const f = this.element.querySelector<HTMLInputElement>('#ml-url-filmes')!.value.trim();
+    const nc = c ? normalizarEndereco(c) : '';
+    const nf = f ? normalizarEndereco(f) : '';
+    if ((c && !nc) || (f && !nf)) { this.aviso.textContent = 'Esse endereço não parece válido'; return; }
+    Storage.savePrefs({ urlCanais: nc || '', urlFilmes: nf || '' });
+    this.aviso.textContent = 'Endereços salvos. Recarregando…';
+    // Recarrega: todas as telas leem a lista de novo, sem restos da anterior.
+    window.setTimeout(() => window.location.reload(), 600);
   }
 
   private adicionar() {
