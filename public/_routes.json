@@ -8,7 +8,9 @@
     "/windows",
     "/samsung",
     "/lg",
-    "/roku"
+    "/roku",
+    "/linux",
+    "/linux-arm"
   ],
   "exclude": []
 }
