@@ -1,5 +1,5 @@
 /**
- * Atalhos curtos de download (/tvbox, /celular, /mac, /windows, /samsung, /lg)
+ * Atalhos curtos de download (/tvbox, /celular, /mac, /windows, /linux, /samsung, /lg)
  * para digitar na TV. O destino sai da última release de `SaimoTV/saimo-downloads`:
  * o site não precisa ser publicado de novo quando o release sobe outra versão.
  * Sem o anexo, o atalho devolve a página /app.
@@ -17,6 +17,8 @@ const ARQUIVO: Record<string, string> = {
   tizen: 'SaimoTV-Samsung.wgt',
   webos: 'SaimoTV-LG.ipk',
   roku: 'SaimoTV-Roku.zip',
+  linux: 'SaimoTV-Linux-x86_64.AppImage',
+  'linux-arm64': 'SaimoTV-Linux-aarch64.AppImage',
 };
 
 function linkDoGitHub(url: unknown): string | null {

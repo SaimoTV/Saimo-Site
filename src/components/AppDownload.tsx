@@ -16,7 +16,7 @@ import './AppDownload.css';
 /** Código do Saimo TV no app Downloader (AFTVnews): digitar no lugar do endereço. */
 const CODIGO_DOWNLOADER = '1506768';
 
-type AppId = 'tvbox' | 'cell' | 'roku' | 'samsung' | 'lg' | 'windows' | 'mac' | 'ios';
+type AppId = 'tvbox' | 'cell' | 'roku' | 'samsung' | 'lg' | 'windows' | 'linux' | 'mac' | 'ios';
 
 interface App {
   id: AppId;
@@ -108,6 +108,22 @@ const APPS: App[] = [
       { titulo: 'Extraia o arquivo', texto: 'Clique com o botão direito no “SaimoTV-Windows.zip” baixado e escolha "Extrair Tudo..." para descompactar a pasta.' },
       { titulo: 'Rode o aplicativo', texto: 'Abra a pasta extraída e dê um duplo clique em “Saimo TV.exe”. Mantenha os arquivos .dll na mesma pasta do executável.' },
       { titulo: 'Se o Windows avisar', texto: 'Na tela do Windows Defender, clique em “Mais informações” e depois em “Executar assim mesmo”. Se pedir DLL, clique com o botão direito na DLL > Propriedades > marque "Desbloquear".' },
+    ],
+  },
+  {
+    id: 'linux',
+    aba: 'Linux',
+    titulo: 'Saimo TV para Linux',
+    subtitulo: 'PC e notebook com Linux: o mesmo app do Windows, com a mesma tela',
+    arquivo: 'SaimoTV-Linux-x86_64.AppImage',
+    atalho: '/linux',
+    botao: 'Baixar para Linux',
+    requisitos: ['Distribuição de 2022 para cá (Ubuntu 22.04, Debian 12, Fedora 36, Mint 21 ou mais novo)', 'PC comum (x86_64) ou ARM (aarch64)', 'Cerca de 200 MB livres', 'Conexão com a internet'],
+    passos: [
+      { titulo: 'Baixe o AppImage', texto: 'Clique no botão acima. Ele roda em qualquer distribuição e já traz o reprodutor de vídeo junto.' },
+      { titulo: 'Permita executar', texto: 'Clique com o botão direito no arquivo › Propriedades › marque “Permitir executar como programa”. No terminal: chmod +x SaimoTV-Linux-x86_64.AppImage' },
+      { titulo: 'Abra o Saimo TV', texto: 'Dê um duplo clique no arquivo. O app avisa quando sair versão nova e abre o download no navegador.' },
+      { titulo: 'Prefere instalar?', texto: 'No Ubuntu, Debian, Mint e Pop!_OS, baixe o .deb (link abaixo do botão) e abra com a Central de Programas, ou: sudo apt install ./SaimoTV-Linux-amd64.deb' },
     ],
   },
   {
@@ -215,11 +231,27 @@ function detectar(): Deteccao {
     return { recomendado: 'mac', aparelho,
       aviso: macIntel() ? 'Este Mac parece ter processador Intel, e o app só roda em Mac com chip Apple. Neste caso, assista por este site.' : null };
   }
-  return { recomendado: null, aparelho,
-    aviso: 'Não há app para Linux. No computador, assista por este site mesmo.' };
+  if (/Linux|X11|CrOS/.test(ua)) {
+    return { recomendado: 'linux', aparelho,
+      aviso: /CrOS/.test(ua) ? 'No Chromebook, o app de Linux roda com o Linux ativado (Configurações › Desenvolvedores). Sem ele, assista por este site.' : null };
+  }
+  return { recomendado: null, aparelho, aviso: null };
 }
 
-const PLATAFORMA: Partial<Record<AppId, Plataforma>> = { tvbox: 'tvbox', cell: 'celular', mac: 'mac', windows: 'windows', samsung: 'tizen', lg: 'webos', roku: 'roku' };
+const PLATAFORMA: Partial<Record<AppId, Plataforma>> = { tvbox: 'tvbox', cell: 'celular', mac: 'mac', windows: 'windows', linux: 'linux', samsung: 'tizen', lg: 'webos', roku: 'roku' };
+
+/** O navegador conta quando o Linux é ARM (Raspberry Pi, notebooks ARM). */
+function linuxArm(): boolean {
+  return /aarch64|arm64|armv8/i.test(navigator.userAgent);
+}
+
+/** Os outros pacotes do Linux, mostrados embaixo do botão. */
+const OUTROS_LINUX: { plataforma: Plataforma; rotulo: string }[] = [
+  { plataforma: 'linux-deb', rotulo: '.deb para Ubuntu, Debian e Mint' },
+  { plataforma: 'linux-arm64', rotulo: 'AppImage para ARM' },
+  { plataforma: 'linux-deb-arm64', rotulo: '.deb para ARM' },
+  { plataforma: 'linux', rotulo: 'AppImage para PC comum (x86_64)' },
+];
 
 function megas(bytes?: number): string {
   return bytes ? `${Math.round(bytes / 1024 / 1024)} MB` : '';
@@ -278,7 +310,7 @@ export function AppDownload() {
 
   const app = APPS.find(a => a.id === aba)!;
   const linkCurto = `${window.location.host}${app.atalho}`;
-  const plataforma = PLATAFORMA[app.id];
+  const plataforma = app.id === 'linux' && linuxArm() ? 'linux-arm64' : PLATAFORMA[app.id];
   const arquivo = plataforma ? lancamento?.arquivos[plataforma] : undefined;
   const detalhes = [
     lancamento ? `Versão ${lancamento.versao}` : '',
@@ -388,6 +420,17 @@ export function AppDownload() {
           {app.id === 'windows' && (
             <p className="download-short">
               Aplicativo de verdade, não é o site numa janela: a lista, o guia e o vídeo rodam no próprio PC.
+            </p>
+          )}
+          {app.id === 'linux' && (
+            <p className="download-short">
+              Também em:{' '}
+              {OUTROS_LINUX.filter(o => o.plataforma !== plataforma && lancamento?.arquivos[o.plataforma]).map((o, i, lista) => (
+                <span key={o.plataforma}>
+                  <a href={lancamento!.arquivos[o.plataforma]!.url} rel="noopener" data-focusable="true">{o.rotulo}</a>
+                  {i < lista.length - 1 ? ' · ' : ''}
+                </span>
+              ))}
             </p>
           )}
 

@@ -19,8 +19,9 @@ para quem chega pelo navegador (TVs, app instalado e quem já abriu o Saimo no
 navegador vão direto ao app; a apresentação fica em `/sobre`), mais
 `/privacidade`, `/termos`, `/conteudo`, `/exclusao-de-dados` e `/suporte`. O e-mail de
 contato e o responsável legal ficam em `src/landing/config.ts`. A aba iPhone de `/app`
-avisa que o app para iPhone vem em breve. Os links de download e os
-atalhos `/tvbox`, `/celular`, `/mac`, `/windows`, `/samsung` e `/lg` saem dos anexos da última
+avisa que o app para iPhone vem em breve. A aba Linux oferece o AppImage (x86_64, ou ARM quando o
+navegador se anuncia ARM) e, embaixo, o `.deb` e os pacotes de ARM. Os links de download e os
+atalhos `/tvbox`, `/celular`, `/mac`, `/windows`, `/linux`, `/linux-arm`, `/samsung` e `/lg` saem dos anexos da última
 release de [`SaimoTV/saimo-downloads`](https://github.com/SaimoTV/saimo-downloads/releases/latest),
 lidos na hora; o [`versao.json`](https://github.com/SaimoTV/saimo-downloads/releases/latest/download/versao.json) só informa a versão. Desde a 2.8.0 o endereço de fábrica de quem nunca escolheu fica gravado (`localStorage` no site, `Storage.guardarLinksDeFabrica` na TV).
 

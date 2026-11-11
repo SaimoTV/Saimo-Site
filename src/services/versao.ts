@@ -13,7 +13,8 @@
  * verdade para baixar.
  */
 
-export type Plataforma = 'tvbox' | 'celular' | 'mac' | 'windows' | 'tizen' | 'webos' | 'roku';
+export type Plataforma = 'tvbox' | 'celular' | 'mac' | 'windows' | 'tizen' | 'webos' | 'roku'
+  | 'linux' | 'linux-arm64' | 'linux-deb' | 'linux-deb-arm64';
 
 export interface ArquivoApp {
   nome: string;
@@ -36,7 +37,7 @@ export const URL_VERSAO =
 /** Última release do repositório, com o nome e o endereço de cada anexo. */
 export const URL_RELEASE = `https://api.github.com/repos/${REPO_DOWNLOADS}/releases/latest`;
 
-const PLATAFORMAS: Plataforma[] = ['tvbox', 'celular', 'mac', 'windows', 'tizen', 'webos', 'roku'];
+const PLATAFORMAS: Plataforma[] = ['tvbox', 'celular', 'mac', 'windows', 'tizen', 'webos', 'roku', 'linux', 'linux-arm64'];
 
 /** Nome do anexo de cada plataforma dentro do release. */
 const PLATAFORMA_DO_ARQUIVO: Record<string, Plataforma> = {
@@ -47,6 +48,10 @@ const PLATAFORMA_DO_ARQUIVO: Record<string, Plataforma> = {
   'SaimoTV-Samsung.wgt': 'tizen',
   'SaimoTV-LG.ipk': 'webos',
   'SaimoTV-Roku.zip': 'roku',
+  'SaimoTV-Linux-x86_64.AppImage': 'linux',
+  'SaimoTV-Linux-aarch64.AppImage': 'linux-arm64',
+  'SaimoTV-Linux-amd64.deb': 'linux-deb',
+  'SaimoTV-Linux-arm64.deb': 'linux-deb-arm64',
 };
 
 /** Só vale link https de release do GitHub; qualquer outro é ignorado. */
