@@ -23,8 +23,8 @@ type Estado = 'ok' | 'proxy';
 
 const CHAVE = 'saimo-segmento-direto';
 const VALIDADE_MS = 6 * 60 * 60 * 1000;
-// O proxy mexe no corpo destes: direto o player recebe lixo.
-const SEMPRE_PROXY = /tiktokcdn\.(com|live)|s1001604\.lat/i;
+// Nenhum servidor tem regra fixa: o app aprende na hora quem precisa do proxy.
+const SEMPRE_PROXY = /(?!)/;
 
 let memoria: Record<string, { e: Estado; em: number }> | null = null;
 

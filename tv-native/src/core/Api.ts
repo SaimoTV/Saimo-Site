@@ -719,8 +719,8 @@ export class Api {
   // ===== EVENTOS ESPORTIVOS =====
   static async fetchSportsEvents(): Promise<SportsEvent[]> {
     try {
-      // O caminho do site é a reserva, caso a TV barre o pedido direto.
-      const res = await fetch('https://embedtv.cc/api/events').catch(() => fetch('https://saimo-tv.pages.dev/api/events'));
+      // Agenda do Saimo (nenhum site de streaming de terceiros é consultado).
+      const res = await fetch('https://saimo-tv.pages.dev/eventos-extra.json');
       if (!res.ok) return [];
       const json = await res.json();
       if (!Array.isArray(json)) return [];

@@ -1,10 +1,7 @@
 /**
- * A agenda de jogos para o site. A embedtv não manda o cabeçalho de CORS, então
- * a busca passa por aqui. Quando ela não responde (acontece), devolve a lista
- * do monitor, que tem os jogos dos canais de streaming e dos canais comuns:
- * a tela de Eventos não fica vazia por causa de uma fonte fora do ar.
+ * A agenda de jogos (para apps antigos que ainda chamam /api/events): só a
+ * agenda do Saimo. Nenhum site de streaming de terceiros é consultado.
  */
-const EMBED = 'https://embedtv.cc/api/events';
 const MONITOR = 'https://saimo-tv.pages.dev/eventos-extra.json';
 const AGENTE = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
@@ -27,9 +24,7 @@ export const onRequest: PagesFunction = async () => {
     'Access-Control-Allow-Origin': '*',
     'Cache-Control': 'public, max-age=60',
   };
-  // As duas juntas: o monitor responde em segundos, a embedtv tem prazo de 5 s.
-  const [embed, monitor] = await Promise.all([buscar(EMBED, 5000), buscar(MONITOR, 8000)]);
-  const corpo = embed ?? monitor;
+  const corpo = await buscar(MONITOR, 8000);
   if (corpo) return new Response(corpo, { headers: cabecalhos });
   return new Response(JSON.stringify({ error: 'sem agenda' }), {
     status: 502,

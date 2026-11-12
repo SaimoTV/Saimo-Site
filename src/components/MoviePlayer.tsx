@@ -49,13 +49,7 @@ function rotuloDaFonte(f: MovieSource, pos: number): { principal: string } {
   let provedor = `Fonte ${pos + 1}`;
   try {
     const u = new URL(f.url);
-    if (u.hostname.includes('maximaimg.online')) provedor = 'Ani-tupi (HLS Direto)';
-    else if (u.hostname.includes('embedplayer')) provedor = 'EmbedPlayer (HLS)';
-    else if (u.hostname.includes('fenixflix') || u.hostname.includes('fenixhub')) provedor = 'FenixFlix';
-    else if (u.hostname.includes('magnetflix') || u.hostname.includes('flixbr')) provedor = 'MagnetFlix';
-    else if (u.hostname.includes('r2.cloudflarestorage.com') || u.hostname.includes('redeflix')) provedor = 'RedeFlix (R2 Direct)';
-    else if (u.pathname.includes('/api/stream')) provedor = 'Relay Dinâmico';
-    else if (u.protocol === 'http:') provedor = 'Servidor Alternativo (HTTP)';
+    if (u.protocol === 'http:') provedor = 'Servidor Alternativo (HTTP)';
   } catch { /* ignore */ }
 
   const principal = versao ? `${provedor} · ${versao}` : provedor;

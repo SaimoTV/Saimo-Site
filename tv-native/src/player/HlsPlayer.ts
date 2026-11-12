@@ -49,7 +49,6 @@ export class HlsPlayer implements TVPlayerInstance {
     const isHls =
       source.url.includes('.m3u8') ||
       source.url.includes('.txt') ||
-      source.url.includes('embedtvproxy.workers.dev') ||
       source.url.includes('workers.dev');
 
     if (isHls && Hls.isSupported()) {

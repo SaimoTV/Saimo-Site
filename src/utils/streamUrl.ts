@@ -20,7 +20,7 @@ export function isDash(url: string): boolean {
 
 export function isHls(url: string): boolean {
   const path = url.toLowerCase().split('?')[0];
-  return path.includes('.m3u8') || path.endsWith('.txt') || path.includes('dadinhodetapioca.fun');
+  return path.includes('.m3u8') || path.endsWith('.txt');
 }
 
 /** Fluxo MPEG-TS cru, servido sem playlist. */
@@ -37,16 +37,10 @@ export function needsProxy(source: ChannelSource | { url: string }): boolean {
   // Na TV o app é instalado: não existe conteúdo misto nem CORS de página. O vídeo
   // abre direto, inclusive http, e o proxy só entra como última tentativa (buildAttempts).
   if (ehAppDaTv()) return false;
-  // CDNs como s23-cloudfront-net.lat já entregam CORS completo (Access-Control-Allow-Origin: *)
-  // e HTTPS com tipo apple.mpegurl, mesmo com terminação .txt: toca direto sem sobrecarregar o proxy.
-  // O mesmo vale para o s25 (padrão novo, /stream/<código>/...): playlist e segmentos com CORS *.
-  if (source.url.includes('s23-cloudfront-net.lat') || source.url.includes('s25-cloudfront-net.lat')) return false;
-  // Masters `.txt` costumam vir como text/plain e sem CORS (como os de
-  // embedplayer2). Começar pelo proxy evita uma tentativa direta que o browser
+  // Masters `.txt` costumam vir como text/plain e sem CORS. Começar pelo proxy evita uma tentativa direta que o browser
   // obrigatoriamente bloquearia e garante que os filhos também sejam reescritos.
   return source.url.startsWith('http://') ||
-         source.url.split('?')[0].toLowerCase().endsWith('.txt') ||
-         source.url.includes('dadinhodetapioca.fun');
+         source.url.split('?')[0].toLowerCase().endsWith('.txt');
 }
 
 /**
@@ -167,7 +161,7 @@ export function buildAttempts(sources: ChannelSource[]): Attempt[] {
   const out: Attempt[] = [];
   const tv = ehAppDaTv();
   for (const source of httpsFirst(sources)) {
-    // No app da TV a tentativa direta vale para qualquer endereço (http, .txt, dadinho): primeiro
+    // No app da TV a tentativa direta vale para qualquer endereço (http, .txt): primeiro
     // pelo hls.js (o mesmo caminho do site, que já se provou), depois pelo decodificador da
     // própria TV (sem CORS), e por último o proxy. Muitas TVs dizem que tocam HLS sozinhas e
     // depois recusam ("The element has no supported sources").
