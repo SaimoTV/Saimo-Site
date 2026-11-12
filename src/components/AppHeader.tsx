@@ -110,7 +110,7 @@ export const AppHeader = memo(function AppHeader({
     }
   };
 
-  const isHome = location.pathname === '/';
+  const isHome = location.pathname === '/' || location.pathname === '/home';
   const isTV = location.pathname === '/tv';
   const isMovies = location.pathname === '/movies';
 

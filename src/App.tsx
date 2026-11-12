@@ -246,7 +246,7 @@ function TVPage() {
       setActiveSide('primary');
       showToast('Multi-Tela desativada', 'info');
     },
-    voltar: () => (((window.history.state as { idx?: number } | null)?.idx ?? 0) > 0 ? navigate(-1) : navigate('/')),
+    voltar: () => (((window.history.state as { idx?: number } | null)?.idx ?? 0) > 0 ? navigate(-1) : navigate('/home')),
   });
 
   return (
@@ -575,7 +575,7 @@ function MoviesPage() {
   useVoltarFecha(!!selectedMovie, handleBackFromMovie);
 
   const handleBackFromCatalog = useCallback(() => {
-    navigate('/');
+    navigate('/home');
   }, [navigate]);
 
   return (
@@ -640,6 +640,7 @@ function AppLayout() {
     <Routes>
       {/* Página institucional (só para quem ainda não abriu o app no navegador; TVs e PWA vão direto ao app). */}
       <Route path="/" element={<RaizDoSite app={<Inicio key={chave} />} />} />
+      <Route path="/home" element={<Inicio key={chave} />} />
       <Route path="/sobre" element={<Landing />} />
       <Route path="/privacidade" element={<Privacidade />} />
       <Route path="/termos" element={<Termos />} />

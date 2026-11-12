@@ -25,7 +25,7 @@ export function Cabecalho({ ancoras = false }: { ancoras?: boolean }) {
   }, []);
   const abrirWeb = () => {
     try { localStorage.setItem('saimo-entrou', '1'); } catch { /* sem armazenamento */ }
-    navegar('/');
+    navegar('/home');
   };
   const base = ancoras ? '' : '/sobre';
   const ancora = (id: string) => `${base}#${id}`;

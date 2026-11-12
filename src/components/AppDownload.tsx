@@ -326,7 +326,7 @@ export function AppDownload() {
       </div>
 
       <header className="download-header">
-        <button className="back-link" onClick={() => navigate('/')} data-focusable="true" data-focus-key="download-back">
+        <button className="back-link" onClick={() => navigate('/home')} data-focusable="true" data-focus-key="download-back">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>

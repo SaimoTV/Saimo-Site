@@ -2,11 +2,6 @@ import type { ReactNode } from 'react';
 import { ehAppDaTv, ehTv } from '../plataforma/tv';
 import { Landing } from './Landing';
 
-/** O site já foi aberto como app neste navegador? ("Abrir no navegador" grava isso.) */
-function jaEntrou(): boolean {
-  try { return localStorage.getItem('saimo-entrou') === '1'; } catch { return false; }
-}
-
 /** Aberto como app instalado (PWA, tela cheia própria)? */
 function comoAppInstalado(): boolean {
   try {
@@ -16,11 +11,12 @@ function comoAppInstalado(): boolean {
 }
 
 /**
- * A raiz do site: quem chega pela primeira vez no navegador vê a apresentação
- * do projeto; a TV, o app instalado e quem já abriu o Saimo no navegador vão
- * direto ao app. A apresentação continua em /sobre.
+ * A raiz do site é a apresentação do projeto, sempre. O app no navegador fica em
+ * /home ("Abrir no navegador"). Só a TV (pacote ou navegador da TV) e o app
+ * instalado (PWA) abrem direto no app, porque lá não há apresentação a ver.
+ * A apresentação também responde em /sobre (links antigos).
  */
 export function RaizDoSite({ app }: { app: ReactNode }) {
-  if (ehTv() || ehAppDaTv() || comoAppInstalado() || jaEntrou() || import.meta.env.VITE_TV) return <>{app}</>;
+  if (ehTv() || ehAppDaTv() || comoAppInstalado() || import.meta.env.VITE_TV) return <>{app}</>;
   return <Landing />;
 }

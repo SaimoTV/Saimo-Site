@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { PAGINAS_LEGAIS, SITE } from './config';
 import { Cabecalho, Rodape } from './Moldura';
 import './landing.css';
+import { CelularDoApp, TelaDoApp } from './TelaDoApp';
 
 /* ───────────────────────────── utilidades ───────────────────────────── */
 
@@ -149,41 +150,11 @@ function FaixaDeTela({ sentido = 1, atraso = 0 }: { sentido?: 1 | -1; atraso?: n
 
 function Dispositivos() {
   return (
-    <div className="devs" aria-hidden="true">
-      <div className="dev-aura" />
-      <div className="dev dev-tv">
-        <div className="tv-tela">
-          <div className="tv-topo"><i /><i /><i /><b>AO VIVO</b></div>
-          <FaixaDeTela />
-          <FaixaDeTela sentido={-1} atraso={2} />
-          <FaixaDeTela atraso={4} />
-          <div className="tv-progresso"><span /></div>
-        </div>
-        <div className="tv-pe" />
-      </div>
-      <div className="dev dev-lap">
-        <div className="lap-tela">
-          <div className="lap-barra"><i /><i /><i /></div>
-          <div className="lap-grade">
-            {Array.from({ length: 8 }, (_, i) => <Poster key={i} i={i + 3} icone={ICONES_FAIXA[(i * 3) % ICONES_FAIXA.length]} />)}
-          </div>
-        </div>
-        <div className="lap-base" />
-      </div>
-      <div className="dev dev-cel">
-        <div className="cel-tela">
-          <div className="cel-entalhe" />
-          <FaixaDeTela atraso={1} />
-          <FaixaDeTela sentido={-1} atraso={3} />
-          <div className="cel-play"><Icone nome="play" tamanho={16} /></div>
-        </div>
-      </div>
-      <span className="chip-flut f1"><Icone nome="tv" tamanho={14} /> Ao vivo</span>
-      <span className="chip-flut f2"><Icone nome="film" tamanho={14} /> Filmes</span>
-      <span className="chip-flut f3"><Icone nome="series" tamanho={14} /> Séries</span>
-      <span className="chip-flut f4"><Icone nome="anime" tamanho={14} /> Animes</span>
-      <span className="chip-flut f5"><Icone nome="radio" tamanho={14} /> Rádios</span>
-      <span className="chip-flut f6"><Icone nome="bola" tamanho={14} /> Jogos</span>
+    <div className="devs">
+      <div className="dev-aura" aria-hidden="true" />
+      <div className="dev dev-tv"><TelaDoApp /></div>
+      <div className="dev dev-cel" aria-hidden="true"><CelularDoApp /></div>
+      <span className="dev-nota">Lista de demonstração · o Saimo vem vazio</span>
     </div>
   );
 }
@@ -238,7 +209,7 @@ function Heroi() {
 
 /* ───────────────────────────── faixa de palavras ───────────────────────────── */
 
-const PALAVRAS = ['Ao vivo', 'Filmes', 'Séries', 'Animes', 'Doramas', 'Rádios', 'Jogos do dia', 'Guia de programação', 'Favoritos', 'Continue assistindo', 'Controle parental', 'Saimo Connect'];
+const PALAVRAS = ['Android', 'TV Box e Android TV', 'Samsung', 'LG', 'Roku', 'Mac', 'Windows', 'Linux', 'Navegador', 'iPhone em breve'];
 
 function Faixa() {
   const itens = [...PALAVRAS, ...PALAVRAS];
@@ -286,7 +257,7 @@ function Manifesto() {
           <Pilar n={4} icone="usuario" titulo="Responsabilidade é de quem usa" texto="Use o Saimo com conteúdo que você tem direito de assistir. Respeitamos os direitos autorais e esperamos o mesmo de você." />
         </div>
         <div className="numeros rv">
-          <div><strong><Contador ate={7} /></strong><span>plataformas</span></div>
+          <div><strong><Contador ate={9} /></strong><span>plataformas</span></div>
           <div><strong><Contador ate={0} /></strong><span>anúncios</span></div>
           <div><strong><Contador ate={0} /></strong><span>contas obrigatórias</span></div>
           <div><strong><Contador ate={100} sufixo="%" /></strong><span>dados no seu aparelho</span></div>
@@ -530,7 +501,7 @@ function Aparelhos() {
   const [i, setI] = useState(0);
   const a = APARELHOS[i];
   const navegar = useNavigate();
-  const abrirWeb = () => { try { localStorage.setItem('saimo-entrou', '1'); } catch { /* sem armazenamento */ } navegar('/'); };
+  const abrirWeb = () => { try { localStorage.setItem('saimo-entrou', '1'); } catch { /* sem armazenamento */ } navegar('/home'); };
   return (
     <section className="secao aparelhos" id="aparelhos">
       <div className="miolo">
@@ -766,11 +737,15 @@ export function Landing() {
   const raiz = useRef<HTMLDivElement | null>(null);
   useReveal(raiz);
   useEffect(() => {
+    const tituloAnterior = document.title;
     document.title = `${SITE.nomeCompleto} — seu IPTV, suas telas, um só lugar`;
     const meta = document.querySelector('meta[name="description"]');
     const anterior = meta?.getAttribute('content') ?? null;
     meta?.setAttribute('content', 'O Saimo TV é um player e ecossistema para a sua lista de IPTV (M3U ou usuário e senha): ao vivo, filmes, séries, animes, rádios, jogos e guia em TV, celular e computador. Sem anúncios, sem cadastro e sem conteúdo embutido.');
-    return () => { if (anterior !== null) meta?.setAttribute('content', anterior); };
+    return () => {
+      document.title = tituloAnterior.includes('um só lugar') ? SITE.nomeCompleto : tituloAnterior;
+      if (anterior !== null) meta?.setAttribute('content', anterior);
+    };
   }, []);
   return (
     <div className="landing" ref={raiz}>

@@ -24,7 +24,7 @@ const ICONE = { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', strok
 
 const ITENS: Item[] = [
   {
-    caminho: '/',
+    caminho: '/home',
     rotulo: 'Início',
     icone: <svg {...ICONE}><path d="M3 10.5 12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1z" /></svg>,
   },
@@ -63,7 +63,7 @@ export function NavegacaoMobile() {
       {ITENS.map((item) => {
         const ativa = item.caminho === '#eventos'
           ? eventos
-          : item.caminho === '/' ? pathname === '/' : pathname.startsWith(item.caminho);
+          : item.caminho === '/home' ? (pathname === '/home' || pathname === '/') : pathname.startsWith(item.caminho);
         return (
           <button
             key={item.caminho}

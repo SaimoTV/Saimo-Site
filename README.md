@@ -14,10 +14,12 @@ senha**, que são opcionais; `src/utils/xtream.ts`, compartilhado com as TVs Sam
 LG) e **Endereços do Saimo** (Ajustes > Listas, formato do Saimo; sem padrão). O que a
 pessoa já tinha gravado continua. O relay `/api/stream` lê o catálogo de apoio da variável
 `CATALOGO_FILMES` do projeto no Cloudflare Pages (sem ela, não consulta catálogo).
-**Páginas institucionais** (`src/landing/`): a raiz mostra a apresentação do projeto
-para quem chega pelo navegador (TVs, app instalado e quem já abriu o Saimo no
-navegador vão direto ao app; a apresentação fica em `/sobre`), mais
-`/privacidade`, `/termos`, `/conteudo`, `/exclusao-de-dados` e `/suporte`. O e-mail de
+**Páginas institucionais** (`src/landing/`): a raiz `/` é sempre a apresentação do
+projeto, e o app no navegador fica em **`/home`** ("Abrir no navegador"; o PWA abre em
+`/home`). Só a TV (pacote ou navegador da TV) e o app instalado abrem direto no app em
+`/`. A apresentação também responde em `/sobre`. O topo dela é uma réplica da
+interface real (`TelaDoApp.tsx`: Início, Ao vivo e On Demand, com lista de
+demonstração), mais `/formato` (formato de lista do Saimo), `/privacidade`, `/termos`, `/conteudo`, `/exclusao-de-dados` e `/suporte`. O e-mail de
 contato e o responsável legal ficam em `src/landing/config.ts`. A aba iPhone de `/app`
 avisa que o app para iPhone vem em breve. A aba Linux oferece o AppImage (x86_64, ou ARM quando o
 navegador se anuncia ARM) e, embaixo, o `.deb` e os pacotes de ARM. Os links de download e os

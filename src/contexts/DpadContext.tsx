@@ -448,7 +448,7 @@ export function DpadNavigationProvider({ children }: { children: React.ReactNode
     }
 
     // Se não há handlers, navega para trás
-    const isHome = location.pathname === '/';
+    const isHome = location.pathname === '/' || location.pathname === '/home';
     if (!isHome) {
       navigate(-1);
       return true;

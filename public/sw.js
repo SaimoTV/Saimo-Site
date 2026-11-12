@@ -5,7 +5,7 @@
  * Nada de vídeo, playlist, catálogo ou API: esses sempre vêm da rede — uma
  * lista de canais velha em cache seria pior que nenhuma.
  */
-const CACHE = 'saimo-casca-v3';
+const CACHE = 'saimo-casca-v4';
 const CASCA = ['/', '/index.html', '/manifest.webmanifest', '/favicon.png', '/icons/icon-192.png'];
 
 self.addEventListener('install', (e) => {

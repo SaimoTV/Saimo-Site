@@ -1,0 +1,110 @@
+/* Réplica da interface do Saimo na apresentação. Tudo medido em cqw (largura da
+   tela), então o desenho encolhe inteiro junto com a página, sem quebrar linha. */
+
+.ta { position: relative; width: 100%; container-type: inline-size; }
+.ta-tela {
+  position: relative; aspect-ratio: 16 / 9; border-radius: 14px; overflow: hidden;
+  background: radial-gradient(120% 90% at 80% 0%, #1a1f4a 0%, #0b0e22 55%, #07091a 100%);
+  border: 7px solid #161b3c;
+  box-shadow: 0 40px 90px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08), 0 0 80px rgba(124, 92, 255, 0.18);
+  color: #e8edf6; font-size: 1.6cqw; line-height: 1.25;
+}
+.ta-pe { width: 24%; height: 12px; margin: 0 auto; background: linear-gradient(#1b2147, #0d1130); border-radius: 0 0 12px 12px; }
+
+/* barra do topo, igual à do app */
+.ta-barra { display: flex; align-items: center; gap: 1.6cqw; padding: 1.8cqw 2.6cqw 1.2cqw; font-size: 1.35cqw; color: #a8b4c8; white-space: nowrap; }
+.ta-barra button { all: unset; cursor: pointer; padding: 0.5cqw 1.1cqw; border-radius: 99px; transition: background 0.25s, color 0.25s; }
+.ta-barra button.on { background: #fff; color: #0b0e22; font-weight: 700; }
+.ta-barra button:not(.on):hover { color: #fff; }
+.ta-marca { display: grid; place-items: center; width: 2.6cqw; height: 2.6cqw; border-radius: 0.7cqw; background: linear-gradient(135deg, #4fe3d0, #7c5cff); color: #06121a; font-weight: 900; font-size: 1.5cqw; }
+.ta-hora { margin-left: auto; color: #fff; font-weight: 600; }
+
+.ta-palco { position: absolute; inset: 5.6cqw 0 0 0; animation: ta-entra 0.55s cubic-bezier(.2,.8,.2,1); }
+@keyframes ta-entra { from { opacity: 0; transform: translateY(1.2cqw); } to { opacity: 1; transform: none; } }
+.ta-miolo { height: 100%; padding: 1.2cqw 2.6cqw 2.4cqw; }
+.ta-fila { margin: 1.5cqw 0 0.9cqw; font-size: 1.5cqw; font-weight: 700; color: #fff; }
+
+/* logotipo de letra e capa de cor */
+.ta-logo { display: grid; place-items: center; flex: none; width: 3.6cqw; height: 3.6cqw; border-radius: 0.9cqw; color: #fff; font-weight: 800; font-size: 1.25cqw; letter-spacing: -0.02em; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2); }
+.ta-capa { position: relative; flex: none; display: flex; align-items: flex-end; width: 10.4cqw; aspect-ratio: 2 / 3; border-radius: 1cqw; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16), 0 1cqw 2cqw rgba(0, 0, 0, 0.35); }
+.ta-capa::before { content: ''; position: absolute; inset: 0; background: radial-gradient(60% 40% at 70% 25%, rgba(255, 255, 255, 0.28), transparent 70%), linear-gradient(transparent 50%, rgba(0, 0, 0, 0.55)); }
+.ta-capa b { position: relative; padding: 0.8cqw; font-size: 1.15cqw; line-height: 1.1; color: #fff; }
+.ta-capas { display: flex; gap: 1.2cqw; }
+
+/* início */
+.ta-destaque { height: 12.5cqw; border-radius: 1.4cqw; padding: 2.2cqw 2.6cqw; display: flex; align-items: flex-end; background: radial-gradient(70% 120% at 85% 20%, rgba(79, 227, 208, 0.45), transparent 60%), radial-gradient(60% 120% at 55% 100%, rgba(124, 92, 255, 0.55), transparent 65%), #10143a; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
+.ta-destaque small { display: block; color: #4fe3d0; font-weight: 700; font-size: 1.3cqw; }
+.ta-destaque strong { display: block; font-size: 3cqw; letter-spacing: -0.03em; margin: 0.3cqw 0 1.2cqw; }
+.ta-play { display: inline-block; padding: 0.7cqw 1.4cqw; border-radius: 99px; background: #fff; color: #0b0e22; font-weight: 700; font-size: 1.25cqw; }
+.ta-cartoes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.2cqw; }
+.ta-cartao { position: relative; display: grid; grid-template-columns: auto 1fr; column-gap: 1cqw; align-items: center; padding: 1.1cqw; border-radius: 1.1cqw; background: rgba(255, 255, 255, 0.06); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07); overflow: hidden; }
+.ta-cartao:first-child { box-shadow: inset 0 0 0 0.2cqw #4fe3d0; }
+.ta-cartao .ta-logo { grid-row: span 2; }
+.ta-cartao b { font-size: 1.25cqw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ta-cartao small { font-size: 1.05cqw; color: #9fb0c6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ta-cartao i, .ta-canal i { position: absolute; left: 0; bottom: 0; height: 0.3cqw; background: linear-gradient(90deg, #4fe3d0, #7c5cff); }
+.ta-inicio .ta-capas .ta-capa { width: 7.4cqw; }
+
+/* ao vivo */
+.ta-aovivo { display: grid; grid-template-columns: 42% 1fr; gap: 2cqw; }
+.ta-lista-topo { display: flex; align-items: baseline; justify-content: space-between; }
+.ta-lista-topo strong { font-size: 2.6cqw; letter-spacing: -0.02em; }
+.ta-lista-topo span { color: #9fb0c6; font-size: 1.3cqw; }
+.ta-lista-topo em { font-style: normal; color: #4fe3d0; font-weight: 700; margin-right: 0.6cqw; }
+.ta-secoes { display: flex; gap: 0.8cqw; margin: 1.2cqw 0; }
+.ta-secoes span { padding: 0.5cqw 1.1cqw; border-radius: 99px; background: rgba(255, 255, 255, 0.07); font-size: 1.1cqw; color: #c4d0e0; }
+.ta-secoes span.on { background: #4fe3d0; color: #06121a; font-weight: 700; }
+.ta-canal { position: relative; display: flex; align-items: center; gap: 1cqw; padding: 0.9cqw 1cqw; margin-bottom: 0.8cqw; border-radius: 1.1cqw; background: rgba(255, 255, 255, 0.04); overflow: hidden; transition: background 0.3s, box-shadow 0.3s; }
+.ta-canal.on { background: rgba(79, 227, 208, 0.12); box-shadow: inset 0 0 0 0.2cqw #4fe3d0; }
+.ta-canal > div { min-width: 0; }
+.ta-canal b { display: block; font-size: 1.3cqw; }
+.ta-canal small { display: block; font-size: 1.05cqw; color: #9fb0c6; }
+.ta-num { width: 2cqw; text-align: center; color: #9fb0c6; font-size: 1.3cqw; font-weight: 700; }
+.ta-ver { display: flex; flex-direction: column; gap: 1.4cqw; }
+.ta-video { position: relative; aspect-ratio: 16 / 9; border-radius: 1.4cqw; overflow: hidden; display: grid; place-items: center; background: radial-gradient(60% 80% at 30% 30%, var(--c), transparent 70%), radial-gradient(70% 90% at 80% 90%, #7c5cff, transparent 70%), #0d1130; transition: background 0.6s; }
+.ta-video::after { content: ''; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.12) 50%, transparent 65%); animation: ta-brilho 4s ease-in-out infinite; }
+@keyframes ta-brilho { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+.ta-video .ta-logo { width: 7cqw; height: 7cqw; font-size: 2.6cqw; border-radius: 1.6cqw; }
+.ta-vivo { position: absolute; top: 1cqw; left: 1cqw; padding: 0.3cqw 0.8cqw; border-radius: 0.5cqw; background: #ef4444; color: #fff; font-size: 0.95cqw; font-weight: 800; letter-spacing: 0.08em; }
+.ta-info { padding: 1.3cqw 1.6cqw; border-radius: 1.2cqw; background: rgba(255, 255, 255, 0.06); display: grid; gap: 0.3cqw; }
+.ta-info small { color: #4fe3d0; font-weight: 700; font-size: 1.15cqw; }
+.ta-info strong { font-size: 2cqw; letter-spacing: -0.02em; }
+.ta-info span { font-size: 1.1cqw; color: #c4d0e0; }
+.ta-info .ta-seguir { color: #9fb0c6; }
+
+/* on demand */
+.ta-titulo { display: block; font-size: 3cqw; letter-spacing: -0.03em; }
+.ta-sub { display: block; color: #9fb0c6; font-size: 1.2cqw; margin-top: 0.3cqw; }
+.ta-categorias { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4cqw; margin-top: 1.8cqw; }
+.ta-categoria { display: flex; align-items: center; gap: 1cqw; height: 6.6cqw; padding: 0 1.6cqw; border-radius: 1.3cqw; background: rgba(255, 255, 255, 0.06); }
+.ta-categoria span { width: 2.8cqw; height: 2.8cqw; border-radius: 50%; opacity: 0.85; }
+.ta-categoria b { font-size: 1.7cqw; }
+.ta-categoria.on { box-shadow: inset 0 0 0 0.25cqw #4fe3d0; background: rgba(79, 227, 208, 0.09); }
+.ta-filtros { display: flex; gap: 0.9cqw; margin: 1.6cqw 0; }
+.ta-filtros span { padding: 0.6cqw 1.3cqw; border-radius: 0.8cqw; background: rgba(255, 255, 255, 0.06); font-size: 1.1cqw; color: #c4d0e0; }
+.ta-ondemand .ta-capa { width: 9.6cqw; }
+
+/* seletor de telas abaixo da TV */
+.ta-pontos { display: flex; justify-content: center; gap: 8px; margin-top: 16px; }
+.ta-pontos button { all: unset; cursor: pointer; padding: 6px 13px; border-radius: 99px; font-size: 12.5px; font-weight: 600; color: var(--suave, #9fb0c6); border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(255, 255, 255, 0.04); transition: all 0.25s; }
+.ta-pontos button.on { color: #06121a; background: #4fe3d0; border-color: #4fe3d0; }
+
+/* celular */
+.tc { width: 100%; container-type: inline-size; }
+.tc-tela { position: relative; aspect-ratio: 9 / 19; border-radius: 13cqw; overflow: hidden; background: #0a0d22; border: 5px solid #1d2350; box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1); padding: 13cqw 5cqw 0; color: #e8edf6; }
+.tc-entalhe { position: absolute; top: 3.5cqw; left: 50%; width: 30%; height: 5cqw; margin-left: -15%; border-radius: 4cqw; background: #000; }
+.tc-video { position: relative; aspect-ratio: 16 / 9; border-radius: 4cqw; background: radial-gradient(70% 90% at 30% 30%, #3b82f6, transparent 70%), radial-gradient(70% 90% at 80% 90%, #7c5cff, transparent 70%), #0d1130; }
+.tc-video .ta-vivo { top: 3cqw; left: 3cqw; font-size: 4.2cqw; padding: 1cqw 2.4cqw; border-radius: 1.6cqw; }
+.tc-info { position: relative; padding: 4cqw 1cqw 5cqw; }
+.tc-info b { display: block; font-size: 6cqw; }
+.tc-info small { display: block; font-size: 5cqw; color: #9fb0c6; }
+.tc-info i { position: absolute; left: 1cqw; right: 1cqw; bottom: 2cqw; height: 1.2cqw; border-radius: 1cqw; background: linear-gradient(90deg, #4fe3d0 62%, rgba(255, 255, 255, 0.12) 62%); }
+.tc-canal { display: flex; align-items: center; gap: 4cqw; padding: 3cqw; margin-bottom: 2.6cqw; border-radius: 4cqw; background: rgba(255, 255, 255, 0.06); }
+.tc-canal .ta-logo { width: 13cqw; height: 13cqw; border-radius: 3.5cqw; font-size: 5cqw; }
+.tc-canal b { display: block; font-size: 5.4cqw; white-space: nowrap; }
+.tc-canal small { display: block; font-size: 4.4cqw; color: #9fb0c6; white-space: nowrap; }
+.tc-nav { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-around; padding: 4cqw 6cqw 6cqw; background: rgba(10, 13, 34, 0.92); border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.tc-nav span { width: 8cqw; height: 8cqw; border-radius: 2.4cqw; background: rgba(255, 255, 255, 0.14); }
+.tc-nav span.on { background: #4fe3d0; }
+
+@media (prefers-reduced-motion: reduce) { .ta-palco, .ta-video::after { animation: none; } }
