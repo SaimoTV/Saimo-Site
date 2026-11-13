@@ -53,11 +53,11 @@ export class EventsScreen {
     r.setCards(jogos.map((j): CardModel => ({
       id: j.id,
       title: `${j.homeTeam} x ${j.awayTeam}`,
-      subtitle: `${j.channelName}  ·  ${j.league}`,
+      subtitle: `${j.channelName || 'Sem canal'}  ·  ${j.league}`,
       image: j.homeShield,
       image2: j.awayShield,
       badge: j.isLive ? 'AO VIVO' : hora(j),
-      onFocus: () => this.hero.setDefault(`${j.homeTeam} x ${j.awayTeam}`, `${j.league}  ·  ${hora(j)}`, `No canal ${j.channelName}  ·  OK assiste`),
+      onFocus: () => this.hero.setDefault(`${j.homeTeam} x ${j.awayTeam}`, `${j.league}  ·  ${hora(j)}`, j.channelName ? `No canal ${j.channelName}  ·  OK assiste` : 'Sem canal na lista'),
       onClick: () => {
         const canal = State.channels.find((c) => c.name === j.channelName);
         if (canal) State.setScreen('live', { channel: canal });

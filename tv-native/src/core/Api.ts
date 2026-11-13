@@ -731,13 +731,12 @@ export class Api {
       const saida: SportsEvent[] = [];
       for (const j of json) {
         const player = j.players?.[0];
-        if (!player || !j.teams) continue;
+        if (!j.teams) continue;
         // O canal vem no fim do endereço do player ("…/premiere-fc").
-        const apelido = nome(String(player).split('/').pop() || '');
+        const apelido = player ? nome(String(player).split('/').pop() || '') : '';
         const canal = apelido
           ? canais.find((c) => nome(c.name) === apelido) || canais.find((c) => nome(c.name).includes(apelido))
           : undefined;
-        if (!canal) continue;
         const inicio = new Date(j.time_start).getTime();
         const fim = j.time_end ? new Date(j.time_end).getTime() : inicio + 7200000;
         if (fim <= agora) continue;
@@ -749,7 +748,7 @@ export class Api {
           awayShield: grande(j.teams.away.image),
           league: j.league?.name || '',
           startTime: inicio,
-          channelName: canal.name,
+          channelName: canal ? canal.name : '',
           isLive: agora >= inicio,
         });
       }

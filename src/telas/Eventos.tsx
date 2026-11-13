@@ -7,9 +7,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarraTopo } from '../components/BarraTopo';
-import { Fileira, Heroi, SemLista, type Destaque } from '../components/Telas';
+import { Fileira, Heroi, type Destaque } from '../components/Telas';
 import { useCanais } from '../hooks/useCanais';
-import { useListas } from '../services/listas';
 import { acabou, aoVivo, buscarJogos, type Jogo } from '../services/eventos';
 import './Eventos.css';
 
@@ -53,8 +52,8 @@ function CartaoJogo({ jogo, agora, aoAbrir, aoPassar }: {
 }) {
   const vivo = aoVivo(jogo, agora);
   return (
-    <button className={`ev-cartao ${vivo ? 'vivo' : ''}`} onClick={aoAbrir} onMouseEnter={aoPassar} onFocus={aoPassar}
-      aria-label={`${jogo.casa} x ${jogo.fora}, no canal ${jogo.canal.name}`}>
+    <button className={`ev-cartao ${vivo ? 'vivo' : ''}`} onClick={() => jogo.canal && aoAbrir()} onMouseEnter={aoPassar} onFocus={aoPassar}
+      aria-label={`${jogo.casa} x ${jogo.fora}, ${jogo.canal ? `no canal ${jogo.canal.name}` : 'sem canal'}`}>
       <header>
         <span className="ev-liga">
           {jogo.ligaLogo && <img src={jogo.ligaLogo} alt="" referrerPolicy="no-referrer" />}
@@ -70,8 +69,8 @@ function CartaoJogo({ jogo, agora, aoAbrir, aoPassar }: {
         <div><Escudo src={jogo.foraLogo} nome={jogo.fora} /><span>{jogo.fora}</span></div>
       </div>
       <footer>
-        {jogo.canal.logo && <img src={jogo.canal.logo} alt="" referrerPolicy="no-referrer" />}
-        <span>{jogo.canal.name}</span>
+        {jogo.canal?.logo && <img src={jogo.canal.logo} alt="" referrerPolicy="no-referrer" />}
+        <span>{jogo.canal ? jogo.canal.name : 'Sem canal'}</span>
       </footer>
     </button>
   );
@@ -80,7 +79,6 @@ function CartaoJogo({ jogo, agora, aoAbrir, aoPassar }: {
 export function Eventos() {
   const navigate = useNavigate();
   const canais = useCanais();
-  const { canais: link } = useListas();
   const [jogos, setJogos] = useState<Jogo[] | null>(null);
   const [falhou, setFalhou] = useState(false);
   const [agora, setAgora] = useState(Date.now);
@@ -91,7 +89,6 @@ export function Eventos() {
     () => canais.filter((c) => c.category !== 'Adulto' && c.category !== 'ADULTOS'), [canais]);
 
   const carregar = useCallback(async () => {
-    if (!abertos.length) return;
     const lista = await buscarJogos(abertos).catch(() => null);
     setAgora(Date.now());
     if (lista) { setJogos(lista); setFalhou(false); } else if (!jogos) setFalhou(true);
@@ -117,7 +114,7 @@ export function Eventos() {
     if (!j) return null;
     return {
       titulo: `${j.casa} x ${j.fora}`,
-      selos: [j.liga, aoVivo(j, agora) ? `AO VIVO${j.tempo ? ` ${j.tempo}` : ''}` : quando(j.inicio, agora), j.canal.name],
+      selos: [j.liga, aoVivo(j, agora) ? `AO VIVO${j.tempo ? ` ${j.tempo}` : ''}` : quando(j.inicio, agora), j.canal?.name ?? 'Sem canal'],
       sinopse: j.placar ? `Placar: ${j.placar}` : undefined,
     };
   }, [sob, primeiro, agora]);
@@ -128,21 +125,20 @@ export function Eventos() {
     <div className="tela tela-com-barra">
       <BarraTopo />
       <Heroi item={destaque} />
-      {!link && <SemLista tipo="eventos" />}
-      {link && jogos === null && !falhou && <p className="tela-vazio">Buscando os jogos…</p>}
+            {jogos === null && !falhou && <p className="tela-vazio">Buscando os jogos…</p>}
       {falhou && (
         <div className="tela-vazio"><h2>Não deu para carregar os jogos</h2>
           <p>Confira a conexão; a tela tenta de novo sozinha a cada minuto.</p></div>
       )}
       {jogos !== null && total === 0 && (
         <div className="tela-vazio"><h2>Nenhum jogo agora</h2>
-          <p>Só aparecem jogos que passam em algum canal da lista.</p></div>
+          <p>Volte mais tarde: a agenda é atualizada o tempo todo.</p></div>
       )}
       {GRUPOS.map((nome, i) => grupos[i].length > 0 && (
         <Fileira key={nome} titulo={nome}>
           {grupos[i].map((j) => (
-            <CartaoJogo key={`${j.casa}${j.fora}${j.inicio}${j.canal.id}`} jogo={j} agora={agora}
-              aoAbrir={() => navigate(`/tv/${j.canal.id}`)} aoPassar={() => setSob(j)} />
+            <CartaoJogo key={`${j.casa}${j.fora}${j.inicio}${j.canal?.id ?? ''}`} jogo={j} agora={agora}
+              aoAbrir={() => j.canal && navigate(`/tv/${j.canal.id}`)} aoPassar={() => setSob(j)} />
           ))}
         </Fileira>
       ))}

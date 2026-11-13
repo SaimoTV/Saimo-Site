@@ -63,8 +63,9 @@ function CartaoJogo({ jogo, agora, onAbrir }: { jogo: Jogo; agora: number; onAbr
     <button
       type="button"
       className={`event-card ${vivo ? 'is-live' : ''}`}
-      onClick={() => onAbrir(jogo)}
-      aria-label={`${jogo.casa} x ${jogo.fora}, no canal ${jogo.canal.name}`}
+      onClick={() => jogo.canal && onAbrir(jogo)}
+      disabled={!jogo.canal}
+      aria-label={`${jogo.casa} x ${jogo.fora}, ${jogo.canal ? `no canal ${jogo.canal.name}` : 'sem canal'}`}
     >
       <div className="event-card-header">
         <div className="event-league">
@@ -95,14 +96,16 @@ function CartaoJogo({ jogo, agora, onAbrir }: { jogo: Jogo; agora: number; onAbr
       </div>
 
       <div className="event-canal">
-        {jogo.canal.logo
+        {jogo.canal?.logo
           ? <img src={jogo.canal.logo} alt="" referrerPolicy="no-referrer" />
           : <span className="event-canal-sem-logo" aria-hidden="true" />}
-        <span className="event-canal-nome">{jogo.canal.name}</span>
-        <span className="btn-watch">
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
-          Assistir
-        </span>
+        <span className="event-canal-nome">{jogo.canal ? jogo.canal.name : 'Sem canal'}</span>
+        {jogo.canal && (
+          <span className="btn-watch">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+            Assistir
+          </span>
+        )}
       </div>
     </button>
   );
@@ -128,12 +131,6 @@ export function EventsModal({ onClose, onWatch }: EventsModalProps) {
     buscando.current = true;
     try {
       canaisRef.current ??= await carregarCanais();
-      // Sem canais não há jogo para casar, e nada é pedido à agenda.
-      if (!canaisRef.current.length) {
-        setJogos([]);
-        setErro(false);
-        return;
-      }
       const lidos = await buscarJogos(canaisRef.current);
       setAgora(Date.now());
       if (lidos) {
@@ -170,6 +167,7 @@ export function EventsModal({ onClose, onWatch }: EventsModalProps) {
   }, [jogos, agora]);
 
   const abrir = useCallback((j: Jogo) => {
+    if (!j.canal) return;
     onWatch(j.canal.id);
     onClose();
   }, [onWatch, onClose]);

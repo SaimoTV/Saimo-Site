@@ -10,7 +10,8 @@
     "/lg",
     "/roku",
     "/linux",
-    "/linux-arm"
+    "/linux-arm",
+    "/eventos-extra.json"
   ],
   "exclude": []
 }
