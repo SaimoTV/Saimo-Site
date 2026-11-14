@@ -3,6 +3,7 @@
  * Orquestra o ciclo de vida, roteador de telas, controle remoto e aceleração de vídeo.
  */
 
+import './core/polyfills';
 import './styles/tv.css';
 import './styles/tv-box.css';
 import { Platform } from './core/Platform';
@@ -158,7 +159,32 @@ class SaimoTVApp {
   }
 }
 
-// Inicializa quando o DOM estiver pronto
-document.addEventListener('DOMContentLoaded', () => {
-  new SaimoTVApp();
-});
+function iniciarApp() {
+  if ((window as any).__saimoTVIniciado) return;
+  (window as any).__saimoTVIniciado = true;
+  if (Platform.isWebOS) {
+    document.documentElement.classList.add('webos');
+  }
+  try {
+    new SaimoTVApp();
+  } catch (err: any) {
+    console.error('[SaimoTV] Falha fatal ao iniciar:', err);
+    const root = document.getElementById('app') || document.body;
+    const aviso = document.createElement('div');
+    aviso.style.cssText =
+      'position:fixed;inset:0;background:#0d0e12;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;padding:48px;z-index:99999;text-align:center;';
+    aviso.innerHTML =
+      '<h1 style="font-size:40px;margin-bottom:16px;color:#e50914;">Saimo TV</h1>' +
+      '<p style="font-size:26px;opacity:0.85;">Erro ao inicializar aplicativo na TV.</p>' +
+      '<pre style="margin-top:20px;font-size:20px;color:#f87171;white-space:pre-wrap;">' +
+      String(err?.message || err || 'Erro desconhecido') +
+      '</pre>';
+    root.appendChild(aviso);
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', iniciarApp);
+} else {
+  iniciarApp();
+}

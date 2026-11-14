@@ -725,18 +725,28 @@ export class Api {
       const json = await res.json();
       if (!Array.isArray(json)) return [];
       const agora = Date.now();
-      const nome = (t: string) => t.toLowerCase().replace(/[\s-]/g, '');
+      const limpar = (t: string) =>
+        t
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase()
+          .replace(/\b(fhd|uhd|4k|hd|sd|h265|hevc|br|pt|tv)\b/g, '')
+          .replace(/[^a-z0-9]/g, '');
       const canais = await this.fetchChannels();
       const grande = (u: string) => (u || '').replace('w_34,h_34', 'w_256,h_256');
       const saida: SportsEvent[] = [];
       for (const j of json) {
-        const player = j.players?.[0];
         if (!j.teams) continue;
-        // O canal vem no fim do endereço do player ("…/premiere-fc").
-        const apelido = player ? nome(String(player).split('/').pop() || '') : '';
-        const canal = apelido
-          ? canais.find((c) => nome(c.name) === apelido) || canais.find((c) => nome(c.name).includes(apelido))
-          : undefined;
+        const players = Array.isArray(j.players) ? j.players : [];
+        let canal: Channel | undefined;
+        for (const p of players) {
+          const apelido = limpar(String(p || '').split('/').pop() || '');
+          if (!apelido) continue;
+          canal =
+            canais.find((c) => limpar(c.name) === apelido) ||
+            canais.find((c) => limpar(c.name).includes(apelido));
+          if (canal) break;
+        }
         const inicio = new Date(j.time_start).getTime();
         const fim = j.time_end ? new Date(j.time_end).getTime() : inicio + 7200000;
         if (fim <= agora) continue;

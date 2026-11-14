@@ -31,8 +31,9 @@ body, html {
   overflow: hidden;
 }
 
-/* Vídeo de fundo / Player de hardware */
+/* Vídeo de fundo / Player de hardware — oculto quando fora das telas de reprodução */
 .tv-video-container {
+  display: none;
   position: absolute;
   top: 0;
   left: 0;
@@ -40,6 +41,18 @@ body, html {
   height: 1080px;
   background: #000000;
   z-index: 1;
+}
+
+html.video-ativo .tv-video-container,
+body.video-ativo .tv-video-container {
+  display: block;
+}
+
+#tv-screens-container {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  z-index: 10;
 }
 
 video {

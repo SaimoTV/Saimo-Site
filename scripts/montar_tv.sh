@@ -18,6 +18,8 @@ echo "==> Compilando motor nativo Smart TV (tv-native)..."
   fi
   npm run build
 )
+echo "==> Transpilando bundle para ES5 (compatibilidade webOS 3/4 e Tizen antigo)..."
+node scripts/tv_es5.mjs tv-native/dist/saimo-tv.js
 
 preparar() { # preparar pasta
   local pasta="$1"

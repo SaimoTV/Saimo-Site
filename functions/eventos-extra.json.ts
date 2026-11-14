@@ -1,18 +1,44 @@
 /**
  * Agenda de jogos do Saimo, montada a partir dos placares da ESPN.
  * Formato igual ao que os apps já leem (teams, league, time_start, players),
- * com `players` vazio: o canal é achado em cada app, quando existe. Jogo sem
- * canal também entra na lista.
+ * preenchendo `players` com os canais prováveis da transmissão no Brasil
+ * (e da própria ESPN quando informados) para vincular tanto com o catálogo
+ * quanto com as listas adicionadas pelo usuário. Jogo sem canal na lista
+ * também entra na agenda.
  */
-const LIGAS = [
-  'soccer/bra.1', 'soccer/bra.2', 'soccer/bra.copa_do_brazil', 'soccer/conmebol.libertadores',
-  'soccer/conmebol.sudamericana', 'soccer/uefa.champions', 'soccer/uefa.europa', 'soccer/eng.1',
-  'soccer/esp.1', 'soccer/ita.1', 'soccer/ger.1', 'soccer/fra.1', 'soccer/por.1', 'soccer/ned.1',
-  'soccer/arg.1', 'soccer/ksa.1', 'soccer/fifa.world', 'soccer/fifa.worldq.conmebol',
-  'basketball/nba', 'football/nfl', 'baseball/mlb', 'hockey/nhl', 'mma/ufc',
+const LIGAS: { caminho: string; canais: string[] }[] = [
+  { caminho: 'soccer/bra.1', canais: ['premiere', 'premiere-2', 'premiere-clubes', 'sportv', 'sportv-2', 'globo', 'cazetv', 'record'] },
+  { caminho: 'soccer/bra.2', canais: ['premiere', 'sportv', 'band', 'cazetv', 'canal-goat'] },
+  { caminho: 'soccer/bra.copa_do_brazil', canais: ['premiere', 'sportv', 'globo', 'prime-video'] },
+  { caminho: 'soccer/conmebol.libertadores', canais: ['espn', 'espn-2', 'espn-3', 'espn-4', 'paramount-plus', 'globo'] },
+  { caminho: 'soccer/conmebol.sudamericana', canais: ['espn', 'espn-2', 'paramount-plus', 'sbt'] },
+  { caminho: 'soccer/uefa.champions', canais: ['tnt', 'tnt-sports', 'space', 'max', 'sbt'] },
+  { caminho: 'soccer/uefa.europa', canais: ['cazetv', 'band'] },
+  { caminho: 'soccer/eng.1', canais: ['espn', 'espn-2', 'espn-3', 'espn-4', 'disney-plus'] },
+  { caminho: 'soccer/esp.1', canais: ['espn', 'espn-2', 'espn-3', 'espn-4', 'disney-plus'] },
+  { caminho: 'soccer/ita.1', canais: ['espn', 'espn-2', 'espn-3', 'cazetv', 'disney-plus'] },
+  { caminho: 'soccer/ger.1', canais: ['cazetv', 'sportv', 'band', 'canal-goat'] },
+  { caminho: 'soccer/fra.1', canais: ['cazetv'] },
+  { caminho: 'soccer/por.1', canais: ['espn', 'espn-2', 'espn-3', 'disney-plus'] },
+  { caminho: 'soccer/ned.1', canais: ['espn', 'espn-2', 'espn-3', 'disney-plus'] },
+  { caminho: 'soccer/arg.1', canais: ['espn', 'espn-2', 'espn-3', 'disney-plus'] },
+  { caminho: 'soccer/ksa.1', canais: ['band', 'bandsports', 'canal-goat'] },
+  { caminho: 'soccer/fifa.world', canais: ['globo', 'sportv', 'cazetv'] },
+  { caminho: 'soccer/fifa.worldq.conmebol', canais: ['globo', 'sportv'] },
+  { caminho: 'basketball/nba', canais: ['espn', 'espn-2', 'prime-video', 'nba-league-pass'] },
+  { caminho: 'football/nfl', canais: ['espn', 'espn-2', 'rede-tv', 'cazetv'] },
+  { caminho: 'baseball/mlb', canais: ['espn', 'espn-2', 'espn-3', 'disney-plus'] },
+  { caminho: 'hockey/nhl', canais: ['espn', 'espn-2', 'espn-3', 'disney-plus'] },
+  { caminho: 'mma/ufc', canais: ['ufc-fight-pass', 'band'] },
 ];
 
-interface Comp { homeAway?: string; score?: string; team?: { name?: string; displayName?: string; logo?: string } }
+interface Comp {
+  homeAway?: string;
+  score?: string;
+  broadcasts?: { names?: string[] }[];
+  geoBroadcasts?: { media?: { shortName?: string } }[];
+  team?: { name?: string; displayName?: string; logo?: string };
+}
 
 /** Hora de Brasília (-03:00) no formato ISO, que todos os apps entendem. */
 function brt(ms: number): string {
@@ -20,18 +46,59 @@ function brt(ms: number): string {
   return d.toISOString().slice(0, 19) + '-03:00';
 }
 
-async function liga(caminho: string): Promise<unknown[]> {
+function slugCanal(nome: string): string {
+  return nome
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\+/g, '-plus')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function canaisDoEvento(comp: Comp | undefined, padraoLiga: string[]): string[] {
+  const vistos = new Set<string>();
+  const slugs: string[] = [];
+  const add = (s: string) => {
+    if (s && !vistos.has(s)) {
+      vistos.add(s);
+      slugs.push(`https://saimo-tv/canal/${s}`);
+    }
+  };
+  for (const b of comp?.broadcasts ?? []) {
+    for (const n of b?.names ?? []) {
+      const s = slugCanal(n);
+      if (s.startsWith('espn-deportes')) add('espn');
+      else if (s === 'espn-plus') add('disney-plus');
+      else if (s) add(s);
+    }
+  }
+  for (const gb of comp?.geoBroadcasts ?? []) {
+    const n = gb?.media?.shortName;
+    if (n) {
+      const s = slugCanal(n);
+      if (s.startsWith('espn-deportes')) add('espn');
+      else if (s === 'espn-plus') add('disney-plus');
+      else if (s) add(s);
+    }
+  }
+  for (const s of padraoLiga) add(s);
+  return slugs;
+}
+
+async function liga(item: { caminho: string; canais: string[] }): Promise<unknown[]> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 7000);
   try {
-    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${caminho}/scoreboard`, { signal: ctrl.signal });
+    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${item.caminho}/scoreboard`, { signal: ctrl.signal });
     if (!r.ok) return [];
     const d: any = await r.json();
     const nomeLiga = d?.leagues?.[0]?.name ?? '';
     const logoLiga = d?.leagues?.[0]?.logos?.[0]?.href ?? '';
     const saida: unknown[] = [];
     for (const ev of d?.events ?? []) {
-      const comps: Comp[] = ev?.competitions?.[0]?.competitors ?? [];
+      const comp: Comp | undefined = ev?.competitions?.[0];
+      const comps: Comp[] = (comp as any)?.competitors ?? [];
       const casa = comps.find(c => c.homeAway === 'home');
       const fora = comps.find(c => c.homeAway !== 'home');
       if (!casa || !fora) continue;
@@ -41,7 +108,7 @@ async function liga(caminho: string): Promise<unknown[]> {
       const estado: string = st?.state ?? '';
       if (estado === 'post') continue;
       saida.push({
-        players: [],
+        players: canaisDoEvento(comp, item.canais),
         time_start: brt(inicio),
         time_end: brt(inicio + 2 * 3600_000),
         teams: {

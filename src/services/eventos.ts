@@ -121,12 +121,33 @@ export function emAltaResolucao(url: string): string {
     return url.slice(0, inicio) + ajustes + url.slice(fim);
 }
 
+function limparNomeCanal(nome: string): string {
+    return nome
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/\b(fhd|uhd|hd|sd|4k|h265|hevc|br|pt|tv)\b/g, '')
+        .replace(/[^a-z0-9]/g, '');
+}
+
 /** O canal pelo fim do endereço do player ("…/premiere-fc" é o Premiere FC). */
 function canalDo(url: string, canais: Channel[]): Channel | undefined {
-    const slug = (url.split('/').pop() ?? '').toLowerCase().replace(/[- ]/g, '');
+    const slug = (url.split('/').pop() ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
     if (!slug) return undefined;
-    const chave = (c: Channel) => c.name.toLowerCase().replace(/ /g, '');
-    return canais.find(c => chave(c) === slug) ?? canais.find(c => chave(c).includes(slug));
+    const chaveBruta = (c: Channel) => c.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    return (
+        canais.find(c => limparNomeCanal(c.name) === slug || chaveBruta(c) === slug) ??
+        canais.find(c => slug.length >= 3 && (limparNomeCanal(c.name).includes(slug) || chaveBruta(c).includes(slug)))
+    );
+}
+
+function canalDosPlayers(players: string[] | undefined, canais: Channel[]): Channel | undefined {
+    if (!players?.length || !canais.length) return undefined;
+    for (const p of players) {
+        const achado = canalDo(p, canais);
+        if (achado) return achado;
+    }
+    return undefined;
 }
 
 function lerAgenda(arr: unknown, canais: Channel[]): Jogo[] {
@@ -135,8 +156,7 @@ function lerAgenda(arr: unknown, canais: Channel[]): Jogo[] {
     const jogos: Jogo[] = [];
     for (const o of arr as EventoAgenda[]) {
         try {
-            const player = o?.players?.[0];
-            const canal = player ? canalDo(player, canais) : undefined;
+            const canal = canalDosPlayers(o?.players, canais);
             const inicio = new Date(o.time_start ?? '').getTime();
             if (isNaN(inicio)) continue;
             const fimLido = o.time_end ? new Date(o.time_end).getTime() : NaN;

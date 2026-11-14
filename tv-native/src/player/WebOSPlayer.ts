@@ -4,11 +4,15 @@
  * sem bloqueios de CORS por rodar em app empacotado.
  */
 
+import Hls from 'hls.js';
 import { TVPlayerInstance, PlaybackSource, PlayerEvents, AudioTrack, SubtitleTrack } from './TVPlayer';
 
 export class WebOSPlayer implements TVPlayerInstance {
   private video: HTMLVideoElement;
   private events: PlayerEvents;
+  private hls: Hls | null = null;
+  private currentSource: PlaybackSource | null = null;
+  private triedHlsFallback = false;
 
   constructor(videoElement: HTMLVideoElement, events: PlayerEvents) {
     this.video = videoElement;
@@ -34,6 +38,15 @@ export class WebOSPlayer implements TVPlayerInstance {
     });
 
     this.video.addEventListener('error', () => {
+      if (!this.triedHlsFallback && this.currentSource && Hls.isSupported()) {
+        const u = this.currentSource.url.toLowerCase();
+        if (u.includes('.m3u8') || u.includes('master.txt') || u.includes('hls')) {
+          this.triedHlsFallback = true;
+          console.warn('[WebOSPlayer] Fallback para hls.js após erro nativo');
+          this.playWithHls(this.currentSource.url);
+          return;
+        }
+      }
       const err = this.video.error;
       this.events.onError?.(`Erro webOS Video: code ${err?.code || 'desconhecido'}`);
     });
@@ -43,8 +56,37 @@ export class WebOSPlayer implements TVPlayerInstance {
     });
   }
 
+  private playWithHls(url: string) {
+    this.destroyHls();
+    const hls = new Hls({ enableWorker: false, lowLatencyMode: false });
+    this.hls = hls;
+    hls.loadSource(url);
+    hls.attachMedia(this.video);
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      this.video.play().catch((e: any) => {
+        this.events.onError?.(e?.message || 'Falha ao reproduzir HLS');
+      });
+    });
+    hls.on(Hls.Events.ERROR, (_ev, data) => {
+      if (data.fatal) {
+        this.events.onError?.(`Erro HLS webOS: ${data.details || data.type}`);
+      }
+    });
+  }
+
+  private destroyHls() {
+    if (this.hls) {
+      try {
+        this.hls.destroy();
+      } catch {}
+      this.hls = null;
+    }
+  }
+
   async play(source: PlaybackSource): Promise<void> {
     this.stop();
+    this.currentSource = source;
+    this.triedHlsFallback = false;
 
     this.video.src = source.url;
     this.video.load();
@@ -52,6 +94,14 @@ export class WebOSPlayer implements TVPlayerInstance {
     try {
       await this.video.play();
     } catch (e: any) {
+      if (!this.triedHlsFallback && Hls.isSupported()) {
+        const u = source.url.toLowerCase();
+        if (u.includes('.m3u8') || u.includes('master.txt') || u.includes('hls')) {
+          this.triedHlsFallback = true;
+          this.playWithHls(source.url);
+          return;
+        }
+      }
       console.warn('[WebOSPlayer] Erro ao iniciar vídeo no webOS:', e);
       this.events.onError?.(e.message || 'Falha ao reproduzir');
     }
@@ -102,6 +152,7 @@ export class WebOSPlayer implements TVPlayerInstance {
   }
 
   stop() {
+    this.destroyHls();
     this.video.pause();
     this.video.removeAttribute('src');
     this.video.load();

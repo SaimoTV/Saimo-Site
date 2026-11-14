@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './EventsModal.css';
 import { cachedChannels, fetchChannels } from '../services/catalogService';
 import { linkCanais } from '../services/listas';
+import { canaisDasListas } from '../services/minhasListas';
+import { locais } from '../services/canaisPersonalizados';
 import { acabou, aoVivo, buscarJogos, type Jogo } from '../services/eventos';
 import type { Channel } from '../types/channel';
 
@@ -41,12 +43,14 @@ function grupoDe(j: Jogo, agora: number): number {
   return d === 1 ? 3 : 4;
 }
 
-/** A lista de canais que o site já tem; sem ela, a publicada; sem endereço ou sem rede, vazia. */
+/** A lista de canais que o site já tem (catálogo + listas adicionadas pelo usuário). */
 async function carregarCanais(): Promise<Channel[]> {
-  if (!linkCanais()) return [];
-  const canais = cachedChannels() ?? await fetchChannels() ?? [];
+  const doCatalogo = linkCanais() ? (cachedChannels() ?? await fetchChannels() ?? []) : [];
+  const minhas = await canaisDasListas(false);
+  const custom = locais();
+  const todos = [...doCatalogo, ...minhas, ...custom];
   // Canal adulto não entra na agenda.
-  return canais.filter((c) => c.category !== 'Adulto' && c.category !== 'ADULTOS');
+  return todos.filter((c) => c.category !== 'Adulto' && c.category !== 'ADULTOS');
 }
 
 function Escudo({ src, nome }: { src: string; nome: string }) {
