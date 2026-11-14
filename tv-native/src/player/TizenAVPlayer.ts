@@ -43,11 +43,29 @@ export class TizenAVPlayer implements TVPlayerInstance {
         this.avplay.setBufferingParam('PLAYER_BUFFER_FOR_RESUME', 'PLAYER_BUFFER_SIZE_IN_SECOND', 5);
       }
 
-      // Headers (Referer e User-Agent) se informados
-      if (source.referer || source.userAgent) {
+      // Headers (Referer, User-Agent e proxyHeaders.request de addons Stremio)
+      const headerMap: Record<string, string> = {};
+      if (source.headers) {
+        const keys = Object.keys(source.headers);
+        for (let i = 0; i < keys.length; i++) {
+          const k = keys[i];
+          const v = source.headers[k];
+          if (k && v) headerMap[k] = v;
+        }
+      }
+      if (source.referer && !headerMap.Referer && !headerMap.referer) {
+        headerMap.Referer = source.referer;
+      }
+      if (source.userAgent && !headerMap['User-Agent'] && !headerMap['user-agent']) {
+        headerMap['User-Agent'] = source.userAgent;
+      }
+      const headerKeys = Object.keys(headerMap);
+      if (headerKeys.length > 0) {
         let customHeaders = '';
-        if (source.referer) customHeaders += `Referer: ${source.referer}\r\n`;
-        if (source.userAgent) customHeaders += `User-Agent: ${source.userAgent}\r\n`;
+        for (let i = 0; i < headerKeys.length; i++) {
+          const k = headerKeys[i];
+          customHeaders += `${k}: ${headerMap[k]}\r\n`;
+        }
         this.avplay.setStreamingProperty('CUSTOM_MESSAGE', customHeaders);
       }
 

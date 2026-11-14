@@ -6,6 +6,7 @@
 
 import { State } from '../core/State';
 import { Api, Channel, VODItem } from '../core/Api';
+import { Addons } from '../core/Addons';
 import { VirtualKeyboard } from '../components/VirtualKeyboard';
 import { Rail, CardModel } from '../components/Rail';
 import { SpatialNav } from '../core/SpatialNav';
@@ -18,6 +19,7 @@ export class SearchScreen {
 
   private currentQuery = '';
   private debounceTimer: any = null;
+  private searchGen = 0;
 
   private channelsRail: Rail;
   private vodRail: Rail;
@@ -130,6 +132,7 @@ export class SearchScreen {
   private performSearch() {
     const q = this.currentQuery.trim().toLowerCase();
     if (!q) {
+      this.searchGen++;
       this.channelsRail.getElement().style.display = 'none';
       this.vodRail.getElement().style.display = 'none';
       return;
@@ -168,23 +171,46 @@ export class SearchScreen {
       }
     }
 
-    if (matchedVOD.length > 0) {
-      this.vodRail.getElement().style.display = 'block';
-      this.vodRail.setCards(
-        matchedVOD.slice(0, 25).map((v) => ({
-          id: `search_vod_${v.id}`,
-          title: v.title,
-          subtitle: v.genres?.slice(0, 2).join(' · '),
-          image: v.poster,
-          badge: v.year || (v.isSeries ? 'SÉRIE' : '4K'),
-          badgeColor: v.isSeries ? '#7aa2ff' : '#4fe3d0',
-          onClick: () => {
-            State.setScreen('ficha', { vod: v });
-          },
-        }))
-      );
-    } else {
-      this.vodRail.getElement().style.display = 'none';
+    const renderVodMatches = (items: VODItem[]) => {
+      if (items.length > 0) {
+        this.vodRail.getElement().style.display = 'block';
+        this.vodRail.setCards(
+          items.slice(0, 25).map((v) => ({
+            id: `search_vod_${v.id}`,
+            title: v.title,
+            subtitle: v.genres?.slice(0, 2).join(' · '),
+            image: v.poster,
+            badge: v.year || (v.isSeries ? 'SÉRIE' : '4K'),
+            badgeColor: v.isSeries ? '#7aa2ff' : '#4fe3d0',
+            onClick: () => {
+              State.setScreen('ficha', { vod: v });
+            },
+          }))
+        );
+      } else {
+        this.vodRail.getElement().style.display = 'none';
+      }
+    };
+
+    renderVodMatches(matchedVOD);
+
+    const gen = ++this.searchGen;
+    if (Addons.hasEnabled() && (!Api.enderecoSaimo('filmes') || matchedVOD.length < 10)) {
+      Addons.searchCatalogsAndTmdb(q)
+        .then((addonItems) => {
+          if (gen !== this.searchGen || !addonItems || addonItems.length === 0) return;
+          const combined: VODItem[] = matchedVOD.slice();
+          const seen = new Set(combined.map((x) => `${x.title.toLowerCase()}:${Boolean(x.isSeries)}`));
+          for (let i = 0; i < addonItems.length && combined.length < 25; i++) {
+            const k = `${addonItems[i].title.toLowerCase()}:${Boolean(addonItems[i].isSeries)}`;
+            if (!seen.has(k)) {
+              seen.add(k);
+              combined.push(addonItems[i]);
+            }
+          }
+          renderVodMatches(combined);
+        })
+        .catch(() => {});
     }
   }
 

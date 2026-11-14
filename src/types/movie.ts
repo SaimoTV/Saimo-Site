@@ -1,8 +1,34 @@
+export interface AddonStreamBehaviorHints {
+  notWebReady?: boolean;
+  bingeGroup?: string;
+  countryWhitelist?: string[];
+  proxyHeaders?: {
+    request?: Record<string, string>;
+    response?: Record<string, string>;
+  };
+  videoHash?: string;
+  videoSize?: number;
+  filename?: string;
+}
+
 /** Uma origem do mesmo título: o endereço e em que idioma ele está. */
 export interface MovieSource {
   url: string;
   /** "dub", "leg" — como vem do catálogo. */
   versao?: string;
+  /** Metadados opcionais de streams vindos de addons Stremio / Debrid. */
+  rotulo?: string;
+  detalhe?: string;
+  addonId?: string;
+  addonName?: string;
+  infoHash?: string;
+  fileIdx?: number;
+  trackers?: string[];
+  behaviorHints?: AddonStreamBehaviorHints;
+  subtitles?: Array<{ id?: string; url: string; lang: string }>;
+  webAviso?: string;
+  webReproduzivel?: boolean;
+  debridResolvido?: boolean;
 }
 
 export interface Movie {
@@ -29,6 +55,10 @@ export interface Movie {
   episodeNumber?: number;
   /** Id do TMDB: é por ele que o TheIntroDB diz onde pular a abertura. */
   tmdbId?: number;
+  /** Id do IMDb / Stremio para consulta em addons de stream e legendas. */
+  imdbId?: string;
+  addonMetaId?: string;
+  bingeGroup?: string;
   /** Onde o título mora no acervo — é o que o "Continue assistindo" reabre. */
   origem?: import('../services/vodService').ItemDestaque;
 }

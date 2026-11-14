@@ -12,6 +12,9 @@
  */
 
 import { linkFilmes } from './listas';
+import { getEnabledAddons } from './addons';
+import { fetchSubtitlesFromAddons, resolveTmdbToImdb } from '../utils/addonClient';
+import { addonSupportsResource } from '../utils/addonProtocol';
 
 const OPENSUBTITLES = 'https://opensubtitles-v3.strem.io/subtitles';
 const FRAGMENTOS = 100;
@@ -29,6 +32,7 @@ export interface LegendaOpcao {
   idioma: string;
   rotulo: string;
   url: string;
+  origem?: string;
 }
 
 export interface Fala {
@@ -68,35 +72,134 @@ function fragmentoDe(tipo: 'f' | 's', tmdb: number): Promise<Map<number, string>
   return pronto;
 }
 
-/** As legendas do título, do melhor idioma para o pior. Vazio quando não há. */
+/** Converte código de idioma de addon em rótulo legível e código normalizado. */
+function rotuloIdiomaAddon(lang: string): { codigo: string; rotulo: string } {
+  const clean = (lang || 'und').trim().toLowerCase();
+  if (clean === 'pob' || clean === 'pt-br' || clean === 'pt_br' || clean === 'por-br') {
+    return { codigo: 'pob', rotulo: 'Português (Brasil)' };
+  }
+  if (clean === 'por' || clean === 'pt' || clean === 'pt-pt') {
+    return { codigo: 'por', rotulo: 'Português' };
+  }
+  if (clean === 'eng' || clean === 'en' || clean === 'en-us') {
+    return { codigo: 'eng', rotulo: 'Inglês' };
+  }
+  if (clean === 'spa' || clean === 'es' || clean === 'es-419') {
+    return { codigo: 'spa', rotulo: 'Espanhol' };
+  }
+  return { codigo: clean, rotulo: (lang || 'Outro').toUpperCase() };
+}
+
+/** Mescla legendas externas com legendas inline enviadas dentro de `stream.subtitles`. */
+export function mesclarLegendasComStream(
+  externas: LegendaOpcao[],
+  doStream?: Array<{ id?: string; url: string; lang: string }>,
+): LegendaOpcao[] {
+  if (!Array.isArray(doStream) || doStream.length === 0) return externas;
+  const vistas = new Set(externas.map((l) => l.url));
+  const extras: LegendaOpcao[] = [];
+  doStream.forEach((s, idx) => {
+    if (!s || !s.url || vistas.has(s.url)) return;
+    vistas.add(s.url);
+    const { codigo, rotulo } = rotuloIdiomaAddon(s.lang);
+    extras.push({
+      id: `stream-sub-${s.id ?? idx}`,
+      idioma: codigo,
+      rotulo: `${rotulo} · Stream`,
+      url: s.url,
+      origem: 'stream',
+    });
+  });
+  return [...extras, ...externas];
+}
+
+/** As legendas do título, do melhor idioma para o pior (OpenSubtitles + addons ativos). */
 export function buscarLegendas(
-  tmdbId: number | undefined, serie: boolean, temporada = 0, episodio = 0,
+  tmdbId: number | undefined,
+  serie: boolean,
+  temporada = 0,
+  episodio = 0,
+  imdbHint?: string,
+  addonMetaId?: string,
 ): Promise<LegendaOpcao[]> {
-  if (!tmdbId) return Promise.resolve([]);
-  const chave = `${serie ? 's' : 'f'}|${tmdbId}|${temporada}|${episodio}`;
+  if (!tmdbId && !imdbHint && !addonMetaId) return Promise.resolve([]);
+  const subAddons = getEnabledAddons().filter((a) => addonSupportsResource(a, 'subtitles'));
+  const subSig = subAddons.map((a) => a.id).join(',');
+  const chave = `${serie ? 's' : 'f'}|${tmdbId ?? 0}|${imdbHint ?? ''}|${addonMetaId ?? ''}|${temporada}|${episodio}|${subSig}`;
   let pronta = listas.get(chave);
   if (!pronta) {
     pronta = (async () => {
-      const imdb = (await fragmentoDe(serie ? 's' : 'f', tmdbId)).get(tmdbId);
-      if (!imdb) return [];
-      const alvo = serie && temporada > 0
-        ? `series/${imdb}:${temporada}:${episodio}` : `movie/${imdb}`;
-      const r = await fetch(`${OPENSUBTITLES}/${alvo}.json`);
-      if (!r.ok) return [];
-      const json = await r.json() as { subtitles?: Record<string, unknown>[] };
-      const saida: LegendaOpcao[] = [];
-      for (const idioma of IDIOMAS) {
-        const doIdioma = (json.subtitles ?? []).filter((s) => s.lang === idioma.codigo && s.url);
-        doIdioma.slice(0, idioma.limite).forEach((s, i) => {
-          const versao = String(s.releaseGroup || s.releaseFormat || '').trim();
-          saida.push({
-            id: `${idioma.codigo}-${s.id ?? i}`,
-            idioma: idioma.codigo,
-            rotulo: `${idioma.rotulo} · ${versao || i + 1}`,
-            url: String(s.url),
-          });
-        });
+      let imdb = imdbHint;
+      if (!imdb && tmdbId) {
+        imdb = (await fragmentoDe(serie ? 's' : 'f', tmdbId)).get(tmdbId);
+        if (!imdb) {
+          imdb = (await resolveTmdbToImdb(tmdbId, serie)) ?? undefined;
+        }
       }
+
+      const saida: LegendaOpcao[] = [];
+      const urlsVistas = new Set<string>();
+
+      // 1) OpenSubtitles v3 (se houver IMDb)
+      const openSubPromise = (async () => {
+        if (!imdb || !imdb.startsWith('tt')) return [] as LegendaOpcao[];
+        const alvo = serie && temporada > 0 ? `series/${imdb}:${temporada}:${episodio}` : `movie/${imdb}`;
+        const r = await fetch(`${OPENSUBTITLES}/${alvo}.json`);
+        if (!r.ok) return [] as LegendaOpcao[];
+        const json = await r.json() as { subtitles?: Record<string, unknown>[] };
+        const out: LegendaOpcao[] = [];
+        for (const idioma of IDIOMAS) {
+          const doIdioma = (json.subtitles ?? []).filter((s) => s.lang === idioma.codigo && s.url);
+          doIdioma.slice(0, idioma.limite).forEach((s, i) => {
+            const versao = String(s.releaseGroup || s.releaseFormat || '').trim();
+            out.push({
+              id: `${idioma.codigo}-${s.id ?? i}`,
+              idioma: idioma.codigo,
+              rotulo: `${idioma.rotulo} · ${versao || i + 1}`,
+              url: String(s.url),
+            });
+          });
+        }
+        return out;
+      })().catch(() => [] as LegendaOpcao[]);
+
+      // 2) Addons Stremio com recurso `subtitles`
+      const candidates: string[] = [];
+      if (imdb) candidates.push(imdb);
+      if (addonMetaId && !candidates.includes(addonMetaId)) candidates.push(addonMetaId);
+      if (tmdbId && !candidates.includes(`tmdb:${tmdbId}`)) candidates.push(`tmdb:${tmdbId}`);
+
+      const addonSubPromise = (subAddons.length > 0 && candidates.length > 0)
+        ? fetchSubtitlesFromAddons(
+            subAddons,
+            serie ? 'series' : 'movie',
+            candidates,
+            temporada > 0 ? temporada : undefined,
+            episodio > 0 ? episodio : undefined,
+          ).catch(() => [])
+        : Promise.resolve([]);
+
+      const [openList, addonList] = await Promise.all([openSubPromise, addonSubPromise]);
+
+      for (const item of openList) {
+        if (!urlsVistas.has(item.url)) {
+          urlsVistas.add(item.url);
+          saida.push(item);
+        }
+      }
+      addonList.forEach(({ addon, subtitle }, i) => {
+        if (!subtitle.url || urlsVistas.has(subtitle.url)) return;
+        urlsVistas.add(subtitle.url);
+        const { codigo, rotulo } = rotuloIdiomaAddon(subtitle.lang);
+        saida.push({
+          id: `addon-sub-${addon.id}-${subtitle.id ?? i}`,
+          idioma: codigo,
+          rotulo: `${rotulo} · ${addon.manifest.name}`,
+          url: subtitle.url,
+          origem: addon.manifest.name,
+        });
+      });
+
       return saida;
     })().catch(() => []);
     // Lista vazia por falha não fica guardada; vazia de verdade custa pouco.
@@ -106,12 +209,13 @@ export function buscarLegendas(
   return pronta;
 }
 
-const TEMPO = /(\d+):(\d{2}):(\d{2})[,.](\d{1,3})/;
+const TEMPO = /(?:(\d+):)?(\d{2}):(\d{2})[,.](\d{1,3})/;
 
 function segundos(texto: string): number {
   const m = TEMPO.exec(texto);
   if (!m) return NaN;
-  return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]) + Number(m[4].padEnd(3, '0')) / 1000;
+  const horas = m[1] ? Number(m[1]) : 0;
+  return horas * 3600 + Number(m[2]) * 60 + Number(m[3]) + Number(m[4].padEnd(3, '0')) / 1000;
 }
 
 /** SRT (ou o que o servidor mandar em VTT) em falas; marcação de estilo que o vídeo não entende sai. */

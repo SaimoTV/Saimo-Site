@@ -23,6 +23,26 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import type { Movie, MovieSource, SeriesEpisodeInfo } from '../types/movie';
 import { ehTv } from '../plataforma/tv';
+import { linkFilmes } from '../services/listas';
+import {
+  discoveryToItemDestaque,
+  discoverTmdbPopular,
+  fetchMetaFromAddons,
+  fetchTmdbSeasonEpisodes,
+  fetchTmdbSeriesSeasonsCount,
+  getEnabledAddons,
+  hasEnabledStreamAddons,
+  loadAddonCatalogRails,
+  metaPreviewToItemDestaque,
+  resolveAddonStreamsForTitle,
+  resolveImdbToTmdb,
+  resolveTmdbToImdb,
+  searchAddonsCatalogs,
+  searchTmdbMulti,
+  useAddons,
+  useTemAddons,
+  type AddonItemDestaque,
+} from '../services/addons';
 import {
   LETRAS,
   buscar,
@@ -89,6 +109,10 @@ interface Item {
   serie: boolean;
   letra: string;
   ano?: string;
+  capa?: string;
+  tmdbId?: number;
+  imdbId?: string;
+  addonMetaId?: string;
   filme?: Filme;
   dados?: Serie;
   colecao?: SerieColecao;
@@ -300,24 +324,53 @@ export function VodCatalog({
     setFontesAbertas(null);
     setModalCarregando(true);
     const tentativa = ++aberturaRef.current;
+    const temLista = Boolean(linkFilmes());
 
     try {
       if (!item.serie) {
-        const dados =
-          item.filme ??
-          (await buscarFilme({
-            titulo: item.titulo,
-            serie: false,
-            letra: item.letra,
-            ano: '',
-            nomeCompleto: item.titulo,
-          }));
-        const fontes: MovieSource[] = Object.entries(dados?.fontes ?? {}).flatMap(([versao, urls]) =>
+        const dadosProm = temLista
+          ? (item.filme
+              ? Promise.resolve(item.filme)
+              : buscarFilme({
+                  titulo: item.titulo,
+                  serie: false,
+                  letra: item.letra,
+                  ano: item.ano || '',
+                  nomeCompleto: item.titulo,
+                }).catch(() => null))
+          : Promise.resolve(null);
+
+        const tmdbParaAddon =
+          item.tmdbId ||
+          (generos ? idDaFicha(generos, item.titulo, false) : null) ||
+          (await melhorMatch(item.titulo, 'movie').then((m) => m?.resultado?.id).catch(() => undefined));
+
+        const addonProm = hasEnabledStreamAddons()
+          ? resolveAddonStreamsForTitle({
+              tmdbId: tmdbParaAddon ?? undefined,
+              imdbId: item.imdbId,
+              addonMetaId: item.addonMetaId,
+              isSeries: false,
+            }).catch(() => ({ sources: [] as MovieSource[], imdbId: item.imdbId }))
+          : Promise.resolve({ sources: [] as MovieSource[], imdbId: item.imdbId });
+
+        const [dados, addonRes] = await Promise.all([dadosProm, addonProm]);
+        const saimoFontes: MovieSource[] = Object.entries(dados?.fontes ?? {}).flatMap(([versao, urls]) =>
           urls.map((url) => ({ url, versao })),
         );
+        const vistas = new Set<string>();
+        const combinadas: MovieSource[] = [];
+        for (const f of [...httpsFirst(saimoFontes), ...addonRes.sources]) {
+          if (!f.url || vistas.has(f.url)) continue;
+          vistas.add(f.url);
+          combinadas.push(f);
+        }
         if (tentativa !== aberturaRef.current) return;
-        setFontesAbertas(httpsFirst(fontes));
-        if (!fontes.length) setErroModal(`Sem fonte disponível para "${item.titulo}".`);
+        if (addonRes.imdbId && !item.imdbId) {
+          setAberto((atual) => (atual ? { ...atual, imdbId: addonRes.imdbId, tmdbId: atual.tmdbId ?? tmdbParaAddon ?? undefined } : atual));
+        }
+        setFontesAbertas(combinadas);
+        if (!combinadas.length) setErroModal(`Sem fonte disponível para "${item.titulo}".`);
         return;
       }
 
@@ -328,35 +381,102 @@ export function VodCatalog({
       }
 
       const ano = item.dados?.ano ?? item.ano ?? '';
-      const dados =
-        item.dados ??
-        (await buscarSerie({
-          titulo: item.titulo,
-          serie: true,
-          letra: item.letra,
-          ano,
-          nomeCompleto: item.rotulo,
-        }));
+      const dados = temLista
+        ? (item.dados ??
+            (await buscarSerie({
+              titulo: item.titulo,
+              serie: true,
+              letra: item.letra,
+              ano,
+              nomeCompleto: item.rotulo,
+            }).catch(() => null)))
+        : null;
       if (tentativa !== aberturaRef.current) return;
-      if (!dados) {
-        setErroModal(`Não foi possível abrir "${item.rotulo}".`);
+
+      if (dados) {
+        setAberto({ ...item, dados });
+        const lista = await episodios(item.letra, dados);
+        if (tentativa !== aberturaRef.current) return;
+        setEpisodiosAbertos(lista);
+        setTemporada(lista[0]?.temporada ?? 1);
+        if (!lista.length) setErroModal('Nenhum episódio encontrado.');
         return;
       }
-      setAberto({ ...item, dados });
-      const lista = await episodios(item.letra, dados);
+
+      // Modo addon-only ou série fora da lista M3U: monta episódios via meta de addon e/ou TMDB
+      let tmdbSerie = item.tmdbId ?? (generos ? idDaFicha(generos, item.titulo, true) : null) ?? undefined;
+      let imdbSerie = item.imdbId;
+      if (!tmdbSerie && imdbSerie) {
+        const achado = await resolveImdbToTmdb(imdbSerie, 'series').catch(() => null);
+        if (achado?.tmdbId) tmdbSerie = achado.tmdbId;
+      }
+      if (!tmdbSerie) {
+        const match = await melhorMatch(item.titulo, 'tv').catch(() => null);
+        if (match?.resultado?.id) tmdbSerie = match.resultado.id;
+      }
+      if (!imdbSerie && tmdbSerie) {
+        imdbSerie = (await resolveTmdbToImdb(tmdbSerie, true).catch(() => null)) ?? undefined;
+      }
+
       if (tentativa !== aberturaRef.current) return;
-      setEpisodiosAbertos(lista);
-      setTemporada(lista[0]?.temporada ?? 1);
-      if (!lista.length) setErroModal('Nenhum episódio encontrado.');
+      setAberto((atual) =>
+        atual ? { ...atual, tmdbId: atual.tmdbId ?? tmdbSerie, imdbId: atual.imdbId ?? imdbSerie } : atual,
+      );
+
+      const candidateIds: string[] = [];
+      if (imdbSerie) candidateIds.push(imdbSerie);
+      if (item.addonMetaId && !candidateIds.includes(item.addonMetaId)) candidateIds.push(item.addonMetaId);
+      if (tmdbSerie && !candidateIds.includes(`tmdb:${tmdbSerie}`)) candidateIds.push(`tmdb:${tmdbSerie}`);
+
+      const metaAddons = getEnabledAddons();
+      const addonMeta = candidateIds.length > 0
+        ? await fetchMetaFromAddons(metaAddons, 'series', candidateIds).catch(() => null)
+        : null;
+
+      const episodiosGerados: Episodio[] = [];
+      if (addonMeta?.videos && addonMeta.videos.length > 0) {
+        for (const v of addonMeta.videos) {
+          const temp = Number(v.season ?? 1);
+          const epNum = Number(v.episode ?? v.number ?? 0);
+          if (temp <= 0 || epNum <= 0) continue;
+          episodiosGerados.push({
+            temporada: temp,
+            numero: epNum,
+            versao: 'leg',
+            urls: ['addon-stream://pending'],
+          });
+        }
+      } else if (tmdbSerie) {
+        const numsTemporadas = await fetchTmdbSeriesSeasonsCount(tmdbSerie).catch(() => [1]);
+        const listasTemp = await Promise.all(
+          numsTemporadas.slice(0, 15).map((n) => fetchTmdbSeasonEpisodes(tmdbSerie!, n).catch(() => [])),
+        );
+        for (const epsTemp of listasTemp) {
+          for (const ep of epsTemp) {
+            episodiosGerados.push({
+              temporada: ep.seasonNumber,
+              numero: ep.episodeNumber,
+              versao: 'leg',
+              urls: ['addon-stream://pending'],
+            });
+          }
+        }
+      }
+
+      if (tentativa !== aberturaRef.current) return;
+      setEpisodiosAbertos(episodiosGerados);
+      setTemporada(episodiosGerados[0]?.temporada ?? 1);
+      if (!episodiosGerados.length) setErroModal(`Nenhum episódio encontrado para "${item.rotulo}".`);
     } catch {
       if (tentativa === aberturaRef.current) setErroModal(`Não foi possível abrir "${item.rotulo}".`);
     } finally {
       if (tentativa === aberturaRef.current) setModalCarregando(false);
     }
-  }, []);
+  }, [generos]);
 
   const abrirItemDestaque = useCallback(
     async (destaqueItem: ItemDestaque) => {
+      const ext = destaqueItem as AddonItemDestaque;
       const serie = destaqueItem.tipo !== 'f';
       const base: Item = {
         chave: `${destaqueItem.tipo}:${destaqueItem.titulo}`,
@@ -365,6 +485,10 @@ export function VodCatalog({
         serie,
         letra: destaqueItem.letra,
         ano: destaqueItem.ano,
+        capa: destaqueItem.capa,
+        tmdbId: ext.tmdbId,
+        imdbId: ext.imdbId,
+        addonMetaId: ext.addonMetaId,
       };
 
       if (destaqueItem.tipo !== 'a' && destaqueItem.tipo !== 'd') {
@@ -398,29 +522,74 @@ export function VodCatalog({
     [abrirItem],
   );
 
-  // Carga inicial dos arquivos do repositório (otimizada para Smart TVs fracas)
+  // Carregamento principal (catálogo Saimo + trilhos de Addons / TMDB Discovery)
+  const addons = useAddons();
+  const temAddons = useTemAddons();
+  const temListaFilmes = Boolean(linkFilmes());
+
   useEffect(() => {
-    let vivo = true;
+    let ativo = true;
+    setCarregandoDados(true);
+    void (async () => {
+      try {
+        const [destaquesSaimo, addonRails, tmdbRails] = await Promise.all([
+          temListaFilmes ? destaques().catch(() => [] as FilaDestaque[]) : Promise.resolve([] as FilaDestaque[]),
+          temAddons ? loadAddonCatalogRails(6).catch(() => []) : Promise.resolve([]),
+          !temListaFilmes && temAddons ? discoverTmdbPopular().catch(() => []) : Promise.resolve([]),
+        ]);
+        if (!ativo) return;
 
-    // 1. Destaques principais (arquivo pequeno): mostra a tela quase instantaneamente!
-    destaques()
-      .then((filas) => {
-        if (!vivo) return;
-        setFilasDestaque(filas);
-        setCarregandoDados(false);
-      })
-      .catch(() => {
-        if (vivo) setCarregandoDados(false);
-      });
+        const todasFilas: FilaDestaque[] = [...destaquesSaimo];
+        for (const r of addonRails) {
+          todasFilas.push({ titulo: r.titulo, itens: r.itens });
+        }
+        for (const t of tmdbRails) {
+          todasFilas.push({ titulo: t.title, itens: t.items.map(discoveryToItemDestaque) });
+        }
+        setFilasDestaque(todasFilas);
 
-    // 2. Metadados de coleções, gêneros e gavetas carregam em segundo plano
+        if (!temListaFilmes && temAddons) {
+          const moviesMap = new Map<string, Achado & { capa?: string; tmdbId?: number; imdbId?: string; addonMetaId?: string }>();
+          const seriesMap = new Map<string, Achado & { capa?: string; tmdbId?: number; imdbId?: string; addonMetaId?: string }>();
+          for (const f of todasFilas) {
+            for (const it of f.itens) {
+              const ext = it as AddonItemDestaque;
+              const entry = {
+                serie: it.tipo === 's',
+                titulo: it.titulo,
+                nomeCompleto: it.titulo,
+                letra: it.letra || '#',
+                ano: it.ano || '',
+                capa: it.capa,
+                tmdbId: ext.tmdbId,
+                imdbId: ext.imdbId,
+                addonMetaId: ext.addonMetaId,
+              };
+              const k = `${entry.titulo.toLowerCase()}|${entry.ano}`;
+              if (entry.serie) { if (!seriesMap.has(k)) seriesMap.set(k, entry); }
+              else { if (!moviesMap.has(k)) moviesMap.set(k, entry); }
+            }
+          }
+          setTodosFilmes([...moviesMap.values()]);
+          setTodasSeries([...seriesMap.values()]);
+        }
+      } finally {
+        if (ativo) setCarregandoDados(false);
+      }
+    })();
+
+    if (!temListaFilmes) {
+      return () => { ativo = false; };
+    }
+
+    // 2. Metadados de coleções, gêneros e gavetas carregam em segundo plano (somente com lista M3U/VOD)
     Promise.all([
       lerGeneros().catch(() => null),
       indice().catch(() => []),
       colecao('animes').catch(() => []),
       colecao('doramas').catch(() => []),
     ]).then(([gen, gav, animes, doramas]) => {
-      if (!vivo) return;
+      if (!ativo) return;
       if (gen) setGeneros(gen);
       setGavetas(gav);
       setAnimesColecao(animes);
@@ -429,16 +598,16 @@ export function VodCatalog({
 
     // 3. Carga do índice completo de busca (30k títulos) postergada para não concorrer com as capas
     const timerBusca = setTimeout(() => {
-      if (!vivo) return;
-      listarTudo(false).then((lista) => { if (vivo) setTodosFilmes(lista); });
-      listarTudo(true).then((lista) => { if (vivo) setTodasSeries(lista); });
+      if (!ativo) return;
+      listarTudo(false).then((lista) => { if (ativo) setTodosFilmes(lista); });
+      listarTudo(true).then((lista) => { if (ativo) setTodasSeries(lista); });
     }, 350);
 
     return () => {
-      vivo = false;
+      ativo = false;
       clearTimeout(timerBusca);
     };
-  }, []);
+  }, [temListaFilmes, temAddons, addons]);
 
   // Totais para exibição nos cartões de categoria e Hero
   const contagens = useMemo(() => {
@@ -754,7 +923,8 @@ export function VodCatalog({
 
   // Ficha do título aberto
   const [tmdbFallbackId, setTmdbFallbackId] = useState<number | null>(null);
-  const idFicha = aberto && generos ? idDaFicha(generos, aberto.titulo, aberto.serie) : null;
+  const idDiretoItem = (aberto as (Item & { tmdbId?: number }) | null)?.tmdbId ?? null;
+  const idFicha = idDiretoItem ?? (aberto && generos ? idDaFicha(generos, aberto.titulo, aberto.serie) : null);
   const idEfetivo = idFicha ?? tmdbFallbackId;
   const chaveFicha = aberto && idEfetivo ? `${aberto.serie ? 's' : 'f'}:${idEfetivo}` : null;
   const ficha = chaveFicha && fichaAchada?.chave === chaveFicha ? fichaAchada.ficha : null;
@@ -766,11 +936,21 @@ export function VodCatalog({
   useEffect(() => {
     if (!aberto) return;
     let vivo = true;
+    const ext = aberto as Item & { imdbId?: string; tmdbId?: number };
     if (idFicha) {
       const k = `${aberto.serie ? 's' : 'f'}:${idFicha}`;
       buscarFicha(idFicha, aberto.serie)
         .then((achada) => { if (vivo) setFichaAchada({ chave: k, ficha: achada }); })
         .catch(() => { if (vivo) setFichaAchada({ chave: k, ficha: null }); });
+    } else if (ext.imdbId) {
+      resolveImdbToTmdb(ext.imdbId, aberto.serie ? 'series' : 'movie')
+        .then(async (found) => {
+          if (!vivo || !found?.tmdbId) return;
+          setTmdbFallbackId(found.tmdbId);
+          const f = await buscarFicha(found.tmdbId, aberto.serie);
+          if (vivo) setFichaAchada({ chave: `${aberto.serie ? 's' : 'f'}:${found.tmdbId}`, ficha: f });
+        })
+        .catch(() => {});
     } else {
       // Fallback: se não estiver no fichas.txt, busca dinamicamente pelo título no TMDB
       melhorMatch(aberto.titulo, aberto.serie ? 'tv' : 'movie')
@@ -853,17 +1033,28 @@ export function VodCatalog({
       const ordenadas = httpsFirst(fontes);
       const primeira = escolhida ?? ordenadas[0]?.url;
       if (!primeira) return;
-      const origem = aberto ? {
+      const ext = aberto as (Item & Partial<AddonItemDestaque>) | null;
+      const tmdbFinal =
+        ext?.tmdbId ||
+        (generos && idDaFicha(generos, titulo, false)) ||
+        tmdbFallbackId ||
+        undefined;
+      const origem: AddonItemDestaque | undefined = aberto ? {
         tipo: aberto.chave.startsWith('animes') ? 'a' : aberto.chave.startsWith('doramas') ? 'd' : aberto.serie ? 's' : 'f',
         titulo: aberto.titulo,
         letra: aberto.letra,
         ano: aberto.ano ?? '',
-        capa: (generos && capaDaFicha(generos, aberto.titulo, aberto.serie)) || '',
+        capa: ext?.capa || (generos && capaDaFicha(generos, aberto.titulo, aberto.serie)) || '',
+        tmdbId: tmdbFinal,
+        imdbId: ext?.imdbId,
+        addonMetaId: ext?.addonMetaId,
       } : undefined;
 
       onSelectMovie(
         {
-          tmdbId: (generos && idDaFicha(generos, titulo, false)) || tmdbFallbackId || undefined,
+          tmdbId: tmdbFinal,
+          imdbId: ext?.imdbId,
+          addonMetaId: ext?.addonMetaId,
           origem,
           id: `movie-${titulo}-${primeira}`.slice(0, 200),
           name: titulo,
@@ -876,7 +1067,7 @@ export function VodCatalog({
         null,
       );
     },
-    [onSelectMovie, generos, aberto],
+    [onSelectMovie, generos, aberto, tmdbFallbackId],
   );
 
   // Reproduzir episódio de série
@@ -888,6 +1079,13 @@ export function VodCatalog({
 
   const filmesDaSerie = useMemo<Movie[]>(() => {
     if (!aberto?.serie) return [];
+    const ext = aberto as Item & Partial<AddonItemDestaque>;
+    const tmdbSeriesId =
+      ext.tmdbId ||
+      (generos && idDaFicha(generos, aberto.titulo, true)) ||
+      (aberto.colecao?.tmdbId ? Number(aberto.colecao.tmdbId) : undefined) ||
+      tmdbFallbackId ||
+      undefined;
     return episodiosAgrupados.map((e) => ({
       id: `series-${aberto.chave}-s${e.temporada}e${e.numero}`,
       name: `${aberto.rotulo} · T${e.temporada}:E${e.numero}`,
@@ -898,16 +1096,21 @@ export function VodCatalog({
       seriesName: aberto.rotulo,
       seasonNumber: e.temporada,
       episodeNumber: e.numero,
-      tmdbId: (generos && idDaFicha(generos, aberto.titulo, true)) || (aberto.colecao?.tmdbId ? Number(aberto.colecao.tmdbId) : undefined) || tmdbFallbackId || undefined,
+      tmdbId: tmdbSeriesId,
+      imdbId: ext.imdbId,
+      addonMetaId: ext.addonMetaId,
       origem: {
         tipo: aberto.chave.startsWith('animes') ? 'a' : aberto.chave.startsWith('doramas') ? 'd' : 's',
         titulo: aberto.titulo,
         letra: aberto.letra,
         ano: aberto.ano ?? '',
-        capa: (generos && capaDaFicha(generos, aberto.titulo, true, aberto.colecao?.tmdbId)) || '',
-      },
+        capa: ext.capa || (generos && capaDaFicha(generos, aberto.titulo, true, aberto.colecao?.tmdbId)) || '',
+        tmdbId: tmdbSeriesId,
+        imdbId: ext.imdbId,
+        addonMetaId: ext.addonMetaId,
+      } as AddonItemDestaque,
     })).filter((m) => !!m.url);
-  }, [aberto, episodiosAgrupados, generos]);
+  }, [aberto, episodiosAgrupados, generos, tmdbFallbackId]);
 
   const tocarEpisodio = useCallback(
     (episodio: EpisodioAgrupado) => {
@@ -953,7 +1156,7 @@ export function VodCatalog({
     : (partidaSerie?.temporada ?? temporadas[0] ?? 1);
 
   // Detalhes dos episódios da temporada (TMDB)
-  const idTmdbAberto = aberto && generos ? (idDaFicha(generos, aberto.titulo, aberto.serie) ?? tmdbFallbackId) : (tmdbFallbackId ?? null);
+  const idTmdbAberto = idEfetivo;
   useEffect(() => {
     if (!aberto?.serie || !idTmdbAberto || temporadaAtiva <= 0) return;
     let cancelado = false;
@@ -989,17 +1192,65 @@ export function VodCatalog({
   }, [episodiosAgrupados]);
 
   // Itens da grade de busca / explorar
-  const [buscaAchados, setBuscaAchados] = useState<Achado[]>([]);
+  const [buscaAchados, setBuscaAchados] = useState<Array<Achado & { capa?: string; tmdbId?: number; imdbId?: string; addonMetaId?: string }>>([]);
   const buscaAtiva = termoBusca.trim().length >= 2;
   useEffect(() => {
     const termo = termoBusca.trim();
     if (termo.length < 2) return;
     let vivo = true;
     const espera = setTimeout(() => {
-      buscar(termo).then((res) => { if (vivo && res) setBuscaAchados(res); });
-    }, 200);
+      void (async () => {
+        const res = temListaFilmes ? await buscar(termo).catch(() => []) : [];
+        if (!vivo) return;
+        const out: Array<Achado & { capa?: string; tmdbId?: number; imdbId?: string; addonMetaId?: string }> = [...(res || [])];
+        if (temAddons) {
+          const [addonMetas, tmdbItems] = await Promise.all([
+            searchAddonsCatalogs(addons.filter((a) => a.enabled), termo).catch(() => []),
+            searchTmdbMulti(termo).catch(() => []),
+          ]);
+          if (!vivo) return;
+          const vistos = new Set(out.map((x) => `${x.serie ? 's' : 'f'}:${x.titulo.toLowerCase()}`));
+          for (const m of addonMetas) {
+            const conv = metaPreviewToItemDestaque(m);
+            const k = `${conv.tipo}:${conv.titulo.toLowerCase()}`;
+            if (!vistos.has(k)) {
+              vistos.add(k);
+              out.push({
+                serie: conv.tipo === 's',
+                titulo: conv.titulo,
+                nomeCompleto: conv.titulo,
+                letra: conv.letra,
+                ano: conv.ano,
+                capa: conv.capa,
+                tmdbId: conv.tmdbId,
+                imdbId: conv.imdbId,
+                addonMetaId: conv.addonMetaId,
+              });
+            }
+          }
+          for (const td of tmdbItems) {
+            const conv = discoveryToItemDestaque(td);
+            const k = `${conv.tipo}:${conv.titulo.toLowerCase()}`;
+            if (!vistos.has(k)) {
+              vistos.add(k);
+              out.push({
+                serie: conv.tipo === 's',
+                titulo: conv.titulo,
+                nomeCompleto: conv.titulo,
+                letra: conv.letra,
+                ano: conv.ano,
+                capa: conv.capa,
+                tmdbId: conv.tmdbId,
+                imdbId: conv.imdbId,
+              });
+            }
+          }
+        }
+        if (vivo) setBuscaAchados(out);
+      })();
+    }, 220);
     return () => { vivo = false; clearTimeout(espera); };
-  }, [termoBusca]);
+  }, [termoBusca, temListaFilmes, temAddons, addons]);
 
   // Itens para a Grade Explorar
   const itensGrade = useMemo<Item[]>(() => {
@@ -1018,6 +1269,10 @@ export function VodCatalog({
           serie: a.serie,
           letra: a.letra,
           ano: a.ano,
+          capa: a.capa,
+          tmdbId: a.tmdbId,
+          imdbId: a.imdbId,
+          addonMetaId: a.addonMetaId,
         }));
     }
 
@@ -1569,7 +1824,8 @@ export function VodCatalog({
           {/* Grade de Cartões */}
           <div className="vod-grade-cards">
             {itensFiltrados.slice(0, visiveis).map((item) => {
-              const capaSrc = generos ? capaDaFicha(generos, item.titulo, item.serie, item.colecao?.tmdbId) : null;
+              const extItem = item as Item & { capa?: string };
+              const capaSrc = extItem.capa || (generos ? capaDaFicha(generos, item.titulo, item.serie, item.colecao?.tmdbId) : null);
               const fav = ehFavorito({ tipo: item.serie ? 's' : 'f', titulo: item.titulo, letra: item.letra, ano: item.ano || '', capa: capaSrc || '' });
               return (
                 <button
@@ -1699,9 +1955,9 @@ export function VodCatalog({
                   <div className="vod-ficha-hero-corpo">
                     {/* Capa Vertical */}
                     <div className="vod-ficha-hero-capa">
-                      {ficha?.capa || (generos ? capaDaFicha(generos, aberto.titulo, aberto.serie) : null) ? (
+                      {ficha?.capa || aberto.capa || (generos ? capaDaFicha(generos, aberto.titulo, aberto.serie) : null) ? (
                         <img
-                          src={ficha?.capa || capaDaFicha(generos!, aberto.titulo, aberto.serie) || ''}
+                          src={ficha?.capa || aberto.capa || capaDaFicha(generos!, aberto.titulo, aberto.serie) || ''}
                           alt=""
                           referrerPolicy="no-referrer"
                         />
@@ -1773,12 +2029,15 @@ export function VodCatalog({
                         )}
 
                         {(() => {
-                          const origemItem: ItemDestaque = {
+                          const origemItem: AddonItemDestaque = {
                             tipo: aberto.chave.startsWith('animes') ? 'a' : aberto.chave.startsWith('doramas') ? 'd' : aberto.serie ? 's' : 'f',
                             titulo: aberto.titulo,
                             letra: aberto.letra,
                             ano: aberto.ano || '',
-                            capa: (generos && capaDaFicha(generos, aberto.titulo, aberto.serie)) || ficha?.capa || '',
+                            capa: aberto.capa || (generos && capaDaFicha(generos, aberto.titulo, aberto.serie)) || ficha?.capa || '',
+                            tmdbId: aberto.tmdbId,
+                            imdbId: aberto.imdbId,
+                            addonMetaId: aberto.addonMetaId,
                           };
                           const fav = ehFavorito(origemItem);
                           return (
@@ -1976,7 +2235,7 @@ export function VodCatalog({
                   )}
 
                   {/* Fontes alternativas para filmes (oculto na TV para tocar direto sem pedir confirmação) */}
-                  {!ehTv() && !aberto.serie && fontesAbertas && fontesAbertas.length > 1 && (
+                  {!ehTv() && !aberto.serie && fontesAbertas && fontesAbertas.length > 0 && (
                     <div className="vod-fontes-seletor">
                       <p>Fontes e versões disponíveis:</p>
                       <div className="vod-fontes-lista">
@@ -1987,8 +2246,14 @@ export function VodCatalog({
                             onClick={() => tocarFilme(aberto.titulo, fontesAbertas, fonte.url)}
                           >
                             <span>
-                              <strong>{`Fonte ${idx + 1}`}</strong>
-                              <small>{fonte.versao === 'leg' ? 'Legendado' : 'Dublado'}</small>
+                              <strong>{fonte.rotulo || `Fonte ${idx + 1}`}</strong>
+                              <small>
+                                {[
+                                  fonte.versao === 'leg' ? 'Legendado' : fonte.versao === 'dub' ? 'Dublado' : '',
+                                  fonte.detalhe,
+                                  fonte.webAviso,
+                                ].filter(Boolean).join(' · ')}
+                              </small>
                             </span>
                           </button>
                         ))}

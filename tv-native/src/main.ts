@@ -11,6 +11,7 @@ import { SpatialNav } from './core/SpatialNav';
 import { State, ScreenType } from './core/State';
 import { Storage } from './core/Storage';
 import { Api } from './core/Api';
+import { Addons } from './core/Addons';
 import { PlayerFactory } from './player/PlayerFactory';
 import { MenuGlobal } from './components/MenuGlobal';
 
@@ -26,6 +27,7 @@ import { SearchScreen } from './screens/SearchScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { FavoritesScreen } from './screens/FavoritesScreen';
 import { MinhasListasScreen } from './screens/MinhasListasScreen';
+import { AddonsScreen } from './screens/AddonsScreen';
 import { DoacaoScreen } from './screens/DoacaoScreen';
 
 class SaimoTVApp {
@@ -71,7 +73,10 @@ class SaimoTVApp {
     this.screens.set('settings', new SettingsScreen());
     this.screens.set('favorites', new FavoritesScreen());
     this.screens.set('minhas', new MinhasListasScreen());
+    this.screens.set('addons', new AddonsScreen());
     this.screens.set('doacao', new DoacaoScreen());
+
+    Addons.initBridge();
 
     // Adiciona elementos das telas ao contêiner
     this.screens.forEach((screen) => {
@@ -139,7 +144,7 @@ class SaimoTVApp {
         State.setScreen(State.previousScreen === 'player' ? 'home' : State.previousScreen);
       } else if (current === 'player') {
         State.setScreen('ficha');
-      } else if (current === 'minhas') {
+      } else if (current === 'minhas' || current === 'addons') {
         State.setScreen('settings');
       } else if (current === 'live') {
         State.setScreen('home');

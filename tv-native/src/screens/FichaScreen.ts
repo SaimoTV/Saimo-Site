@@ -9,8 +9,9 @@
 
 import { State } from '../core/State';
 import { VODItem, Api } from '../core/Api';
+import { Addons, TvAddonStreamOption } from '../core/Addons';
 import { Storage } from '../core/Storage';
-import { SourceModal } from '../components/SourceModal';
+import { SourceModal, SourceModalOption } from '../components/SourceModal';
 import { Rail, CardModel } from '../components/Rail';
 import { SpatialNav } from '../core/SpatialNav';
 
@@ -194,12 +195,26 @@ export class FichaScreen {
 
     // 2. Resolve fontes reais de reprodução
     if (!item.isSeries) {
-      const sources = await Api.resolveMovieSources(item);
-      item.sources = sources;
+      const baseSources = await Api.resolveMovieSources(item);
+      let addonStreams: TvAddonStreamOption[] = [];
+      if (Addons.hasStreamAddons()) {
+        addonStreams = await Addons.resolveMediaStreams(item).catch(() => []);
+      }
+      const mergedUrls = baseSources.slice();
+      for (let i = 0; i < addonStreams.length; i++) {
+        if (mergedUrls.indexOf(addonStreams[i].url) === -1) {
+          mergedUrls.push(addonStreams[i].url);
+        }
+      }
+      item.addonStreams = addonStreams;
+      item.sources = mergedUrls;
       if (this.currentItem !== item) return;
       this.renderActionButtons(item);
     } else {
       await Api.resolveSeriesEpisodes(item);
+      if ((!item.seasons || item.seasons.length === 0) && Addons.hasEnabled()) {
+        await Addons.resolveSeriesEpisodes(item);
+      }
       if (this.currentItem !== item) return;
       this.renderSeasonsAndEpisodes(item);
     }
@@ -259,6 +274,34 @@ export class FichaScreen {
       favBtn.innerHTML = nowFav ? 'Nos favoritos' : 'Favoritar';
     });
     this.actionsContainer.appendChild(favBtn);
+
+    const totalFontes = (item.sources && item.sources.length) || 0;
+    if (totalFontes > 0) {
+      const srcBtn = document.createElement('div');
+      srcBtn.className = 'tv-btn nav-focusable';
+      srcBtn.setAttribute('data-nav', 'true');
+      srcBtn.id = 'ficha-btn-sources';
+      srcBtn.innerHTML = `Fontes (${totalFontes})`;
+      srcBtn.addEventListener('click', () => {
+        const opts: (SourceModalOption | string)[] = (item.sources || []).map((url, idx) => {
+          const matched = item.addonStreams?.find((a) => a.url === url);
+          return matched
+            ? {
+                url: matched.url,
+                label: matched.label,
+                detail: matched.detail,
+                badge: matched.badge || matched.addonName,
+              }
+            : { url, label: `Fonte ${idx + 1}`, quality: 'HD' };
+        });
+        this.sourceModal.open(item.title, opts, 0, (idx) => {
+          State.currentVariantIndex = idx;
+          State.setScreen('player', { vod: item });
+        });
+      });
+      this.actionsContainer.appendChild(srcBtn);
+    }
+
     this.ligarNavegacao();
 
     // Foco no Assistir, a não ser que a pessoa já tenha descido para outra parte da ficha.

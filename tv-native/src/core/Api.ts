@@ -6,6 +6,8 @@
 
 import { Storage } from './Storage';
 import { MinhasListas } from './MinhasListas';
+import { Addons, TvAddonStreamOption } from './Addons';
+import { resolveImdbToTmdb } from '../../../src/utils/addonClient';
 
 export interface ChannelVariant {
   url: string;
@@ -47,10 +49,14 @@ export interface VODItem {
   letra?: string;
   isSeries: boolean;
   tmdbId?: number;
+  imdbId?: string;
+  addonMetaId?: string;
+  addonType?: 'movie' | 'series';
   poster: string;
   genres: string[];
   year?: string;
   sources?: string[];
+  addonStreams?: TvAddonStreamOption[];
   overview?: string;
   rating?: number;
   duration?: string;
@@ -121,9 +127,14 @@ export class Api {
     return this.enderecoSaimo(type) || this.SEM_ENDERECO;
   }
 
-  /** Ainda não há lista nenhuma: nem endereço do Saimo, nem lista da própria pessoa. */
+  /** Ainda não há lista ou fonte alguma: nem endereço do Saimo, nem lista própria, nem addons. */
   static semListas(): boolean {
-    return !this.enderecoSaimo('canais') && !this.enderecoSaimo('filmes') && MinhasListas.listas().length === 0;
+    return (
+      !this.enderecoSaimo('canais') &&
+      !this.enderecoSaimo('filmes') &&
+      MinhasListas.listas().length === 0 &&
+      !Addons.hasEnabled()
+    );
   }
 
   // ===== CANAIS AO VIVO =====
@@ -352,7 +363,16 @@ export class Api {
   }
 
   // ===== DESTAQUES DA TELA INICIAL (DESTAQUES.TXT) =====
+  static invalidateDestaquesCache(): void {
+    if (!this.enderecoSaimo('filmes')) {
+      this.destaquesCache = [];
+    }
+  }
+
   static getCachedDestaquesSync(): DestaqueFila[] {
+    if (!this.enderecoSaimo('filmes')) {
+      return Addons.hasEnabled() ? this.destaquesCache : [];
+    }
     if (this.destaquesCache.length > 0) return this.destaquesCache;
     const cached = Storage.getCachedDestaques();
     if (cached && cached.length > 0) {
@@ -363,6 +383,22 @@ export class Api {
   }
 
   static async fetchDestaques(forceRefresh = false): Promise<DestaqueFila[]> {
+    if (!this.enderecoSaimo('filmes')) {
+      if (!Addons.hasEnabled()) {
+        this.destaquesCache = [];
+        return [];
+      }
+      if (!forceRefresh && this.destaquesCache.length > 0) return this.destaquesCache;
+      try {
+        const addonRails = await Addons.discoverRails();
+        this.destaquesCache = addonRails;
+        return this.destaquesCache;
+      } catch (e) {
+        console.warn('[SaimoTV] Falha ao carregar catálogos de addons:', e);
+        return this.destaquesCache;
+      }
+    }
+
     if (!forceRefresh && this.destaquesCache.length > 0) return this.destaquesCache;
 
     const cached = Storage.getCachedDestaques();
@@ -473,6 +509,15 @@ export class Api {
 
   // ===== FICHAS DO ACERVO COMPLETO =====
   static async fetchFichas(): Promise<VODItem[]> {
+    if (!this.enderecoSaimo('filmes')) {
+      if (Addons.hasEnabled()) {
+        if (this.destaquesCache.length === 0) {
+          await this.fetchDestaques(true);
+        }
+        return this.getDestaquesFlat();
+      }
+      return [];
+    }
     if (this.vodCache.length > 0) return this.vodCache;
     try {
       const url = `${this.getBaseUrl('filmes')}fichas.txt`;
@@ -540,6 +585,7 @@ export class Api {
   // ===== RESOLUÇÃO REAL DE FONTES DE FILME =====
   static async resolveMovieSources(item: VODItem): Promise<string[]> {
     if (item.sources && item.sources.length > 0) return item.sources;
+    if (!this.enderecoSaimo('filmes')) return item.sources || [];
 
     const bases = await this.fetchBases();
     const letra = item.letra || item.title.charAt(0).toUpperCase();
@@ -585,6 +631,13 @@ export class Api {
   // ===== RESOLUÇÃO REAL DE EPISÓDIOS DE SÉRIES =====
   static async resolveSeriesEpisodes(item: VODItem): Promise<void> {
     if (item.seasons && item.seasons.length > 0) return;
+
+    if (!this.enderecoSaimo('filmes')) {
+      if (Addons.hasEnabled()) {
+        await Addons.resolveSeriesEpisodes(item);
+      }
+      return;
+    }
 
     const bases = await this.fetchBases();
     const letra = item.letra || item.title.charAt(0).toUpperCase();
@@ -683,14 +736,25 @@ export class Api {
     const ficha = this.fichasMap.get(item.title);
     if (ficha?.tmdbId) item.tmdbId = ficha.tmdbId;
 
+    if (!item.tmdbId && item.imdbId) {
+      const bridge = await resolveImdbToTmdb(item.imdbId, item.isSeries ? 'series' : 'movie').catch(() => null);
+      if (bridge) {
+        item.tmdbId = bridge.tmdbId;
+      }
+    }
+
     if (!item.tmdbId) return;
 
     try {
       const type = item.isSeries ? 'tv' : 'movie';
-      const url = `${this.TMDB_BASE}/${type}/${item.tmdbId}?api_key=${this.TMDB_KEY}&language=pt-BR&append_to_response=credits`;
+      const url = `${this.TMDB_BASE}/${type}/${item.tmdbId}?api_key=${this.TMDB_KEY}&language=pt-BR&append_to_response=credits,external_ids`;
       const res = await fetch(url);
       if (!res.ok) return;
       const data = await res.json();
+
+      if (data.external_ids?.imdb_id && !item.imdbId) {
+        item.imdbId = data.external_ids.imdb_id;
+      }
 
       item.overview = data.overview || item.overview;
       item.rating = data.vote_average || item.rating;

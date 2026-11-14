@@ -9,6 +9,14 @@ import { CampoBusca, CartaoCapa, CartaoLargo, Fileira, SemLista } from '../compo
 import { useCanais } from '../hooks/useCanais';
 import { useListas } from '../services/listas';
 import {
+  discoveryToItemDestaque,
+  metaPreviewToItemDestaque,
+  searchAddonsCatalogs,
+  searchTmdbMulti,
+  useAddons,
+  useTemAddons,
+} from '../services/addons';
+import {
   buscar, capaDaFicha, colecao, generos as lerGeneros, semAno,
   type Generos, type ItemDestaque, type SerieColecao,
 } from '../services/vodService';
@@ -25,6 +33,9 @@ export function Busca() {
   const abrirVod = useAbrirVod();
   const canais = useCanais();
   const links = useListas();
+  const addons = useAddons();
+  const temAddons = useTemAddons();
+  const podeVod = Boolean(links.filmes) || temAddons;
   const [termo, setTermo] = useState('');
   const [acervo, setAcervo] = useState<ItemDestaque[]>([]);
   const [colecoes, setColecoes] = useState<{ animes: SerieColecao[]; doramas: SerieColecao[] } | null>(null);
@@ -33,7 +44,7 @@ export function Busca() {
   const t = termo.trim();
 
   useEffect(() => {
-    // Sem endereço de filmes não há o que carregar (e nada é pedido).
+    // Sem endereço de filmes não há o que carregar do catálogo M3U/Saimo.
     if (!links.filmes) return;
     void lerGeneros().then(setFichas);
     void Promise.all([colecao('animes'), colecao('doramas')]).then(([animes, doramas]) => setColecoes({ animes, doramas }));
@@ -41,16 +52,47 @@ export function Busca() {
 
   // O índice de nomes é pequeno; espera-se um instante entre as teclas.
   useEffect(() => {
-    if (t.length < 2 || !links.filmes) return;
+    if (t.length < 2 || !podeVod) return;
     let vivo = true;
     const espera = window.setTimeout(() => {
-      buscar(t).then((achados) => {
+      void (async () => {
+        const baseProm = links.filmes
+          ? buscar(t).then((achados) =>
+              achados.map((a) => ({ tipo: a.serie ? 's' : 'f', titulo: a.titulo, letra: a.letra, ano: a.ano, capa: '' } as ItemDestaque)),
+            ).catch(() => [] as ItemDestaque[])
+          : Promise.resolve([] as ItemDestaque[]);
+        const addonProm = temAddons
+          ? Promise.all([
+              searchAddonsCatalogs(addons.filter((a) => a.enabled), t).catch(() => []),
+              searchTmdbMulti(t).catch(() => []),
+            ])
+          : Promise.resolve([[], []] as const);
+
+        const [baseItems, [addonMetas, tmdbItems]] = await Promise.all([baseProm, addonProm]);
         if (!vivo) return;
-        setAcervo(achados.map((a) => ({ tipo: a.serie ? 's' : 'f', titulo: a.titulo, letra: a.letra, ano: a.ano, capa: '' })));
-      }).catch(() => {});
-    }, 200);
+        const combinados: ItemDestaque[] = [...baseItems];
+        const vistos = new Set(combinados.map((x) => `${x.tipo}:${x.titulo.toLowerCase()}`));
+        for (const m of addonMetas) {
+          const conv = metaPreviewToItemDestaque(m);
+          const k = `${conv.tipo}:${conv.titulo.toLowerCase()}`;
+          if (!vistos.has(k)) {
+            vistos.add(k);
+            combinados.push(conv);
+          }
+        }
+        for (const td of tmdbItems) {
+          const conv = discoveryToItemDestaque(td);
+          const k = `${conv.tipo}:${conv.titulo.toLowerCase()}`;
+          if (!vistos.has(k)) {
+            vistos.add(k);
+            combinados.push(conv);
+          }
+        }
+        setAcervo(combinados);
+      })();
+    }, 220);
     return () => { vivo = false; window.clearTimeout(espera); };
-  }, [t, links.filmes]);
+  }, [t, podeVod, links.filmes, temAddons, addons]);
 
   const guardar = (q: string) => {
     if (q.length < 2) return;
@@ -77,7 +119,7 @@ export function Busca() {
   }, [t, colecoes]);
 
   // Sem termo, resultado velho não aparece: ele só vale enquanto se digita.
-  const achadosAcervo = t.length >= 2 && links.filmes ? acervo : [];
+  const achadosAcervo = t.length >= 2 && podeVod ? acervo : [];
   const filmes = achadosAcervo.filter((i) => i.tipo === 'f');
   const series = achadosAcervo.filter((i) => i.tipo === 's');
   const nada = t.length >= 2 && !canaisAchados.length && !achadosAcervo.length
@@ -107,9 +149,9 @@ export function Busca() {
             </div>
           </>
         )}
-        {!links.canais && <SemLista tipo="canais" />}
-        {!links.filmes && <SemLista tipo="filmes" />}
-        {nada && (links.canais || links.filmes) && <div className="tela-vazio"><h2>Nada encontrado</h2><p>Nada para “{t}”. Tente outro nome.</p></div>}
+        {!links.canais && !temAddons && <SemLista tipo="canais" />}
+        {!links.filmes && !temAddons && <SemLista tipo="filmes" />}
+        {nada && (links.canais || podeVod) && <div className="tela-vazio"><h2>Nada encontrado</h2><p>Nada para “{t}”. Tente outro nome.</p></div>}
       </div>
 
       {canaisAchados.length > 0 && (

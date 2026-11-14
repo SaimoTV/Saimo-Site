@@ -8,6 +8,7 @@ export interface PlaybackSource {
   title?: string;
   referer?: string;
   userAgent?: string;
+  headers?: Record<string, string>;
   clearKey?: string;
   isLive?: boolean;
 }

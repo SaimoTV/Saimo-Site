@@ -6,6 +6,14 @@
 import { ChannelVariant } from '../core/Api';
 import { SpatialNav } from '../core/SpatialNav';
 
+export interface SourceModalOption {
+  url?: string;
+  quality?: string;
+  label?: string;
+  detail?: string;
+  badge?: string;
+}
+
 export class SourceModal {
   private element: HTMLElement;
   private listEl: HTMLElement;
@@ -39,7 +47,7 @@ export class SourceModal {
 
   open(
     title: string,
-    variants: (ChannelVariant | string)[],
+    variants: (ChannelVariant | SourceModalOption | string)[],
     currentIndex = 0,
     onSelect: (index: number) => void
   ) {
@@ -53,12 +61,15 @@ export class SourceModal {
       emptyMsg.style.textAlign = 'center';
       emptyMsg.style.color = '#94a3b8';
       emptyMsg.style.fontSize = '18px';
-      emptyMsg.textContent = 'Nenhuma fonte extra cadastrada para este canal no momento.';
+      emptyMsg.textContent = 'Nenhuma fonte extra cadastrada no momento.';
       this.listEl.appendChild(emptyMsg);
     } else {
       variants.forEach((v, idx) => {
         const isString = typeof v === 'string';
-        const quality = !isString ? (v as ChannelVariant).quality || 'HD' : 'HD';
+        const opt = !isString ? (v as SourceModalOption) : null;
+        const primaryLabel = opt?.label || `Fonte ${idx + 1}`;
+        const badgeText = opt?.badge || opt?.quality || 'HD';
+        const detailText = opt?.detail || '';
 
         const btn = document.createElement('div');
         const isActive = (idx === currentIndex);
@@ -73,10 +84,15 @@ export class SourceModal {
         btn.style.fontSize = '18px';
         btn.style.cursor = 'pointer';
 
+        const safeLabel = String(primaryLabel).replace(/</g, '&lt;');
+        const safeBadge = String(badgeText).replace(/</g, '&lt;');
+        const safeDetail = detailText ? String(detailText).replace(/</g, '&lt;') : '';
+
         btn.innerHTML = `
-          <div style="display:flex; align-items:center; gap:12px;">
-            <span style="font-weight:700;">${isActive ? '✓ ' : ''}Fonte ${idx + 1}</span>
-            <span style="font-size:13px; background:rgba(255,255,255,0.15); padding:2px 8px; border-radius:6px; color:#ffffff;">${quality}</span>
+          <div style="display:flex; align-items:center; flex-wrap:wrap; gap:10px; min-width:0;">
+            <span style="font-weight:700;">${isActive ? '✓ ' : ''}${safeLabel}</span>
+            ${safeDetail ? `<span style="font-size:14px; color:#cbd5e1;">${safeDetail}</span>` : ''}
+            <span style="font-size:13px; background:rgba(255,255,255,0.15); padding:2px 8px; border-radius:6px; color:#ffffff;">${safeBadge}</span>
             ${isActive ? '<span style="font-size:13px; color:#0b0e14; font-weight:700; background:#00e3ff; padding:2px 8px; border-radius:6px;">EM USO</span>' : ''}
           </div>
         `;

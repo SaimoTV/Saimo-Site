@@ -1,6 +1,7 @@
-import type { MovieSource } from '../types/movie';
+import type { Movie, MovieSource } from '../types/movie';
 import { httpsFirst } from './sourceOrder';
 import { proxyBase } from './streamUrl';
+import { hasEnabledStreamAddons, resolveAddonStreamsForTitle } from '../services/addons';
 
 function isAllowedTargetHost(hostname: string): boolean {
   return (
@@ -49,10 +50,41 @@ async function resolverDinamica(source: MovieSource, signal: AbortSignal): Promi
   } catch { return { source }; }
 }
 
-/** Resolve ao abrir o título: URLs assinadas não ficam gravadas no catálogo. */
-export async function resolveVodSources(original: MovieSource[], signal: AbortSignal): Promise<ResolvedMovieSources> {
+/** Resolve ao abrir o título: URLs assinadas não ficam gravadas no catálogo. Fontes de addons/Debrid nunca vão ao proxy. */
+export async function resolveVodSources(
+  original: MovieSource[],
+  signal: AbortSignal,
+  movieContext?: Pick<Movie, 'type' | 'tmdbId' | 'imdbId' | 'addonMetaId' | 'seasonNumber' | 'episodeNumber'>,
+): Promise<ResolvedMovieSources> {
+  const temPendente = original.some((s) => s.url === 'addon-stream://pending');
+  let baseOriginal = original.filter((s) => s.url !== 'addon-stream://pending');
+  const precisaAddons =
+    Boolean(movieContext) &&
+    (temPendente || (hasEnabledStreamAddons() && !baseOriginal.some((s) => Boolean(s.addonId))));
+
+  if (precisaAddons && movieContext) {
+    try {
+      const addonRes = await resolveAddonStreamsForTitle({
+        tmdbId: movieContext.tmdbId,
+        imdbId: movieContext.imdbId,
+        addonMetaId: movieContext.addonMetaId,
+        isSeries: movieContext.type === 'series',
+        season: movieContext.seasonNumber,
+        episode: movieContext.episodeNumber,
+      });
+      if (addonRes.sources.length > 0) {
+        baseOriginal = [...baseOriginal, ...addonRes.sources];
+      }
+    } catch {
+      /* falha ao consultar addons fica silenciosa e mantém demais fontes */
+    }
+  }
+
   let indicouSomenteApp = false;
-  const resolvedDynamics = await Promise.all(original.map(async source => {
+  const resolvedDynamics = await Promise.all(baseOriginal.map(async source => {
+    if (source.addonId || source.infoHash || source.url.startsWith('addon-debrid://')) {
+      return source;
+    }
     if (ehEnderecoDinamico(source.url)) {
       const res = await resolverDinamica(source, signal);
       if (res.somenteApp) indicouSomenteApp = true;
@@ -62,6 +94,7 @@ export async function resolveVodSources(original: MovieSource[], signal: AbortSi
   }));
   const sources = resolvedDynamics.filter((source): source is MovieSource => source !== null);
   const candidates = sources.filter(source => {
+    if (source.addonId || source.infoHash || source.url.startsWith('addon-debrid://')) return false;
     try {
       const url = new URL(source.url);
       if (url.protocol === 'http:' && url.hostname === 'dbonline.tech-cdn.top') return true;

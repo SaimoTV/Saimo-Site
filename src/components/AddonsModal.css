@@ -1,0 +1,292 @@
+.addons-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(5, 8, 18, 0.78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.addons-modal {
+  width: 100%;
+  max-width: 780px;
+  max-height: min(88vh, 860px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 22px;
+  background: linear-gradient(160deg, rgba(20, 24, 40, 0.98), rgba(10, 12, 22, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.65);
+  color: #fff;
+  overflow: hidden;
+}
+
+.addons-modal-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 22px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.addons-modal-topo h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.addons-modal-fechar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.addons-modal-fechar:hover,
+.addons-modal-fechar:focus-visible {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.addons-abas {
+  display: flex;
+  gap: 8px;
+  padding: 12px 22px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.addons-aba {
+  padding: 9px 16px 11px;
+  border-radius: 12px 12px 0 0;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.62);
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.addons-aba.ativa {
+  color: #4ff3e0;
+  border-bottom-color: #4ff3e0;
+  background: rgba(79, 243, 224, 0.07);
+}
+
+.addons-corpo {
+  padding: 18px 22px 22px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.addons-form-linha {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.addons-input {
+  flex: 1 1 260px;
+  min-width: 0;
+  padding: 11px 14px;
+  border-radius: 14px;
+  font: inherit;
+  font-size: 0.92rem;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.addons-input:focus {
+  outline: 2px solid rgba(79, 243, 224, 0.75);
+  outline-offset: 1px;
+}
+
+.addons-textarea {
+  width: 100%;
+  min-height: 110px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  color: #e2e8f0;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.addons-btn {
+  padding: 10px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.addons-btn:hover,
+.addons-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.addons-btn.principal {
+  background: #4ff3e0;
+  border-color: #4ff3e0;
+  color: #08101c;
+}
+
+.addons-btn.principal:hover {
+  background: #73f8e8;
+}
+
+.addons-btn.perigo {
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.4);
+}
+
+.addons-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.addons-nota {
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.72);
+  margin: 0;
+}
+
+.addons-aviso {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.addons-aviso.erro {
+  background: rgba(248, 113, 113, 0.14);
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  color: #fecaca;
+}
+
+.addons-aviso.ok {
+  background: rgba(79, 243, 224, 0.12);
+  border: 1px solid rgba(79, 243, 224, 0.45);
+  color: #a7f3d0;
+}
+
+.addons-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.addons-card {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.addons-card.desativado {
+  opacity: 0.62;
+}
+
+.addons-card-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.addons-card-titulo {
+  font-size: 0.98rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.addons-card-desc {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.68);
+  margin: 4px 0 0;
+}
+
+.addons-card-url {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.45);
+  word-break: break-all;
+}
+
+.addons-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.addons-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(122, 162, 255, 0.16);
+  border: 1px solid rgba(122, 162, 255, 0.35);
+  color: #bfd4ff;
+}
+
+.addons-tag.verde {
+  background: rgba(79, 243, 224, 0.14);
+  border-color: rgba(79, 243, 224, 0.35);
+  color: #7ff0e3;
+}
+
+.addons-tag.aviso {
+  background: rgba(255, 180, 84, 0.14);
+  border-color: rgba(255, 180, 84, 0.4);
+  color: #ffd394;
+}
+
+.addons-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.addons-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.83rem;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+}
+
+.addons-vazio {
+  text-align: center;
+  padding: 24px 16px;
+  border-radius: 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}

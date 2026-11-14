@@ -8,6 +8,7 @@ import { Storage } from './Storage';
 export type ScreenType =
   | 'favorites'
   | 'minhas'
+  | 'addons'
   | 'live'
   | 'home'
   | 'ondemand'
@@ -95,7 +96,7 @@ export class State {
     else if (screen === 'events') this.activeTab = 'eventos';
     else if (screen === 'radios') this.activeTab = 'radios';
     else if (screen === 'search') this.activeTab = 'buscar';
-    else if (screen === 'settings' || screen === 'minhas') this.activeTab = 'ajustes';
+    else if (screen === 'settings' || screen === 'minhas' || screen === 'addons') this.activeTab = 'ajustes';
     else if (screen === 'favorites') this.activeTab = 'favoritos';
     else if (screen === 'doacao') this.activeTab = 'apoie';
 

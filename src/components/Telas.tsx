@@ -161,11 +161,14 @@ export function CampoBusca({ valor, aoMudar, placeholder, autoFocus }: {
   );
 }
 
-const BOAS_VINDAS = 'Para começar, adicione uma lista M3U (só o link já basta), uma lista com usuário e senha ou o endereço de uma lista do Saimo.';
+const BOAS_VINDAS = 'Para começar, adicione uma lista M3U (só o link já basta), instale um addon no protocolo Stremio ou informe o endereço de uma lista do Saimo.';
 
 const TEXTOS_SEM_LISTA = {
   canais: ['Bem-vindo ao Saimo!', BOAS_VINDAS],
-  filmes: ['Nenhum filme ou série', 'Informe o endereço de uma lista de filmes e séries do Saimo em Ajustes > Listas.'],
+  filmes: [
+    'Nenhum filme ou série',
+    'Adicione uma lista em Minhas listas ou instale um addon (protocolo Stremio) em Ajustes > Addons para desbloquear filmes e séries.',
+  ],
   radios: ['Nenhuma rádio', 'As rádios vêm de uma lista de canais do Saimo. Informe o endereço em Ajustes > Listas.'],
   eventos: ['Nenhum jogo', 'Os jogos aparecem nos canais da lista. ' + BOAS_VINDAS],
   guia: ['Sem guia de programação', 'Informe o endereço de uma lista de canais do Saimo em Ajustes > Listas.'],
@@ -187,6 +190,12 @@ export function SemLista({ tipo }: { tipo: keyof typeof TEXTOS_SEM_LISTA }) {
       <p>{texto}</p>
       {(tipo === 'canais' || tipo === 'eventos') && (
         <button type="button" className="sem-lista-acao" onClick={() => navigate('/ajustes#minhas-listas')} autoFocus>Adicionar lista</button>
+      )}
+      {tipo === 'filmes' && (
+        <>
+          <button type="button" className="sem-lista-acao" onClick={() => navigate('/ajustes#addons')} autoFocus>Configurar Addons</button>
+          <button type="button" className="sem-lista-acao secundaria" onClick={() => navigate('/ajustes#minhas-listas')}>Minhas listas</button>
+        </>
       )}
       <button type="button" className="sem-lista-acao secundaria" onClick={() => navigate('/ajustes')}>Endereços do Saimo</button>
     </div>

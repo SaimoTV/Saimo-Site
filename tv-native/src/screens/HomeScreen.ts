@@ -45,16 +45,30 @@ export class HomeScreen {
 
     this.element.appendChild(this.scrollContainer);
 
-    // Sem lista nenhuma: boas-vindas com o caminho para adicionar uma.
+    // Sem lista nenhuma: boas-vindas com o caminho para adicionar uma lista ou configurar addons.
     this.boasVindas = document.createElement('div');
     this.boasVindas.className = 'tv-boas-vindas hidden';
     this.boasVindas.innerHTML = `
       <div class="tv-boas-vindas-t">Bem-vindo ao Saimo!</div>
-      <div class="tv-boas-vindas-p">Para começar, adicione uma lista M3U (só o link já basta) ou uma lista com usuário e senha.</div>
-      <div id="bv-add" class="tv-btn nav-focusable" data-nav="true">Adicionar lista</div>
+      <div class="tv-boas-vindas-p">Para começar, adicione uma lista M3U / Xtream em Minhas listas ou configure Addons (Stremio) + Debrid em Ajustes.</div>
+      <div style="display:flex;align-items:center;justify-content:center">
+        <div id="bv-add" class="tv-btn nav-focusable" data-nav="true">Adicionar lista</div>
+        <div id="bv-addons" class="tv-btn nav-focusable" data-nav="true" style="margin-left:16px">Configurar Addons</div>
+      </div>
     `;
     this.boasVindas.querySelector('#bv-add')!.addEventListener('click', () => State.setScreen('minhas'));
+    this.boasVindas.querySelector('#bv-addons')!.addEventListener('click', () => State.setScreen('addons'));
     this.element.appendChild(this.boasVindas);
+
+    State.on('addons-changed', () => {
+      Api.invalidateDestaquesCache();
+      this.isLoaded = false;
+      this.dynamicRails.forEach((r) => r.getElement().remove());
+      this.dynamicRails = [];
+      if (!this.element.classList.contains('hidden')) {
+        this.enter();
+      }
+    });
   }
 
   private boasVindas: HTMLElement;
@@ -219,7 +233,11 @@ export class HomeScreen {
 
   private loadDestaquesSync() {
     const filas = Api.getCachedDestaquesSync();
-    if (filas.length === 0) return;
+    if (filas.length === 0) {
+      this.dynamicRails.forEach((r) => r.getElement().remove());
+      this.dynamicRails = [];
+      return;
+    }
 
     if (this.dynamicRails.length > 0 && this.dynamicRails.length === filas.length) {
       return;

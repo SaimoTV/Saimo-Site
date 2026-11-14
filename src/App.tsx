@@ -14,6 +14,7 @@ import { NavegacaoMobile } from './components/NavegacaoMobile';
 import { useVoltarFecha } from './hooks/useVoltarFecha';
 import { useCanais } from './hooks/useCanais';
 import { useListas } from './services/listas';
+import { useTemAddons } from './services/addons';
 import { useTemMinhasListas } from './hooks/useTemMinhasListas';
 import { RaizDoSite } from './landing/RaizDoSite';
 import { Landing } from './landing/Landing';
@@ -543,6 +544,8 @@ function MoviesPage() {
   const navigate = useNavigate();
   const { isAdultUnlocked } = useAdultMode();
   const { filmes } = useListas();
+  const temAddons = useTemAddons();
+  const podeVerVod = Boolean(filmes) || temAddons;
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [seriesInfo, setSeriesInfo] = useState<SeriesEpisodeInfo | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
@@ -584,8 +587,8 @@ function MoviesPage() {
       {/* O player tem cabeçalho próprio, como nos apps de streaming: sem uma
           segunda barra global ocupando espaço e duplicando o botão de voltar. */}
       {/* Catálogo lido do repositório, o mesmo que o aplicativo usa */}
-      {!filmes && <SemLista tipo="filmes" />}
-      {filmes && <Suspense fallback={<LoadingFallback />}>
+      {!podeVerVod && <SemLista tipo="filmes" />}
+      {podeVerVod && <Suspense fallback={<LoadingFallback />}>
         <div className={`catalog-container ${selectedMovie ? 'hidden-catalog' : ''}`}>
           <VodCatalog
             onSelectMovie={handleSelectMovie}

@@ -4,7 +4,9 @@ import { rota } from '../utils/rotas';
 import { useMediaSession } from '../hooks/useMediaSession';
 import { registrar as registrarAndamento } from '../services/continuar';
 import { buscarPulos, trechoEm, inicioDosCreditos, rotuloTrecho, type Trecho } from '../services/pulos';
-import { buscarLegendas, carregarLegenda, idiomaGuardado, guardarIdioma, type LegendaOpcao, type Fala } from '../services/legendas';
+import { buscarLegendas, carregarLegenda, idiomaGuardado, guardarIdioma, mesclarLegendasComStream, type LegendaOpcao, type Fala } from '../services/legendas';
+import { isDebridPendingUrl } from '../services/addons';
+import { resolveDebridStream } from '../services/debrid';
 import Hls from 'hls.js';
 import { criarCarregadorDireto } from '../utils/segmentoDireto';
 import { aoBloquearExtensao, extensaoBloqueada } from '../plataforma/bloqueioExtensoes';
@@ -45,6 +47,7 @@ function posicionar(video: HTMLVideoElement, segundos: number): void {
 }
 
 function rotuloDaFonte(f: MovieSource, pos: number): { principal: string } {
+  if (f.rotulo) return { principal: f.rotulo };
   const versao = f.versao === 'leg' ? 'Legendado' : f.versao === 'dub' ? 'Dublado' : null;
   let provedor = `Fonte ${pos + 1}`;
   try {
@@ -167,7 +170,7 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
   // Legendas do OpenSubtitles (services/legendas.ts), à parte das que vêm no
   // próprio vídeo. A faixa é do elemento <video>, e as falas ficam na ref para
   // o ajuste de sincronia refazer as marcações sem baixar o arquivo de novo.
-  const [legendasExt, setLegendasExt] = useState<LegendaOpcao[]>([]);
+  const [legendasBase, setLegendasBase] = useState<LegendaOpcao[]>([]);
   const [legendaExt, setLegendaExt] = useState<string | null>(null);
   const [legendaAtraso, setLegendaAtraso] = useState(0);
   const [legendaMsg, setLegendaMsg] = useState<string | null>(null);
@@ -211,9 +214,24 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
   }, [movie]);
 
   const [resolvidas, setResolvidas] = useState<{ movie: Movie; sources: typeof fontesOriginais } | null>(null);
-  const resolverNoSite = !(globalThis as { __SAIMO_DESKTOP__?: boolean }).__SAIMO_DESKTOP__;
+  const [debridResolvidos, setDebridResolvidos] = useState<Record<string, string>>({});
+  const temAddonPendente = fontesOriginais.some((s) => s.url === 'addon-stream://pending');
+  const resolverNoSite = !(globalThis as { __SAIMO_DESKTOP__?: boolean }).__SAIMO_DESKTOP__ || temAddonPendente;
   const resolvendo = !!movie && resolverNoSite && resolvidas?.movie !== movie;
-  const fontes = resolvidas?.movie === movie ? resolvidas!.sources : fontesOriginais;
+  const fontes = useMemo(
+    () =>
+      (resolvidas?.movie === movie ? resolvidas!.sources : fontesOriginais).map((f) =>
+        debridResolvidos[f.url]
+          ? { ...f, url: debridResolvidos[f.url], debridResolvido: true, webReproduzivel: true, webAviso: 'Debrid' }
+          : f,
+      ),
+    [resolvidas, movie, fontesOriginais, debridResolvidos],
+  );
+  const subtitlesDoStream = fontes[fonteIdx]?.subtitles;
+  const legendasExt = useMemo(
+    () => mesclarLegendasComStream(legendasBase, subtitlesDoStream),
+    [legendasBase, subtitlesDoStream],
+  );
   useEffect(() => {
     if (!movie || !resolverNoSite) return;
     const controller = new AbortController();
@@ -222,7 +240,7 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
     setIsLoading(true);
     setError(null);
     setSoNosApps(false);
-    resolveVodSources(fontesOriginais, controller.signal).then(sources => {
+    resolveVodSources(fontesOriginais, controller.signal, movie).then(sources => {
       if (!active) return;
       setFonteIdx(fonteInicial(sources, movie));
       setResolvidas({ movie, sources });
@@ -363,7 +381,31 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
       };
     }
 
-    const url = getProxiedUrl(urlAtiva);
+    const fonteObj = fontes[fonteIdx];
+    const ehExternaAddon = Boolean(fonteObj?.addonId || fonteObj?.infoHash || fonteObj?.debridResolvido);
+    if (fonteObj && isDebridPendingUrl(urlAtiva) && fonteObj.infoHash) {
+      if (fonteObj.webAviso === 'Requer Debrid') {
+        setError('Esta fonte torrent requer uma chave Debrid em Ajustes > Addons.');
+        setIsLoading(false);
+        return;
+      }
+      setIsLoading(true);
+      setError(null);
+      let canceladoDebrid = false;
+      void resolveDebridStream(fonteObj.infoHash, fonteObj.fileIdx, fonteObj.trackers, movie.name).then((res) => {
+        if (canceladoDebrid) return;
+        if (!res.ok || !res.url) {
+          setIsLoading(false);
+          setError(res.error || 'Não foi possível resolver este torrent no Debrid.');
+          return;
+        }
+        setDebridResolvidos((prev) => ({ ...prev, [urlAtiva]: res.url! }));
+      });
+      return () => {
+        canceladoDebrid = true;
+      };
+    }
+    const url = ehExternaAddon ? urlAtiva : getProxiedUrl(urlAtiva);
     const tituloMonitor = seriesInfo?.seriesName || movie.seriesName || movie.name;
     telemetria.comecou('vod', tituloMonitor, urlAtiva, 1);
     const abertura = { titulo: tituloMonitor, url: urlAtiva, desde: performance.now(), avisado: false, falhou: false };
@@ -435,7 +477,7 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
         case 2: message = 'Erro de rede ao carregar as fontes disponíveis.'; break;
         case 3: message = 'O vídeo não pôde ser decodificado.'; break;
         case 4:
-          if (needsProxy(urlAtiva)) {
+          if (!ehExternaAddon && needsProxy(urlAtiva)) {
             fetch(getProxiedUrl(urlAtiva), { method: 'HEAD', signal: abortador.signal })
               .then((resposta) => seguro(() => {
                 if (resposta.status === 403) {
@@ -451,7 +493,11 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
               });
             return;
           }
-          message = 'Formato de vídeo não suportado ou endereço inválido.';
+          message = ehExternaAddon
+            ? (fonteObj?.webAviso === 'Requer app nativo / CORS'
+              ? 'Esta fonte de addon requer aplicativo nativo ou formato compatível (ex.: MKV/CORS).'
+              : 'Não foi possível reproduzir esta fonte de addon no navegador. Tente outra fonte.')
+            : 'Formato de vídeo não suportado ou endereço inválido.';
           break;
       }
       console.log('[MoviePlayer Error]', { code, message, url: urlAtiva, geracao });
@@ -846,18 +892,27 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
   useEffect(() => {
     let vivo = true;
     void escolherLegendaExterna(null, false);
-    setLegendasExt([]);
+    setLegendasBase([]);
     setLegendaAtraso(0);
     if (!movie) return;
-    buscarLegendas(movie.tmdbId, movie.type === 'series', movie.seasonNumber ?? 0, movie.episodeNumber ?? 0)
+    buscarLegendas(
+      movie.tmdbId,
+      movie.type === 'series',
+      movie.seasonNumber ?? 0,
+      movie.episodeNumber ?? 0,
+      movie.imdbId,
+      movie.addonMetaId,
+    )
       .then((lista) => {
         if (!vivo) return;
-        setLegendasExt(lista);
+        setLegendasBase(lista);
+        const combinadas = mesclarLegendasComStream(lista, fontes[fonteIdx]?.subtitles);
         const idioma = idiomaGuardado();
-        const primeira = idioma ? lista.find((l) => l.idioma === idioma) : undefined;
+        const primeira = idioma ? combinadas.find((l) => l.idioma === idioma) : undefined;
         if (primeira) void escolherLegendaExterna(primeira, false);
       });
     return () => { vivo = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [movie, escolherLegendaExterna]);
 
   useEffect(() => {
@@ -1135,7 +1190,9 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
       // A more direct way would be to call a "load" function, but this is simpler with the current structure.
       const video = videoRef.current;
       if (hlsRef.current) {
-        hlsRef.current.loadSource(getProxiedUrl(urlAtiva));
+        hlsRef.current.loadSource(
+          fontes[fonteIdx]?.addonId || fontes[fonteIdx]?.debridResolvido ? urlAtiva : getProxiedUrl(urlAtiva),
+        );
       } else {
         video.load();
       }
@@ -1557,10 +1614,13 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
                 const info = rotuloDaFonte(f, pos);
                 const ehHttp = f.url.startsWith('http://');
                 const ehHls = f.url.includes('.m3u8') || f.url.includes('.txt');
+                const ehDebrid = Boolean(f.infoHash || f.debridResolvido);
                 const extras = [
-                  ehHls ? 'HLS' : 'MP4',
-                  ehHttp ? 'HTTP' : 'HTTPS',
+                  ehDebrid ? 'Debrid' : ehHls ? 'HLS' : 'MP4/Direto',
+                  f.addonId ? (ehHttp ? 'HTTP' : 'Addon') : (ehHttp ? 'HTTP' : 'HTTPS'),
                   f.versao === 'dub' ? 'Dublado' : f.versao === 'leg' ? 'Legendado' : null,
+                  f.webAviso,
+                  f.detalhe,
                 ].filter(Boolean).join(' · ');
 
                 return (

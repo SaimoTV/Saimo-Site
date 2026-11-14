@@ -6,6 +6,7 @@
 
 import { State } from '../core/State';
 import { Storage, TVPreferences } from '../core/Storage';
+import { Addons } from '../core/Addons';
 import { Platform } from '../core/Platform';
 import { SpatialNav } from '../core/SpatialNav';
 
@@ -21,6 +22,12 @@ export class SettingsScreen {
     this.listContainer = document.createElement('div');
     this.listContainer.className = 'tv-settings-list tv-scroll-v';
     this.element.appendChild(this.listContainer);
+
+    State.on('addons-changed', () => {
+      if (!this.element.classList.contains('hidden')) {
+        this.renderSettings();
+      }
+    });
   }
 
   getElement(): HTMLElement {
@@ -76,9 +83,16 @@ export class SettingsScreen {
       this.listContainer.appendChild(item);
     };
 
-    // 1. REPRODUÇÃO
-    addSection('Listas');
+    // 1. LISTAS E FONTES
+    addSection('Listas e Fontes');
     addOption('minhas', 'Minhas listas', 'Adicionar listas .m3u pelo link', () => State.setScreen('minhas'));
+    const ativos = Addons.enabledList().length;
+    const total = Addons.list().length;
+    const deb = Addons.getDebridAccounts().filter((d) => d.enabled).length;
+    const resumoAddons = total === 0 && deb === 0
+      ? 'Nenhum instalado (protocolo Stremio + Debrid)'
+      : `${ativos}/${total} ativo(s)${deb > 0 ? ` · ${deb} Debrid` : ''}`;
+    addOption('addons', 'Addons & Debrid', resumoAddons, () => State.setScreen('addons'));
 
     addSection('Reprodução');
 

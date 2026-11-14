@@ -62,6 +62,16 @@ export class OnDemandScreen {
     this.heroBanner = new HeroBanner();
     this.scrollContainer.appendChild(this.heroBanner.getElement());
 
+    State.on('addons-changed', () => {
+      Api.invalidateDestaquesCache();
+      this.isLoaded = false;
+      this.dynamicRails = [];
+      if (!this.element.classList.contains('hidden')) {
+        this.filterAndPopulateRails();
+        Api.fetchDestaques(true).then(() => this.filterAndPopulateRails()).catch(() => {});
+      }
+    });
+
     // Barra de Categorias Superiores (Pílulas / Chips)
     this.filterBar = document.createElement('div');
     this.filterBar.className = 'tv-category-chips';
@@ -299,7 +309,7 @@ export class OnDemandScreen {
     }
 
     // 3. Atualização não bloqueante em background se necessário
-    if (!this.isLoaded) {
+    if (!this.isLoaded || Api.getCachedDestaquesSync().length === 0) {
       this.isLoaded = true;
       Api.fetchDestaques().then((destaques) => {
         if (destaques && destaques.length > 0) {
@@ -320,7 +330,12 @@ export class OnDemandScreen {
     }
     this.geracao++;
     const allFilas = Api.getCachedDestaquesSync();
-    if (allFilas.length === 0) return;
+    if (allFilas.length === 0) {
+      this.railsContainer.innerHTML =
+        '<div class="tv-filtro-aviso">Nenhum catálogo disponível. Adicione uma lista de filmes ou configure Addons Stremio em Ajustes.</div>';
+      this.dynamicRails = [];
+      return;
+    }
 
     // Filtra as fileiras correspondentes à categoria atual
     let matchingFilas: DestaqueFila[] = [];

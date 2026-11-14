@@ -6,12 +6,67 @@
 
 import { resolverDinamica } from '../core/Dinamica';
 import { State } from '../core/State';
-import { Storage, VODProgress } from '../core/Storage';
+import { Storage } from '../core/Storage';
 import { Api } from '../core/Api';
+import {
+  Addons,
+  PENDING_ADDON_STREAM_URL,
+  TvAddonStreamOption,
+  isTvDebridPendingUrl,
+} from '../core/Addons';
 import { TVPlayerInstance } from '../player/TVPlayer';
 import { PlayerOSD } from '../components/PlayerOSD';
-import { SourceModal } from '../components/SourceModal';
+import { SourceModal, SourceModalOption } from '../components/SourceModal';
+import { Escolha, OpcaoEscolha } from '../components/Escolha';
 import { SpatialNav } from '../core/SpatialNav';
+
+interface SubCue {
+  start: number;
+  end: number;
+  text: string;
+}
+
+function parseSubtitleTimestamp(raw: string): number {
+  const clean = String(raw || '').trim().replace(',', '.');
+  const parts = clean.split(':');
+  if (parts.length === 3) {
+    return parseFloat(parts[0]) * 3600 + parseFloat(parts[1]) * 60 + parseFloat(parts[2]);
+  }
+  if (parts.length === 2) {
+    return parseFloat(parts[0]) * 60 + parseFloat(parts[1]);
+  }
+  return NaN;
+}
+
+function parseSubtitleCues(text: string): SubCue[] {
+  const normalized = String(text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const blocks = normalized.split(/\n\n+/);
+  const cues: SubCue[] = [];
+  for (let i = 0; i < blocks.length; i++) {
+    const lines = blocks[i].split('\n').filter((l) => l.trim() !== '');
+    if (lines.length < 2) continue;
+    let timeLineIdx = -1;
+    for (let l = 0; l < lines.length; l++) {
+      if (lines[l].indexOf('-->') >= 0) {
+        timeLineIdx = l;
+        break;
+      }
+    }
+    if (timeLineIdx < 0) continue;
+    const arrowParts = lines[timeLineIdx].split('-->');
+    const start = parseSubtitleTimestamp(arrowParts[0]);
+    const endPart = (arrowParts[1] || '').trim().split(/\s+/)[0];
+    const end = parseSubtitleTimestamp(endPart);
+    if (isNaN(start) || isNaN(end)) continue;
+    const body = lines
+      .slice(timeLineIdx + 1)
+      .join('\n')
+      .replace(/<[^>]+>/g, '')
+      .trim();
+    if (body) cues.push({ start, end, text: body });
+  }
+  return cues;
+}
 
 export class PlayerScreen {
   private element: HTMLElement;
@@ -27,6 +82,16 @@ export class PlayerScreen {
   private countdownTimer: any = null;
 
   private activeSources: string[] = [];
+  private activeSourceOptions: Array<TvAddonStreamOption | null> = [];
+  private preferredBingeGroup?: string;
+  private lastSeriesTitle = '';
+  private userPickedVariantExplicitly = false;
+  private externalSubtitles: { url: string; lang: string; label: string }[] = [];
+  private currentExtSubIndex = -1;
+  private currentSubCues: SubCue[] = [];
+  private subTimer: any = null;
+  private subOverlayEl: HTMLElement;
+  private subtitleModal = new Escolha();
 
   constructor(player: TVPlayerInstance) {
     this.player = player;
@@ -60,8 +125,15 @@ export class PlayerScreen {
       </div>
     `;
 
+    this.subOverlayEl = document.createElement('div');
+    this.subOverlayEl.id = 'tv-sub-overlay';
+    this.subOverlayEl.style.cssText =
+      'position:fixed; left:8%; right:8%; bottom:120px; text-align:center; pointer-events:none; z-index:45; font-size:36px; line-height:1.35; font-weight:700; color:#fff; text-shadow:0 2px 6px #000, 0 0 12px rgba(0,0,0,.95); white-space:pre-line;';
+
+    this.element.appendChild(this.subOverlayEl);
     this.element.appendChild(this.osd.getElement());
     this.element.appendChild(this.sourceModal.getElement());
+    this.element.appendChild(this.subtitleModal.getElement());
     this.element.appendChild(this.nextEpisodeOverlay);
 
     this.setupNextEpisodeButtons();
@@ -84,26 +156,55 @@ export class PlayerScreen {
       return;
     }
 
-    // Resolve fontes se ainda não resolvidas
     if (vod.isSeries) {
+      if (this.lastSeriesTitle !== vod.title) {
+        this.lastSeriesTitle = vod.title;
+        this.preferredBingeGroup = undefined;
+      }
       if (!vod.seasons || vod.seasons.length === 0) {
         await Api.resolveSeriesEpisodes(vod);
+        if ((!vod.seasons || vod.seasons.length === 0) && Addons.hasEnabled()) {
+          await Addons.resolveSeriesEpisodes(vod);
+        }
       }
       const season = vod.seasons?.[State.currentSeasonIndex] || vod.seasons?.[0];
       const ep = season?.episodes?.[State.currentEpisodeIndex] || season?.episodes?.[0];
-      this.activeSources = ep?.sources || vod.sources || [];
+      const rawEpSources = (ep?.sources || vod.sources || []).filter((u) => u && u !== PENDING_ADDON_STREAM_URL);
+      let addonOpts: TvAddonStreamOption[] = [];
+      if (season && ep && (rawEpSources.length === 0 || Addons.hasStreamAddons())) {
+        addonOpts = await Addons.resolveMediaStreams(vod, season.seasonNumber, ep.episodeNumber).catch(() => []);
+      }
+      this.buildActiveSources(rawEpSources, addonOpts);
     } else {
+      this.preferredBingeGroup = undefined;
       if (!vod.sources || vod.sources.length === 0) {
         await Api.resolveMovieSources(vod);
       }
-      this.activeSources = vod.sources || [];
+      let addonOpts = vod.addonStreams || [];
+      if (Addons.hasStreamAddons() && addonOpts.length === 0) {
+        addonOpts = await Addons.resolveMediaStreams(vod).catch(() => []);
+        vod.addonStreams = addonOpts;
+      }
+      this.buildActiveSources(vod.sources || [], addonOpts);
     }
+
+    if (vod.isSeries && this.preferredBingeGroup && State.currentVariantIndex === 0 && !this.userPickedVariantExplicitly) {
+      const bingeIdx = this.activeSourceOptions.findIndex(
+        (opt) => opt && opt.bingeGroup === this.preferredBingeGroup
+      );
+      if (bingeIdx >= 0) {
+        State.currentVariantIndex = bingeIdx;
+      }
+    }
+    this.userPickedVariantExplicitly = false;
 
     const chave = `${vod.title}|${vod.isSeries ? `${State.currentSeasonIndex}:${State.currentEpisodeIndex}` : ''}`;
     if (chave !== this.chaveAtual) { this.chaveAtual = chave; this.falhas = 0; }
 
+    const seasonNumForTitle = vod.seasons?.[State.currentSeasonIndex]?.seasonNumber || (State.currentSeasonIndex + 1);
+    const epNumForTitle = vod.seasons?.[State.currentSeasonIndex]?.episodes?.[State.currentEpisodeIndex]?.episodeNumber || (State.currentEpisodeIndex + 1);
     const title = vod.isSeries
-      ? `${vod.title} - T${State.currentSeasonIndex + 1}E${State.currentEpisodeIndex + 1}`
+      ? `${vod.title} - T${seasonNumForTitle}E${epNumForTitle}`
       : vod.title;
 
     this.osd.setInfo(title, `Fonte ${State.currentVariantIndex + 1} de ${Math.max(1, this.activeSources.length)}`);
@@ -116,8 +217,33 @@ export class PlayerScreen {
       return;
     }
 
-    const pedida = this.activeSources[State.currentVariantIndex] || this.activeSources[0];
-    const streamUrl = await resolverDinamica(pedida);
+    const chosenIdx = Math.min(State.currentVariantIndex, this.activeSources.length - 1);
+    const pedida = this.activeSources[chosenIdx] || this.activeSources[0];
+    const chosenOpt = this.activeSourceOptions[chosenIdx] || null;
+    if (chosenOpt?.bingeGroup) {
+      this.preferredBingeGroup = chosenOpt.bingeGroup;
+    }
+
+    let streamUrl: string | null = null;
+    if (isTvDebridPendingUrl(pedida)) {
+      this.osd.setInfo(title, 'Resolvendo torrent no Debrid...');
+      try {
+        streamUrl = await Addons.resolvePendingStreamUrl(pedida, chosenOpt || undefined);
+        this.activeSources[chosenIdx] = streamUrl;
+        if (chosenOpt) {
+          chosenOpt.url = streamUrl;
+          chosenOpt.debridResolved = true;
+        }
+      } catch (debErr: any) {
+        console.warn('[PlayerScreen] Erro Debrid:', debErr);
+        this.osd.setInfo(title, debErr?.message || 'Não foi possível resolver torrent no Debrid.');
+        this.failoverNextSource();
+        return;
+      }
+    } else {
+      streamUrl = await resolverDinamica(pedida);
+    }
+
     if (streamUrl === null) {
       // O servidor afirma que não há vídeo em provedor nenhum: nem tenta tocar.
       this.osd.setInfo(title, 'Este título ainda não está disponível em nenhuma fonte. Tente de novo mais tarde.');
@@ -125,10 +251,25 @@ export class PlayerScreen {
       return;
     }
 
+    this.clearExternalSubtitles();
+    Addons.fetchMediaSubtitles(
+      vod,
+      vod.isSeries ? seasonNumForTitle : undefined,
+      vod.isSeries ? epNumForTitle : undefined,
+      chosenOpt?.subtitles
+    )
+      .then((subs) => {
+        if (State.currentScreen === 'player' && this.tituloAtual === title) {
+          this.externalSubtitles = subs;
+        }
+      })
+      .catch(() => {});
+
     try {
       await this.player.play({
         url: streamUrl,
         title,
+        headers: chosenOpt?.headers,
         isLive: false,
       });
 
@@ -151,10 +292,74 @@ export class PlayerScreen {
     this.element.classList.add('hidden');
     this.osd.hide();
     this.sourceModal.close();
+    this.subtitleModal.fechar();
+    this.clearExternalSubtitles();
     this.hideNextEpisodePrompt();
     clearInterval(this.saveProgressTimer);
     this.saveCurrentProgress();
     this.player.stop();
+  }
+
+  private buildActiveSources(baseUrls: string[], addonOpts: TvAddonStreamOption[]) {
+    const urls: string[] = [];
+    const opts: Array<TvAddonStreamOption | null> = [];
+    for (let i = 0; i < baseUrls.length; i++) {
+      const u = baseUrls[i];
+      if (!u || u === PENDING_ADDON_STREAM_URL) continue;
+      if (urls.indexOf(u) === -1) {
+        const matched = addonOpts.find((o) => o.url === u) || null;
+        urls.push(u);
+        opts.push(matched);
+      }
+    }
+    for (let i = 0; i < addonOpts.length; i++) {
+      const opt = addonOpts[i];
+      if (!opt || !opt.url) continue;
+      if (urls.indexOf(opt.url) === -1) {
+        urls.push(opt.url);
+        opts.push(opt);
+      }
+    }
+    this.activeSources = urls;
+    this.activeSourceOptions = opts;
+  }
+
+  private clearExternalSubtitles() {
+    clearInterval(this.subTimer);
+    this.subTimer = null;
+    this.currentSubCues = [];
+    this.currentExtSubIndex = -1;
+    this.subOverlayEl.textContent = '';
+  }
+
+  private async activateExternalSubtitle(idx: number) {
+    const sub = this.externalSubtitles[idx];
+    if (!sub) return;
+    this.clearExternalSubtitles();
+    try {
+      const res = await fetch(sub.url);
+      if (!res.ok) return;
+      const text = await res.text();
+      this.currentSubCues = parseSubtitleCues(text);
+      this.currentExtSubIndex = idx;
+      this.player.setSubtitleTrack(-1);
+      this.subTimer = setInterval(() => {
+        const now = this.player.getCurrentTime();
+        let activeText = '';
+        for (let i = 0; i < this.currentSubCues.length; i++) {
+          const cue = this.currentSubCues[i];
+          if (now >= cue.start && now <= cue.end) {
+            activeText = cue.text;
+            break;
+          }
+        }
+        if (this.subOverlayEl.textContent !== activeText) {
+          this.subOverlayEl.textContent = activeText;
+        }
+      }, 250);
+    } catch {
+      /* falha ao baixar legenda externa */
+    }
   }
 
   /** Fontes que já falharam neste título; esgotadas, para de rodar em círculo. */
@@ -240,14 +445,57 @@ export class PlayerScreen {
   }
 
   selectSubtitle() {
-    this.player.setSubtitleTrack(0);
-    this.osd.show();
+    const opcoes: OpcaoEscolha[] = [
+      {
+        rotulo: 'Desativar legendas',
+        marcada: this.currentExtSubIndex === -1,
+        aoEscolher: () => {
+          this.clearExternalSubtitles();
+          this.player.setSubtitleTrack(-1);
+        },
+      },
+      {
+        rotulo: 'Faixa interna do vídeo (Track 1)',
+        marcada: false,
+        aoEscolher: () => {
+          this.clearExternalSubtitles();
+          this.player.setSubtitleTrack(0);
+        },
+      },
+    ];
+
+    for (let i = 0; i < this.externalSubtitles.length; i++) {
+      const idx = i;
+      const sub = this.externalSubtitles[i];
+      opcoes.push({
+        rotulo: sub.label,
+        marcada: this.currentExtSubIndex === idx,
+        aoEscolher: () => {
+          this.activateExternalSubtitle(idx);
+        },
+      });
+    }
+
+    this.subtitleModal.abrir('Legendas', opcoes);
   }
 
   openSources() {
     if (this.activeSources.length === 0) return;
     const title = State.currentVOD?.title || 'Título';
-    this.sourceModal.open(title, this.activeSources, State.currentVariantIndex, (idx) => {
+    const modalOptions: (SourceModalOption | string)[] = this.activeSources.map((url, idx) => {
+      const opt = this.activeSourceOptions[idx];
+      return opt
+        ? {
+            url,
+            label: opt.label,
+            detail: opt.detail,
+            badge: opt.badge || opt.addonName,
+          }
+        : { url, label: `Fonte ${idx + 1}`, quality: 'HD' };
+    });
+    this.sourceModal.open(title, modalOptions, State.currentVariantIndex, (idx) => {
+      this.userPickedVariantExplicitly = true;
+      this.preferredBingeGroup = this.activeSourceOptions[idx]?.bingeGroup;
       State.currentVariantIndex = idx;
       this.enter();
     });

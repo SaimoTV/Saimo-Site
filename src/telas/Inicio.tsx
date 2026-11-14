@@ -11,6 +11,13 @@ import { CartaoCapa, CartaoLargo, Fileira, Heroi, SemLista } from '../components
 import { useCanais } from '../hooks/useCanais';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useListas } from '../services/listas';
+import {
+  discoveryToItemDestaque,
+  discoverTmdbPopular,
+  loadAddonCatalogRails,
+  useAddons,
+  useTemAddons,
+} from '../services/addons';
 import { lista as listaAndamento, remover as removerAndamento } from '../services/continuar';
 import { getCurrentProgram, onEPGUpdate } from '../services/epgService';
 import { destaques, type FilaDestaque, type ItemDestaque } from '../services/vodService';
@@ -27,6 +34,8 @@ export function Inicio() {
   const abrirVod = useAbrirVod();
   const canais = useCanais();
   const links = useListas();
+  const addons = useAddons();
+  const temAddons = useTemAddons();
   const [filas, setFilas] = useState<FilaDestaque[]>([]);
   const [favoritos] = useLocalStorage<string[]>('tv-favorites', []);
   const [tic, tique] = useState(0);
@@ -34,7 +43,30 @@ export function Inicio() {
   const [vodFav, setVodFav] = useState(vodFavoritos);
   const [andamento, setAndamento] = useState(listaAndamento);
 
-  useEffect(() => { void destaques().then(setFilas); }, []);
+  useEffect(() => {
+    let vivo = true;
+    (async () => {
+      const base = links.filmes ? await destaques().catch(() => [] as FilaDestaque[]) : ([] as FilaDestaque[]);
+      if (!vivo) return;
+      if (!temAddons) {
+        setFilas(base);
+        return;
+      }
+      const [addonRails, tmdbRails] = await Promise.all([
+        loadAddonCatalogRails(4).catch(() => []),
+        !links.filmes ? discoverTmdbPopular().catch(() => []) : Promise.resolve([]),
+      ]);
+      if (!vivo) return;
+      const extras: FilaDestaque[] = addonRails.map((r) => ({ titulo: r.titulo, itens: r.itens }));
+      if (!links.filmes) {
+        for (const r of tmdbRails) {
+          extras.push({ titulo: r.title, itens: r.items.map(discoveryToItemDestaque) });
+        }
+      }
+      setFilas([...base, ...extras]);
+    })();
+    return () => { vivo = false; };
+  }, [links.filmes, temAddons, addons]);
 
   // Ajustes > Ao iniciar > último canal: só na entrada da visita, para o botão
   // Início continuar levando ao Início.
@@ -80,8 +112,8 @@ export function Inicio() {
       <BarraTopo />
       <Heroi item={heroi} />
 
-      {!links.canais && <SemLista tipo="canais" />}
-      {!links.filmes && <SemLista tipo="filmes" />}
+      {!links.canais && !temAddons && <SemLista tipo="canais" />}
+      {!links.filmes && !temAddons && <SemLista tipo="filmes" />}
 
       {andamento.length > 0 && (
         <Fileira titulo="Continue assistindo">

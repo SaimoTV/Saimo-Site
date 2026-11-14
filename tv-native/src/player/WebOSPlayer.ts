@@ -58,7 +58,29 @@ export class WebOSPlayer implements TVPlayerInstance {
 
   private playWithHls(url: string) {
     this.destroyHls();
-    const hls = new Hls({ enableWorker: false, lowLatencyMode: false });
+    const extraHeaders = this.currentSource?.headers;
+    const hls = new Hls({
+      enableWorker: false,
+      lowLatencyMode: false,
+      xhrSetup: extraHeaders
+        ? (xhr) => {
+            const forbidden = ['user-agent', 'referer', 'origin', 'host', 'cookie', 'content-length'];
+            const keys = Object.keys(extraHeaders);
+            for (let i = 0; i < keys.length; i++) {
+              const k = keys[i];
+              if (forbidden.indexOf(k.toLowerCase()) >= 0) continue;
+              const v = extraHeaders[k];
+              if (v) {
+                try {
+                  xhr.setRequestHeader(k, v);
+                } catch {
+                  /* ignora header não aceito pelo WebView */
+                }
+              }
+            }
+          }
+        : undefined,
+    });
     this.hls = hls;
     hls.loadSource(url);
     hls.attachMedia(this.video);

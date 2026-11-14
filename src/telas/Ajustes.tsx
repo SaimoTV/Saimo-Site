@@ -3,9 +3,12 @@
  * atalhos, limpezas e links.
  */
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { BarraTopo } from '../components/BarraTopo';
 import { FormListas } from '../components/FormListas';
+import { AddonsModal } from '../components/AddonsModal';
+import { useAddons } from '../services/addons';
+import { useDebridAccounts } from '../services/debrid';
 import { useListas } from '../services/listas';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useCanais } from '../hooks/useCanais';
@@ -41,8 +44,12 @@ const LIMPAR: { rotulo: string; chaves: string[]; aviso: string }[] = [
 
 export function Ajustes() {
   const navigate = useNavigate();
+  const location = useLocation();
   const canais = useCanais();
   const listas = useListas();
+  const addons = useAddons();
+  const debridAccounts = useDebridAccounts();
+  const [addonsAberto, setAddonsAberto] = useState(false);
   const [favoritosIds] = useLocalStorage<string[]>('tv-favorites', []);
   const [aoIniciar, setAoIniciar] = useLocalStorage<AoIniciar>(CHAVE_AO_INICIAR, 'inicio');
   const [upscaling, setUpscaling] = useLocalStorage<ModoUpscaling>(CHAVE_UPSCALING, 'off');
@@ -69,6 +76,13 @@ export function Ajustes() {
   };
 
   useEffect(() => aoMudarPersonalizados(() => setPersonalizados(canaisLocais())), []);
+
+  useEffect(() => {
+    if (location.hash === '#addons') {
+      document.getElementById('addons')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setAddonsAberto(true);
+    }
+  }, [location.hash]);
 
   const notificar = (msg: string) => {
     setAviso(msg);
@@ -135,6 +149,25 @@ export function Ajustes() {
         </section>
 
         <div id="minhas-listas"><MinhasListas aviso={notificar} /></div>
+
+        <section className="ajustes-bloco" id="addons">
+          <h2>Addons &amp; Debrid (Protocolo Stremio)</h2>
+          <p>
+            Instale addons compatíveis com o protocolo Stremio e configure contas Debrid (TorBox, Real-Debrid,
+            AllDebrid, Premiumize) diretamente neste navegador, sem passar pelos servidores do Saimo.
+          </p>
+          <p style={{ fontSize: '0.84rem', color: 'rgba(255,255,255,0.72)' }}>
+            {addons.filter((a) => a.enabled).length} addon(s) ativo(s) ·{' '}
+            {debridAccounts.filter((d) => d.enabled).length} conta(s) Debrid ativa(s)
+          </p>
+          <div className="ajustes-botoes">
+            <button type="button" className="ajustes-botao" onClick={() => setAddonsAberto(true)}>
+              Gerenciar Addons e Debrid
+            </button>
+          </div>
+        </section>
+
+        <AddonsModal aberta={addonsAberto} aoFechar={() => setAddonsAberto(false)} />
 
         <section className="ajustes-bloco">
           <h2>Ao iniciar</h2>

@@ -237,3 +237,20 @@ html.tizen.video-ativo, html.tizen.video-ativo body { background: transparent !i
 /* Minhas listas: os botões do formulário têm a largura dos campos, para o controle descer de um para o outro. */
 #ml-add, #ml-url-salvar { width: 1100px; box-sizing: border-box; justify-content: center; margin-bottom: 16px; }
 .tv-minhas-sub { margin-top: 36px; font-size: 44px; }
+
+/* Addons & Debrid */
+.tv-addons { padding-bottom: 90px; }
+.tv-addons-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
+.tv-addons-header > div:first-child { flex: 1; padding-right: 32px; }
+.tv-addons-top-grid { display: flex; align-items: flex-start; margin-bottom: 24px; }
+.tv-addons-panel { flex: 1; min-width: 0; margin-right: 40px; }
+.tv-addons-campo { width: 100%; max-width: 1100px; box-sizing: border-box; }
+.tv-addons-shortcuts, .tv-addons-btn-row, .tv-addons-prov-row { display: flex; flex-wrap: wrap; margin: 12px 0 16px; }
+.tv-addons-chip, .tv-addons-prov, .tv-addons-btn-row .tv-btn { margin-right: 14px; margin-bottom: 10px; }
+.tv-addons-primary { width: 100%; max-width: 1100px; box-sizing: border-box; justify-content: center; margin-bottom: 12px; }
+.tv-addons-prov.active { background: #14B8A6; color: #0b0f1a; border-color: #4fe3d0; font-weight: 700; }
+.tv-addons-qr-card { width: 360px; flex: none; padding: 26px; border-radius: 24px; background: #fff; color: #0b0f1a; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,.45), 0 0 0 4px rgba(79,227,208,.35); }
+.tv-addons-qr-titulo { font-size: 26px; font-weight: 800; margin-bottom: 14px; }
+.tv-addons-qr-svg svg { width: 220px; height: 220px; display: block; margin: 0 auto; image-rendering: pixelated; }
+.tv-addons-qr-url { margin-top: 14px; font-size: 20px; font-weight: 700; color: #0e7490; word-break: break-all; }
+.tv-addons-qr-nota { margin-top: 10px; font-size: 18px; line-height: 1.35; color: #4b5563; }
