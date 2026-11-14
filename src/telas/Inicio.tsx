@@ -11,7 +11,7 @@ import { CartaoCapa, CartaoLargo, Fileira, Heroi, SemLista } from '../components
 import { useCanais } from '../hooks/useCanais';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useListas } from '../services/listas';
-import { lista as listaAndamento } from '../services/continuar';
+import { lista as listaAndamento, remover as removerAndamento } from '../services/continuar';
 import { getCurrentProgram, onEPGUpdate } from '../services/epgService';
 import { destaques, type FilaDestaque, type ItemDestaque } from '../services/vodService';
 import { ROTULO_TIPO, useAbrirVod, useHeroiVod } from './compartilhado';
@@ -32,7 +32,7 @@ export function Inicio() {
   const [tic, tique] = useState(0);
   const [sob, setSob] = useState<ItemDestaque | null>(null);
   const [vodFav, setVodFav] = useState(vodFavoritos);
-  const [andamento] = useState(listaAndamento);
+  const [andamento, setAndamento] = useState(listaAndamento);
 
   useEffect(() => { void destaques().then(setFilas); }, []);
 
@@ -94,6 +94,10 @@ export function Inicio() {
               progresso={a.fracao}
               aoAbrir={() => abrirVod(a.origem)}
               aoPassar={() => setSob(a.origem)}
+              aoRemover={() => {
+                removerAndamento(a.origem.titulo);
+                setAndamento(listaAndamento());
+              }}
             />
           ))}
         </Fileira>

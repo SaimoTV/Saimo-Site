@@ -668,6 +668,28 @@ video {
   color: #070709;
 }
 
+.tv-card-remove {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 6;
+  width: 34px;
+  height: 34px;
+  line-height: 32px;
+  text-align: center;
+  border-radius: 50%;
+  background: rgba(10, 12, 20, 0.85);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.tv-card-remove:hover {
+  background: #e50914;
+  border-color: #ff7b7b;
+}
+
 .tv-card-title {
   font-size: 17px;
   font-weight: 700;

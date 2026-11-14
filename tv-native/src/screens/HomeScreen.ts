@@ -157,8 +157,14 @@ export class HomeScreen {
         this.heroBanner.setDefault(
           p.title,
           `Continuar assistindo · ${p.percent}% concluído`,
-          p.episodeTitle ? `${p.episodeTitle}. Pressione OK para retomar a reprodução de onde parou.` : 'Pressione OK para retomar o vídeo de onde parou.'
+          p.episodeTitle
+            ? `${p.episodeTitle}. OK para retomar · Botão VERMELHO ou × para remover.`
+            : 'OK para retomar · Botão VERMELHO ou × para remover da lista.'
         );
+      },
+      onRemove: () => {
+        Storage.removeProgress(p.title);
+        this.renderContinueRail();
       },
     }));
 

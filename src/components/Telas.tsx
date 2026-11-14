@@ -77,7 +77,7 @@ export function Fileira({ titulo, children, aoVerTodos, rotuloVerTodos = 'Ver to
 }
 
 /** Capa vertical de filme/série, com o título embaixo. */
-export function CartaoCapa({ titulo, capa, rotulo, progresso, aoAbrir, aoPassar, extra }: {
+export function CartaoCapa({ titulo, capa, rotulo, progresso, aoAbrir, aoPassar, aoRemover, extra }: {
   titulo: string;
   capa?: string | null;
   rotulo?: string;
@@ -85,6 +85,7 @@ export function CartaoCapa({ titulo, capa, rotulo, progresso, aoAbrir, aoPassar,
   progresso?: number;
   aoAbrir: () => void;
   aoPassar?: () => void;
+  aoRemover?: () => void;
   extra?: ReactNode;
 }) {
   return (
@@ -94,6 +95,19 @@ export function CartaoCapa({ titulo, capa, rotulo, progresso, aoAbrir, aoPassar,
           ? <ImagemLazy src={capa} alt="" referrerPolicy="no-referrer" />
           : <span aria-hidden="true">{titulo.charAt(0)}</span>}
         {progresso != null && <i className="cartao-capa-prog"><b style={{ width: `${Math.round(progresso * 100)}%` }} /></i>}
+        {aoRemover && (
+          <span
+            role="button"
+            tabIndex={0}
+            className="cartao-capa-remover"
+            title="Remover de Continue assistindo"
+            aria-label={`Remover ${titulo} de Continue assistindo`}
+            onClick={(e) => { e.stopPropagation(); aoRemover(); }}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); aoRemover(); } }}
+          >
+            ×
+          </span>
+        )}
         {extra}
       </div>
       <strong>{titulo}</strong>

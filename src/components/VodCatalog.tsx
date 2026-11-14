@@ -63,7 +63,7 @@ import {
 import { useVoltarFecha } from '../hooks/useVoltarFecha';
 import { useFichaDe } from '../hooks/useFichaDe';
 import { httpsFirst } from '../utils/sourceOrder';
-import { lista as listaAndamento } from '../services/continuar';
+import { lista as listaAndamento, remover as removerAndamento } from '../services/continuar';
 import {
   alternar as alternarFavorito,
   aoMudar as aoMudarFavoritos,
@@ -253,6 +253,7 @@ export function VodCatalog({
   const [ultimoEpisodioId, setUltimoEpisodioId] = useState<string | null>(null);
   const [detalhesTemporada, setDetalhesTemporada] = useState<Record<number, EpisodioTmdb>>({});
   const [versaoFiltro, setVersaoFiltro] = useState<string>('todas');
+  const [versaoAndamento, setVersaoAndamento] = useState(0);
   const trilhaEpisodiosRef = useRef<HTMLDivElement | null>(null);
   const janelaRef = useRef<HTMLElement | null>(null);
   const subBarraPillsRef = useRef<HTMLDivElement | null>(null);
@@ -650,7 +651,7 @@ export function VodCatalog({
         progresso: a.fracao,
         subtitulo: a.rotulo,
       }));
-  }, [secao, generos]);
+  }, [secao, generos, versaoAndamento]);
 
   // Hero Destaque: título, selos e sinopse
   const heroiAtual = useMemo(() => {
@@ -1349,6 +1350,10 @@ export function VodCatalog({
               itens={itensAndamento}
               aoAbrir={abrirItemDestaque}
               aoPassar={passarItem}
+              aoRemover={(item) => {
+                removerAndamento(item.titulo);
+                setVersaoAndamento((v) => v + 1);
+              }}
             />
           )}
 
@@ -2075,6 +2080,7 @@ interface CarrosselFileiraProps {
   itens: (ItemDestaque & { progresso?: number; subtitulo?: string })[];
   aoAbrir: (item: ItemDestaque) => void;
   aoPassar: (item: ItemDestaque | null) => void;
+  aoRemover?: (item: ItemDestaque) => void;
   verTodos?: () => void;
   rotuloVerTodos?: string;
 }
@@ -2084,6 +2090,7 @@ function CarrosselFileira({
   itens,
   aoAbrir,
   aoPassar,
+  aoRemover,
   verTodos,
   rotuloVerTodos = 'Ver todos',
 }: CarrosselFileiraProps) {
@@ -2161,6 +2168,19 @@ function CarrosselFileira({
                     <span className="vod-poster-letra">{item.titulo.charAt(0)}</span>
                   )}
                   {fav && <span className="vod-badge-favorito">★</span>}
+                  {aoRemover && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="cartao-capa-remover"
+                      title="Remover de Continue assistindo"
+                      aria-label={`Remover ${item.titulo} de Continue assistindo`}
+                      onClick={(e) => { e.stopPropagation(); aoRemover(item); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); aoRemover(item); } }}
+                    >
+                      ×
+                    </span>
+                  )}
                   {item.progresso != null && item.progresso > 0 && (
                     <div className="vod-card-progresso">
                       <div style={{ width: `${Math.round(item.progresso * 100)}%` }} />

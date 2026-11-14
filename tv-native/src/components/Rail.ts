@@ -17,6 +17,7 @@ export interface CardModel {
   badgeColor?: string;
   onClick: () => void;
   onFocus?: () => void;
+  onRemove?: () => void;
   extraData?: any;
 }
 
@@ -80,6 +81,7 @@ export class Rail {
           <div class="tv-card-poster-wrap">
             ${card.image ? `<img class="tv-card-img" src="${card.image}" onerror="this.style.display='none'" loading="lazy" alt="" />` : '<div class="tv-card-placeholder"></div>'}
             ${card.badge ? `<span class="tv-card-badge" style="background:${card.badgeColor || '#00e3ff'}">${card.badge}</span>` : ''}
+            ${card.onRemove ? `<span role="button" class="tv-card-remove" title="Remover de Continuar assistindo">×</span>` : ''}
             ${card.progressPercent !== undefined ? `
               <div class="tv-card-progress-bar">
                 <div class="tv-card-progress-fill" style="width: ${card.progressPercent}%"></div>
@@ -91,6 +93,25 @@ export class Rail {
       }
 
       cardEl.innerHTML = innerHtml;
+
+      const removeEl = cardEl.querySelector('.tv-card-remove');
+      if (removeEl && card.onRemove) {
+        removeEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          card.onRemove?.();
+        });
+      }
+
+      if (card.onRemove) {
+        cardEl.addEventListener('keydown', (e: KeyboardEvent) => {
+          // Botão vermelho (403), Delete (46), Backspace (8) ou R (82) remove da fila
+          if (e.keyCode === 403 || e.keyCode === 46 || e.keyCode === 8 || e.keyCode === 82) {
+            e.preventDefault();
+            e.stopPropagation();
+            card.onRemove?.();
+          }
+        });
+      }
 
       cardEl.addEventListener('click', () => {
         card.onClick();
