@@ -43,5 +43,10 @@ export function lista(): Andamento[] {
 }
 
 export function remover(titulo: string) {
-  localStorage.setItem(CHAVE, JSON.stringify(ler().filter((a) => a.origem.titulo !== titulo)));
+  const alvo = titulo.trim().toLowerCase();
+  localStorage.setItem(
+    CHAVE,
+    JSON.stringify(ler().filter((a) => a.origem.titulo.trim().toLowerCase() !== alvo && a.origem.titulo !== titulo))
+  );
+  window.dispatchEvent(new CustomEvent('saimo-continuar-mudou'));
 }

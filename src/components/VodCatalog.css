@@ -483,6 +483,17 @@ body:has(.barra-topo.oculta) .vod-sub-barra {
 
 /* ── Cartões Poster Padrão (154px) ───────────────────────────────────────── */
 
+.vod-card-poster-wrap {
+  position: relative;
+  flex: 0 0 154px;
+  width: 154px;
+  scroll-snap-align: start;
+}
+
+.vod-card-poster-wrap > .vod-card-poster {
+  width: 100%;
+}
+
 .vod-card-poster {
   flex: 0 0 154px;
   width: 154px;

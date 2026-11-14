@@ -80,6 +80,8 @@
 .fileira-seta:hover { background: rgba(79, 243, 224, 0.25); }
 
 /* ---------- Cartões ---------- */
+.cartao-capa-wrap { position: relative; flex: 0 0 auto; width: 154px; scroll-snap-align: start; }
+.cartao-capa-wrap > .cartao-capa { width: 100%; }
 .cartao-capa { flex: 0 0 auto; width: 154px; text-align: left; scroll-snap-align: start; display: flex; flex-direction: column; gap: 6px; }
 .cartao-capa-img {
   position: relative; aspect-ratio: 2 / 3; border-radius: 14px; overflow: hidden;
@@ -100,9 +102,10 @@
   border-radius: 50%; background: rgba(0, 0, 0, 0.55); color: #ff5d7a; font-size: 0.9rem;
 }
 .cartao-capa-remover {
-  position: absolute; top: 6px; right: 6px; z-index: 4; width: 28px; height: 28px; display: grid; place-items: center;
-  border-radius: 50%; background: rgba(10, 12, 22, 0.82); border: 1px solid rgba(255, 255, 255, 0.25);
+  position: absolute; top: 6px; right: 6px; z-index: 6; width: 28px; height: 28px; display: grid; place-items: center;
+  border-radius: 50%; background: rgba(10, 12, 22, 0.85); border: 1px solid rgba(255, 255, 255, 0.28);
   color: #ffffff !important; font-size: 1rem !important; font-weight: 700 !important; line-height: 1; cursor: pointer;
+  pointer-events: auto; padding: 0;
   transition: background 0.15s, border-color 0.15s, transform 0.15s;
 }
 .cartao-capa-remover:hover, .cartao-capa-remover:focus-visible {

@@ -2148,9 +2148,9 @@ function CarrosselFileira({
         >
           {itens.map((item) => {
             const fav = ehFavorito(item);
-            return (
+            const posterBtn = (
               <button
-                key={`${item.tipo}:${item.titulo}:${item.ano}`}
+                key={aoRemover ? undefined : `${item.tipo}:${item.titulo}:${item.ano}`}
                 className="vod-card-poster"
                 onClick={() => aoAbrir(item)}
                 onMouseEnter={() => aoPassar(item)}
@@ -2167,20 +2167,7 @@ function CarrosselFileira({
                   ) : (
                     <span className="vod-poster-letra">{item.titulo.charAt(0)}</span>
                   )}
-                  {fav && <span className="vod-badge-favorito">★</span>}
-                  {aoRemover && (
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      className="cartao-capa-remover"
-                      title="Remover de Continue assistindo"
-                      aria-label={`Remover ${item.titulo} de Continue assistindo`}
-                      onClick={(e) => { e.stopPropagation(); aoRemover(item); }}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); aoRemover(item); } }}
-                    >
-                      ×
-                    </span>
-                  )}
+                  {fav && !aoRemover && <span className="vod-badge-favorito">★</span>}
                   {item.progresso != null && item.progresso > 0 && (
                     <div className="vod-card-progresso">
                       <div style={{ width: `${Math.round(item.progresso * 100)}%` }} />
@@ -2190,6 +2177,26 @@ function CarrosselFileira({
                 <strong className="vod-card-poster-nome">{item.titulo}</strong>
                 <small className="vod-card-poster-ano">{item.subtitulo || item.ano}</small>
               </button>
+            );
+            if (!aoRemover) return posterBtn;
+            return (
+              <div key={`${item.tipo}:${item.titulo}:${item.ano}`} className="vod-card-poster-wrap">
+                {posterBtn}
+                <button
+                  type="button"
+                  className="cartao-capa-remover"
+                  title="Remover de Continue assistindo"
+                  aria-label={`Remover ${item.titulo} de Continue assistindo`}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    aoRemover(item);
+                  }}
+                >
+                  ×
+                </button>
+              </div>
             );
           })}
 

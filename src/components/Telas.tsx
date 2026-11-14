@@ -88,31 +88,38 @@ export function CartaoCapa({ titulo, capa, rotulo, progresso, aoAbrir, aoPassar,
   aoRemover?: () => void;
   extra?: ReactNode;
 }) {
-  return (
+  const card = (
     <button className="cartao-capa" onClick={aoAbrir} onMouseEnter={aoPassar} onFocus={aoPassar} title={titulo}>
       <div className="cartao-capa-img">
         {capa
           ? <ImagemLazy src={capa} alt="" referrerPolicy="no-referrer" />
           : <span aria-hidden="true">{titulo.charAt(0)}</span>}
         {progresso != null && <i className="cartao-capa-prog"><b style={{ width: `${Math.round(progresso * 100)}%` }} /></i>}
-        {aoRemover && (
-          <span
-            role="button"
-            tabIndex={0}
-            className="cartao-capa-remover"
-            title="Remover de Continue assistindo"
-            aria-label={`Remover ${titulo} de Continue assistindo`}
-            onClick={(e) => { e.stopPropagation(); aoRemover(); }}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); aoRemover(); } }}
-          >
-            ×
-          </span>
-        )}
         {extra}
       </div>
       <strong>{titulo}</strong>
       {rotulo && <small>{rotulo}</small>}
     </button>
+  );
+  if (!aoRemover) return card;
+  return (
+    <div className="cartao-capa-wrap">
+      {card}
+      <button
+        type="button"
+        className="cartao-capa-remover"
+        title="Remover de Continue assistindo"
+        aria-label={`Remover ${titulo} de Continue assistindo`}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          aoRemover();
+        }}
+      >
+        ×
+      </button>
+    </div>
   );
 }
 

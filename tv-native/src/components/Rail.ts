@@ -96,7 +96,11 @@ export class Rail {
 
       const removeEl = cardEl.querySelector('.tv-card-remove');
       if (removeEl && card.onRemove) {
+        removeEl.addEventListener('mousedown', (e) => {
+          e.stopPropagation();
+        });
         removeEl.addEventListener('click', (e) => {
+          e.preventDefault();
           e.stopPropagation();
           card.onRemove?.();
         });

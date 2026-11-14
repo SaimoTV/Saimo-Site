@@ -164,7 +164,13 @@ export class HomeScreen {
       },
       onRemove: () => {
         Storage.removeProgress(p.title);
-        this.renderContinueRail();
+        this.renderContinueWatching();
+        const nextCard = this.continueRail.getFirstCard();
+        if (nextCard) {
+          SpatialNav.focus(nextCard);
+        } else {
+          this.focusFirstItem();
+        }
       },
     }));
 
