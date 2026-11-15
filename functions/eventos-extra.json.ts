@@ -218,7 +218,25 @@ async function liga(item: Liga, grades: Map<string, Programa[]>): Promise<unknow
   }
 }
 
-export const onRequestGet: PagesFunction = async () => {
+export const onRequestGet: PagesFunction = async (ctx) => {
+  // A agenda inteira fica 60 s no cache da borda: com muitos apps abertos, só um
+  // pedido por minuto por região vai à ESPN e à grade (menos CPU e subpedidos).
+  const cache = (globalThis as unknown as { caches?: { default: Cache } }).caches?.default;
+  const chave = new Request('https://saimo-cache.invalid/eventos-extra.json');
+  if (cache) {
+    const salvo = await cache.match(chave).catch(() => undefined);
+    if (salvo) return salvo;
+  }
+  const resposta = await montarAgenda();
+  if (cache) {
+    const copia = resposta.clone();
+    copia.headers.set('Cache-Control', 'public, max-age=60');
+    ctx.waitUntil(cache.put(chave, copia).catch(() => undefined));
+  }
+  return resposta;
+};
+
+async function montarAgenda(): Promise<Response> {
   const agora = Date.now();
   const listas = await Promise.all(GRADES.map(([codigo]) => grade(codigo, agora)));
   const grades = new Map<string, Programa[]>();
@@ -232,4 +250,4 @@ export const onRequestGet: PagesFunction = async () => {
       'Cache-Control': 'public, max-age=120',
     },
   });
-};
+}
