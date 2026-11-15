@@ -290,7 +290,7 @@
 .mt-serra { position: absolute; left: -10%; right: -10%; bottom: 11%; height: 42%; background: #241240; clip-path: polygon(0 100%, 0 55%, 14% 30%, 26% 52%, 40% 18%, 55% 48%, 68% 26%, 82% 50%, 100% 32%, 100% 100%); animation: mt-pan 14s linear infinite alternate; }
 .mt-serra2 { height: 28%; background: #120827; clip-path: polygon(0 100%, 0 60%, 18% 40%, 34% 62%, 50% 36%, 66% 58%, 84% 34%, 100% 56%, 100% 100%); animation-duration: 9s; }
 @keyframes mt-pan { from { transform: translateX(-4%); } to { transform: translateX(4%); } }
-.mt-legenda { position: absolute; left: 6%; right: 6%; bottom: 15%; z-index: 4; text-align: center; font-size: clamp(9px, 1vw, 12px); font-weight: 600; color: #fff; text-shadow: 0 1px 3px #000, 0 0 6px #000; }
+.mt-legenda { position: absolute; left: 6%; right: 6%; bottom: 64px; z-index: 4; text-align: center; font-size: clamp(9px, 1vw, 12px); font-weight: 600; color: #fff; text-shadow: 0 1px 3px #000, 0 0 6px #000; }
 .mt-canal { position: absolute; left: 10px; top: 8px; display: inline-flex; align-items: center; gap: 6px; z-index: 5; font-size: clamp(10px, 1.1vw, 13px); font-weight: 700; }
 .mt-logo { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; background: rgba(255, 255, 255, 0.2); }
 .mt-num { color: var(--acc); font-weight: 800; }
