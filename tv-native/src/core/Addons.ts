@@ -445,13 +445,19 @@ export class Addons {
       const seasonNums = await fetchTmdbSeriesSeasonsCount(item.tmdbId).catch(() => [] as number[]);
       if (seasonNums.length > 0) {
         const cap = seasonNums.slice(0, 15);
-        const epLists = await Promise.all(
-          cap.map((sNum) =>
-            fetchTmdbSeasonEpisodes(item.tmdbId!, sNum)
-              .then((eps) => ({ sNum, eps }))
-              .catch(() => ({ sNum, eps: [] }))
-          )
-        );
+        // Três temporadas por vez: 15 pedidos juntos travavam TV fraca e o TMDB
+        // devolvia erro de limite.
+        const epLists: { sNum: number; eps: Awaited<ReturnType<typeof fetchTmdbSeasonEpisodes>> }[] = [];
+        for (let i = 0; i < cap.length; i += 3) {
+          const lote = await Promise.all(
+            cap.slice(i, i + 3).map((sNum) =>
+              fetchTmdbSeasonEpisodes(item.tmdbId!, sNum)
+                .then((eps) => ({ sNum, eps }))
+                .catch(() => ({ sNum, eps: [] as Awaited<ReturnType<typeof fetchTmdbSeasonEpisodes>> }))
+            )
+          );
+          epLists.push(...lote);
+        }
         const seasons: NonNullable<VODItem['seasons']> = [];
         for (let i = 0; i < epLists.length; i++) {
           const { sNum, eps } = epLists[i];
@@ -460,9 +466,9 @@ export class Addons {
               seasonNumber: sNum,
               episodes: eps.map((ep) => ({
                 episodeNumber: ep.episodeNumber,
-                title: ep.title,
+                title: ep.name,
                 sources: [PENDING_ADDON_STREAM_URL],
-                thumb: ep.thumb,
+                thumb: ep.still,
                 overview: ep.overview,
               })),
             });
