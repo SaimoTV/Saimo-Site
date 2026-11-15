@@ -1,104 +1,189 @@
 /**
- * Agenda de jogos do Saimo, montada a partir dos placares da ESPN.
- * Formato igual ao que os apps já leem (teams, league, time_start, players),
- * preenchendo `players` com os canais prováveis da transmissão no Brasil
- * (e da própria ESPN quando informados) para vincular tanto com o catálogo
- * quanto com as listas adicionadas pelo usuário. Jogo sem canal na lista
- * também entra na agenda.
+ * Agenda de jogos do Saimo: os jogos vêm dos placares da ESPN e os canais vêm
+ * da grade de programação dos canais esportivos do Brasil (meuguia.tv).
+ *
+ * Um canal só entra em `players` quando a grade dele mostra o jogo ao vivo
+ * (os dois times no título, perto do horário de início). Antes cada jogo levava
+ * as emissoras dos EUA informadas pela ESPN mais uma lista fixa de canais
+ * "prováveis" da liga, e por isso aparecia canal errado (NFL na RedeTV,
+ * ESPN em jogo que a ESPN não passa, canais regionais americanos).
+ *
+ * Formato igual ao que os apps já leem (teams, league, time_start, players).
+ * Horários em Brasília (-03:00). Jogo sem canal confirmado também entra.
  */
-const LIGAS: { caminho: string; canais: string[] }[] = [
-  { caminho: 'soccer/bra.1', canais: ['premiere', 'premiere-2', 'premiere-clubes', 'sportv', 'sportv-2', 'globo', 'cazetv', 'record'] },
-  { caminho: 'soccer/bra.2', canais: ['premiere', 'sportv', 'band', 'cazetv', 'canal-goat'] },
-  { caminho: 'soccer/bra.copa_do_brazil', canais: ['premiere', 'sportv', 'globo', 'prime-video'] },
-  { caminho: 'soccer/conmebol.libertadores', canais: ['espn', 'espn-2', 'espn-3', 'espn-4', 'paramount-plus', 'globo'] },
-  { caminho: 'soccer/conmebol.sudamericana', canais: ['espn', 'espn-2', 'paramount-plus', 'sbt'] },
-  { caminho: 'soccer/uefa.champions', canais: ['tnt', 'tnt-sports', 'space', 'max', 'sbt'] },
-  { caminho: 'soccer/uefa.europa', canais: ['cazetv', 'band'] },
-  { caminho: 'soccer/eng.1', canais: ['espn', 'espn-2', 'espn-3', 'espn-4', 'disney-plus'] },
-  { caminho: 'soccer/esp.1', canais: ['espn', 'espn-2', 'espn-3', 'espn-4', 'disney-plus'] },
-  { caminho: 'soccer/ita.1', canais: ['espn', 'espn-2', 'espn-3', 'cazetv', 'disney-plus'] },
-  { caminho: 'soccer/ger.1', canais: ['cazetv', 'sportv', 'band', 'canal-goat'] },
-  { caminho: 'soccer/fra.1', canais: ['cazetv'] },
-  { caminho: 'soccer/por.1', canais: ['espn', 'espn-2', 'espn-3', 'disney-plus'] },
-  { caminho: 'soccer/ned.1', canais: ['espn', 'espn-2', 'espn-3', 'disney-plus'] },
-  { caminho: 'soccer/arg.1', canais: ['espn', 'espn-2', 'espn-3', 'disney-plus'] },
-  { caminho: 'soccer/ksa.1', canais: ['band', 'bandsports', 'canal-goat'] },
-  { caminho: 'soccer/fifa.world', canais: ['globo', 'sportv', 'cazetv'] },
-  { caminho: 'soccer/fifa.worldq.conmebol', canais: ['globo', 'sportv'] },
-  { caminho: 'basketball/nba', canais: ['espn', 'espn-2', 'prime-video', 'nba-league-pass'] },
-  { caminho: 'football/nfl', canais: ['espn', 'espn-2', 'rede-tv', 'cazetv'] },
-  { caminho: 'baseball/mlb', canais: ['espn', 'espn-2', 'espn-3', 'disney-plus'] },
-  { caminho: 'hockey/nhl', canais: ['espn', 'espn-2', 'espn-3', 'disney-plus'] },
-  { caminho: 'mma/ufc', canais: ['ufc-fight-pass', 'band'] },
+
+interface Liga {
+  caminho: string;
+  /** Duração típica de uma partida, em minutos. */
+  duracao: number;
+  /** Canais que passam todos os jogos da liga (não depende da grade). */
+  sempre?: string[];
+}
+
+const LIGAS: Liga[] = [
+  { caminho: 'soccer/bra.1', duracao: 120, sempre: ['premiere'] },
+  { caminho: 'soccer/bra.2', duracao: 120, sempre: ['premiere'] },
+  { caminho: 'soccer/bra.copa_do_brazil', duracao: 120 },
+  { caminho: 'soccer/conmebol.libertadores', duracao: 120 },
+  { caminho: 'soccer/conmebol.sudamericana', duracao: 120 },
+  { caminho: 'soccer/uefa.champions', duracao: 120 },
+  { caminho: 'soccer/uefa.europa', duracao: 120 },
+  { caminho: 'soccer/uefa.nations', duracao: 120 },
+  { caminho: 'soccer/eng.1', duracao: 120 },
+  { caminho: 'soccer/esp.1', duracao: 120 },
+  { caminho: 'soccer/ita.1', duracao: 120 },
+  { caminho: 'soccer/ger.1', duracao: 120 },
+  { caminho: 'soccer/fra.1', duracao: 120 },
+  { caminho: 'soccer/por.1', duracao: 120 },
+  { caminho: 'soccer/ned.1', duracao: 120 },
+  { caminho: 'soccer/arg.1', duracao: 120 },
+  { caminho: 'soccer/ksa.1', duracao: 120 },
+  { caminho: 'soccer/fifa.world', duracao: 120 },
+  { caminho: 'soccer/fifa.worldq.conmebol', duracao: 120 },
+  { caminho: 'basketball/nba', duracao: 150, sempre: ['nba-league-pass'] },
+  { caminho: 'football/nfl', duracao: 210 },
+  { caminho: 'baseball/mlb', duracao: 180 },
+  { caminho: 'hockey/nhl', duracao: 150 },
+  { caminho: 'mma/ufc', duracao: 300 },
 ];
+
+/** Canais esportivos com grade no meuguia.tv: código → nome do canal (vira o slug). */
+const GRADES: [string, string][] = [
+  ['GRD', 'Globo'], ['SPO', 'SporTV'], ['SP2', 'SporTV 2'], ['SP3', 'SporTV 3'],
+  ['121', 'Premiere Clubes'], ['ESP', 'ESPN'], ['ES2', 'ESPN 2'], ['ES3', 'ESPN 3'],
+  ['ES4', 'ESPN 4'], ['ES5', 'ESPN 5'], ['BAN', 'Band'], ['BSP', 'BandSports'],
+  ['TNT', 'TNT'], ['SPA', 'Space'], ['RTV', 'RedeTV'], ['REC', 'Record'],
+  ['SBT', 'SBT'], ['135', 'Combate'],
+];
+
+const BRT = -3 * 3600_000;
+const JANELA = 40 * 60_000;
+
+interface Programa { inicio: number; titulo: string }
+
+/** Hora de Brasília (-03:00) no formato ISO, que todos os apps entendem. */
+function brt(ms: number): string {
+  return new Date(ms + BRT).toISOString().slice(0, 19) + '-03:00';
+}
+
+function sem(acentos: string): string {
+  return acentos.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+}
+
+function slugCanal(nome: string): string {
+  return sem(nome).replace(/\+/g, '-plus').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+const GENERICAS = new Set([
+  'club', 'clube', 'futebol', 'football', 'sport', 'sports', 'esporte', 'esportes', 'sporting',
+  'atletico', 'athletic', 'united', 'city', 'real', 'deportivo', 'calcio', 'associacao',
+  'regatas', 'saint', 'santa', 'sociedade', 'esportiva', 'recreativo', 'fc', 'sc', 'ec',
+]);
+
+/** Palavras que identificam o time ("Athletico Paranaense" → athletico, paranaense). */
+function palavrasDoTime(nomes: (string | undefined)[]): string[] {
+  const set = new Set<string>();
+  for (const n of nomes) {
+    if (!n) continue;
+    for (const p of sem(n).split(/[^a-z0-9]+/)) {
+      if (p.length >= 4 && !GENERICAS.has(p)) set.add(p);
+    }
+  }
+  return [...set];
+}
+
+/** Título de transmissão ao vivo, não reprise nem resumo. */
+function aoVivo(titulo: string): boolean {
+  const t = sem(titulo);
+  if (/^(vt|reprise|compacto)\b/.test(t)) return false;
+  return !/(melhores momentos|highlights|reprise|compacto|gols da rodada|resenha|mesa[- ]redonda)/.test(t);
+}
+
+/** Lê a grade de um canal: dias em "domingo, 15/11" e horários de Brasília. */
+function lerGrade(html: string, agora: number): Programa[] {
+  const limpo = html.replace(/<!--[\s\S]*?-->/g, '');
+  const re = /<li class="subheader[^"]*">([^<]*)<\/li>|<div class=.lileft time.>\s*(\d{1,2}):(\d{2})\s*<\/div>\s*<div class="licontent">\s*<h2>([^<]*)<\/h2>/g;
+  const anoAgora = new Date(agora + BRT).getUTCFullYear();
+  const progs: Programa[] = [];
+  let dia = -1;
+  let mes = -1;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(limpo))) {
+    if (m[1] !== undefined) {
+      const d = /(\d{1,2})\/(\d{1,2})/.exec(m[1]);
+      if (d) { dia = +d[1]; mes = +d[2] - 1; }
+      continue;
+    }
+    if (dia < 0) continue;
+    let ano = anoAgora;
+    // Grade de 31/12 para 01/01: o mês que "voltou" é do ano seguinte.
+    if (mes === 0 && new Date(agora + BRT).getUTCMonth() === 11) ano += 1;
+    const inicio = Date.UTC(ano, mes, dia, +m[2], +m[3]) - BRT;
+    progs.push({ inicio, titulo: m[4].replace(/&amp;/g, '&').trim() });
+  }
+  return progs;
+}
+
+async function grade(codigo: string, agora: number): Promise<Programa[]> {
+  const url = `https://meuguia.tv/programacao/canal/${codigo}`;
+  const chave = new Request(`https://saimo-cache.invalid/grade/${codigo}`);
+  let cache: Cache | undefined;
+  try {
+    cache = (globalThis as unknown as { caches?: { default: Cache } }).caches?.default;
+    const salvo = cache ? await cache.match(chave) : undefined;
+    if (salvo) return (await salvo.json()) as Programa[];
+  } catch { /* sem cache segue para a rede */ }
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 6000);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal, headers: { 'User-Agent': 'Mozilla/5.0' } });
+    if (!r.ok) return [];
+    const progs = lerGrade(await r.text(), agora).filter(p => aoVivo(p.titulo));
+    try {
+      if (cache) await cache.put(chave, new Response(JSON.stringify(progs), {
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' },
+      }));
+    } catch { /* cache é só atalho */ }
+    return progs;
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(t);
+  }
+}
 
 interface Comp {
   homeAway?: string;
   score?: string;
-  broadcasts?: { names?: string[] }[];
-  geoBroadcasts?: { media?: { shortName?: string } }[];
-  team?: { name?: string; displayName?: string; logo?: string };
+  team?: { name?: string; displayName?: string; shortDisplayName?: string; location?: string; logo?: string };
 }
 
-/** Hora de Brasília (-03:00) no formato ISO, que todos os apps entendem. */
-function brt(ms: number): string {
-  const d = new Date(ms - 3 * 3600_000);
-  return d.toISOString().slice(0, 19) + '-03:00';
-}
-
-function slugCanal(nome: string): string {
-  return nome
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/\+/g, '-plus')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-}
-
-function canaisDoEvento(comp: Comp | undefined, padraoLiga: string[]): string[] {
-  const vistos = new Set<string>();
-  const slugs: string[] = [];
-  const add = (s: string) => {
-    if (s && !vistos.has(s)) {
-      vistos.add(s);
-      slugs.push(`https://saimo-tv/canal/${s}`);
-    }
-  };
-  for (const b of comp?.broadcasts ?? []) {
-    for (const n of b?.names ?? []) {
-      const s = slugCanal(n);
-      if (s.startsWith('espn-deportes')) add('espn');
-      else if (s === 'espn-plus') add('disney-plus');
-      else if (s) add(s);
-    }
+function canaisConfirmados(casa: string[], fora: string[], inicio: number, grades: Map<string, Programa[]>): string[] {
+  if (!casa.length || !fora.length) return [];
+  const achados: string[] = [];
+  for (const [nome, progs] of grades) {
+    const bate = progs.some(p => {
+      if (Math.abs(p.inicio - inicio) > JANELA) return false;
+      const t = sem(p.titulo);
+      return casa.some(w => t.includes(w)) && fora.some(w => t.includes(w));
+    });
+    if (bate) achados.push(slugCanal(nome));
   }
-  for (const gb of comp?.geoBroadcasts ?? []) {
-    const n = gb?.media?.shortName;
-    if (n) {
-      const s = slugCanal(n);
-      if (s.startsWith('espn-deportes')) add('espn');
-      else if (s === 'espn-plus') add('disney-plus');
-      else if (s) add(s);
-    }
-  }
-  for (const s of padraoLiga) add(s);
-  return slugs;
+  return achados;
 }
 
-async function liga(item: { caminho: string; canais: string[] }): Promise<unknown[]> {
+async function liga(item: Liga, grades: Map<string, Programa[]>): Promise<unknown[]> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 7000);
   try {
-    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${item.caminho}/scoreboard`, { signal: ctrl.signal });
+    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${item.caminho}/scoreboard?lang=pt&region=br`, { signal: ctrl.signal });
     if (!r.ok) return [];
     const d: any = await r.json();
     const nomeLiga = d?.leagues?.[0]?.name ?? '';
     const logoLiga = d?.leagues?.[0]?.logos?.[0]?.href ?? '';
     const saida: unknown[] = [];
     for (const ev of d?.events ?? []) {
-      const comp: Comp | undefined = ev?.competitions?.[0];
-      const comps: Comp[] = (comp as any)?.competitors ?? [];
+      const comps: Comp[] = ev?.competitions?.[0]?.competitors ?? [];
       const casa = comps.find(c => c.homeAway === 'home');
       const fora = comps.find(c => c.homeAway !== 'home');
       if (!casa || !fora) continue;
@@ -107,10 +192,14 @@ async function liga(item: { caminho: string; canais: string[] }): Promise<unknow
       const st = ev?.status?.type;
       const estado: string = st?.state ?? '';
       if (estado === 'post') continue;
+      const pCasa = palavrasDoTime([casa.team?.displayName, casa.team?.shortDisplayName, casa.team?.name, casa.team?.location]);
+      const pFora = palavrasDoTime([fora.team?.displayName, fora.team?.shortDisplayName, fora.team?.name, fora.team?.location]);
+      const canais = canaisConfirmados(pCasa, pFora, inicio, grades);
+      for (const s of item.sempre ?? []) if (!canais.includes(s)) canais.push(s);
       saida.push({
-        players: canaisDoEvento(comp, item.canais),
+        players: canais.map(s => `https://saimo-tv/canal/${s}`),
         time_start: brt(inicio),
-        time_end: brt(inicio + 2 * 3600_000),
+        time_end: brt(inicio + item.duracao * 60_000),
         teams: {
           home: { name: casa.team?.displayName ?? casa.team?.name ?? '', image: casa.team?.logo ?? '' },
           away: { name: fora.team?.displayName ?? fora.team?.name ?? '', image: fora.team?.logo ?? '' },
@@ -130,7 +219,11 @@ async function liga(item: { caminho: string; canais: string[] }): Promise<unknow
 }
 
 export const onRequestGet: PagesFunction = async () => {
-  const jogos = (await Promise.all(LIGAS.map(liga))).flat() as { time_start: string }[];
+  const agora = Date.now();
+  const listas = await Promise.all(GRADES.map(([codigo]) => grade(codigo, agora)));
+  const grades = new Map<string, Programa[]>();
+  GRADES.forEach(([, nome], i) => grades.set(nome, listas[i]));
+  const jogos = (await Promise.all(LIGAS.map(l => liga(l, grades)))).flat() as { time_start: string }[];
   jogos.sort((a, b) => a.time_start.localeCompare(b.time_start));
   return new Response(JSON.stringify(jogos), {
     headers: {

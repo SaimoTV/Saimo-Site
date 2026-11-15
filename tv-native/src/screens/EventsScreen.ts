@@ -5,6 +5,7 @@ import { Api, SportsEvent } from '../core/Api';
 import { SpatialNav } from '../core/SpatialNav';
 import { HeroBanner } from '../components/HeroBanner';
 import { Rail, CardModel } from '../components/Rail';
+import { horaBr } from '../../../src/utils/horaBrasilia';
 
 export class EventsScreen {
   private element: HTMLElement;
@@ -48,7 +49,7 @@ export class EventsScreen {
 
   private fileira(titulo: string, jogos: SportsEvent[]) {
     if (!jogos.length) return;
-    const hora = (j: SportsEvent) => new Date(j.startTime).toTimeString().slice(0, 5);
+    const hora = (j: SportsEvent) => horaBr(new Date(j.startTime).getTime());
     const r = new Rail(titulo, true);
     r.setCards(jogos.map((j): CardModel => ({
       id: j.id,

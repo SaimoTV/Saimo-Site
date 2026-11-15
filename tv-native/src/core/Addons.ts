@@ -94,7 +94,7 @@ function parseDebridPendingUrl(url: string): { infoHash: string; fileIdx?: numbe
 
 function metaPreviewToVodItem(preview: StremioMetaPreview): VODItem {
   const rawId = String(preview.id || '');
-  const imdbId = preview.imdb_id || (rawId.indexOf('tt') === 0 ? rawId.split(':')[0] : undefined);
+  const imdbId = ((preview as StremioMetaPreview & { imdb_id?: string }).imdb_id) || (rawId.indexOf('tt') === 0 ? rawId.split(':')[0] : undefined);
   const isSeries = preview.type === 'series' || preview.type === 'anime';
   return {
     id: 'addon_' + rawId.replace(/[^a-zA-Z0-9_-]/g, '_'),
@@ -113,14 +113,16 @@ function metaPreviewToVodItem(preview: StremioMetaPreview): VODItem {
 }
 
 function tmdbDiscoveryToVodItem(item: TmdbDiscoveryItem): VODItem {
+  const isSeries = item.type === 'series';
   return {
-    id: (item.isSeries ? 'tmdb_tv_' : 'tmdb_mv_') + String(item.tmdbId),
+    id: (isSeries ? 'tmdb_tv_' : 'tmdb_mv_') + String(item.tmdbId),
     title: item.title,
-    isSeries: item.isSeries,
+    isSeries,
     tmdbId: item.tmdbId,
+    imdbId: item.imdbId,
     poster: item.poster,
     backdrop: item.backdrop || item.poster,
-    genres: item.genres || [],
+    genres: [],
     year: item.year,
     overview: item.overview,
     rating: item.rating,
@@ -176,12 +178,14 @@ export class Addons {
   }
 
   static async install(rawUrl: string): Promise<AddonInstallResult> {
-    const res = await installAddonRecordFromUrl(rawUrl, loadAddonsFromStorage());
-    if (res.ok && res.addons) {
-      saveAddonsToStorage(res.addons);
-      State.emit('addons-changed', res.addons);
+    // Antes lia `res.ok`/`res.addons`, que não existem no retorno: o addon era
+    // validado mas nunca salvo na TV.
+    const { result, nextAddons } = await installAddonRecordFromUrl(rawUrl, loadAddonsFromStorage());
+    if (result.ok) {
+      saveAddonsToStorage(nextAddons);
+      State.emit('addons-changed', nextAddons);
     }
-    return res;
+    return result;
   }
 
   static toggle(id: string): AddonRecord[] {
@@ -224,7 +228,6 @@ export class Addons {
         apiKey: config.apiKey.trim(),
         enabled: config.enabled !== false,
         syncWithConnect: Boolean(config.syncWithConnect),
-        updatedAt: Date.now(),
       });
     }
     saveDebridToStorage(current);
@@ -255,10 +258,10 @@ export class Addons {
 
   static applyDados(payload: unknown): { changedAddons: number; changedDebrid: number } {
     const res = applyConnectDadosPayload(payload);
-    if (res.changedAddons > 0 || res.changedDebrid > 0) {
+    if (res.addonsUpdated > 0 || res.debridUpdated > 0) {
       State.emit('addons-changed', loadAddonsFromStorage());
     }
-    return res;
+    return { changedAddons: res.addonsUpdated, changedDebrid: res.debridUpdated };
   }
 
   static exportDados(): DadosSyncPayload {
@@ -302,7 +305,7 @@ export class Addons {
           addon,
           type: cat.type,
           id: cat.id,
-          name: prefixo + (rawName || (cat.type === 'series' ? 'Catálogo' : 'Catálogo')) + ' · ' + addon.name,
+          name: prefixo + (rawName || (cat.type === 'series' ? 'Catálogo' : 'Catálogo')) + ' · ' + addon.manifest.name,
         });
       }
     }
@@ -329,10 +332,10 @@ export class Addons {
     try {
       const tmdbRails = await discoverTmdbPopular();
       for (let i = 0; i < tmdbRails.length; i++) {
-        if (tmdbRails[i].itens.length > 0) {
+        if (tmdbRails[i].items.length > 0) {
           rails.push({
-            titulo: tmdbRails[i].titulo,
-            itens: tmdbRails[i].itens.map(tmdbDiscoveryToVodItem),
+            titulo: tmdbRails[i].title,
+            itens: tmdbRails[i].items.map(tmdbDiscoveryToVodItem),
           });
         }
       }
@@ -582,7 +585,7 @@ export class Addons {
     }
     const res = await this.resolveDebridStream(infoHash, fileIdx, option?.trackers, option?.label);
     if (!res.ok || !res.url) {
-      throw new Error(res.erro || 'Não foi possível resolver este torrent via Debrid.');
+      throw new Error(res.error || 'Não foi possível resolver este torrent via Debrid.');
     }
     return res.url;
   }

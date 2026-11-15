@@ -11,6 +11,7 @@ import { Fileira, Heroi, type Destaque } from '../components/Telas';
 import { useCanais } from '../hooks/useCanais';
 import { acabou, aoVivo, buscarJogos, type Jogo } from '../services/eventos';
 import './Eventos.css';
+import { diaBr, horaBr, semanaBr } from '../utils/horaBrasilia';
 
 const HORA = 3_600_000;
 // Três minutos: a agenda do monitor é cobrada por pedido, e o placar não
@@ -18,18 +19,15 @@ const HORA = 3_600_000;
 const INTERVALO = 180_000;
 const GRUPOS = ['Ao vivo agora', 'Começa em breve', 'Hoje mais tarde', 'Amanhã', 'Próximos dias'];
 
-const diaDe = (ms: number) => {
-  const d = new Date(ms);
-  return Math.round(new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() / 86_400_000);
-};
-const hora = (ms: number) => new Date(ms).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+const diaDe = diaBr;
+const hora = horaBr;
 
 /** "21:30", "amanhã 16:00" ou "sáb 16:00". */
 function quando(inicio: number, agora: number): string {
   const d = diaDe(inicio) - diaDe(agora);
   if (d <= 0) return hora(inicio);
   if (d === 1) return `amanhã ${hora(inicio)}`;
-  const semana = new Date(inicio).toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '');
+  const semana = semanaBr(inicio);
   return `${semana} ${hora(inicio)}`;
 }
 

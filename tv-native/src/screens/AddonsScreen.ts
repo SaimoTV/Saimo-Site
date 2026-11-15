@@ -179,7 +179,6 @@ export class AddonsScreen {
         apiKey: key,
         enabled: true,
         syncWithConnect: false,
-        updatedAt: Date.now(),
       });
       this.debAvisoEl.textContent = 'Chave Debrid salva localmente nesta TV.';
       this.renderDebridList();
@@ -246,12 +245,10 @@ export class AddonsScreen {
     try {
       const res = await Addons.install(raw);
       if (!res.ok) {
-        this.avisoEl.textContent = res.erro || 'Falha ao instalar addon.';
+        this.avisoEl.textContent = res.error || 'Falha ao instalar addon.';
       } else {
         this.urlInput.value = '';
-        this.avisoEl.textContent = res.atualizado
-          ? `Addon "${res.addon?.name}" atualizado.`
-          : `Addon "${res.addon?.name}" instalado!`;
+        this.avisoEl.textContent = `Addon "${res.addon?.manifest.name ?? ''}" instalado!`;
         this.renderAddonsList();
       }
     } finally {
@@ -268,11 +265,9 @@ export class AddonsScreen {
     this.debAvisoEl.textContent = 'Validando conta no provedor Debrid...';
     const res = await Addons.testDebrid(this.selectedProvider, key);
     if (res.ok) {
-      this.debAvisoEl.textContent = res.username
-        ? `Conectado como ${res.username}${res.premium ? ' (Premium)' : ''}.`
-        : 'Conexão válida!';
+      this.debAvisoEl.textContent = res.label ? `Conectado: ${res.label}.` : 'Conexão válida!';
     } else {
-      this.debAvisoEl.textContent = res.erro || 'Não foi possível validar a chave.';
+      this.debAvisoEl.textContent = res.error || 'Não foi possível validar a chave.';
     }
   }
 
@@ -329,7 +324,7 @@ export class AddonsScreen {
       const info = document.createElement('div');
       info.className = 't';
       info.innerHTML = `
-        <b>${escHtml(addon.name)} (v${escHtml(addon.version)})</b>
+        <b>${escHtml(addon.manifest.name)} (v${escHtml(addon.manifest.version)})</b>
         <span>${escHtml(resourcesStr || 'stremio')}  ·  ${addon.enabled ? 'Ativo' : 'Desativado'}</span>
       `;
       row.appendChild(info);
@@ -344,11 +339,11 @@ export class AddonsScreen {
       };
 
       addBtn('Testar', async () => {
-        this.avisoEl.textContent = `Testando ${addon.name}...`;
+        this.avisoEl.textContent = `Testando ${addon.manifest.name}...`;
         const res = await Addons.test(addon);
         this.avisoEl.textContent = res.ok
-          ? `${addon.name}: OK (${res.latencyMs ?? 0}ms)`
-          : `${addon.name}: ${res.erro || 'falhou'}`;
+          ? `${addon.manifest.name}: OK (${res.latencyMs ?? 0}ms)`
+          : `${addon.manifest.name}: ${res.error || 'falhou'}`;
       });
 
       addBtn(addon.enabled ? 'Desativar' : 'Ativar', () => {
@@ -366,7 +361,7 @@ export class AddonsScreen {
         }
         this.confirmRemoveAddonId = null;
         Addons.remove(addon.id);
-        this.avisoEl.textContent = `Addon "${addon.name}" removido.`;
+        this.avisoEl.textContent = `Addon "${addon.manifest.name}" removido.`;
         this.renderAddonsList();
       });
 

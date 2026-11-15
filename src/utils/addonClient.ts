@@ -24,7 +24,7 @@ import {
   type StremioMetaPreview,
   type StremioStream,
   type StremioSubtitle,
-} from './addonProtocol.ts';
+} from './addonProtocol';
 
 export const TMDB_CLIENT_KEY = '15d2ea6d0dc1d476efbca3eba2b9bbfb';
 export const TMDB_CLIENT_BASE = 'https://api.themoviedb.org/3';
