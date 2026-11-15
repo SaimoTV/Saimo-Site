@@ -246,7 +246,8 @@ export async function episodios(letra: string, serie: Serie): Promise<Episodio[]
         // O arquivo é ordenado: passar do bloco procurado quer dizer que acabou.
         if (dentro) break;
         const identidade = linha.slice(1).split('\t');
-        dentro = identidade[0] === serie.titulo && (identidade[1] ?? '') === serie.ano;
+        const chunkAno = identidade[1] ?? '';
+        dentro = identidade[0] === serie.titulo && (chunkAno === serie.ano || !chunkAno || !serie.ano);
         continue;
       }
       if (!dentro) continue;
