@@ -17,7 +17,11 @@ pessoa já tinha gravado continua. O relay `/api/stream` lê o catálogo de apoi
 **Páginas institucionais** (`src/landing/`): a raiz `/` é sempre a apresentação do
 projeto, e o app no navegador fica em **`/home`** ("Abrir no navegador"; o PWA abre em
 `/home`). Só a TV (pacote ou navegador da TV) e o app instalado abrem direto no app em
-`/`. A apresentação também responde em `/sobre`. O topo dela é uma réplica da
+`/`. A apresentação também responde em `/sobre`. Logo depois de "Como funciona" vem a seção interativa
+**Multi tela e som no celular** (`MultiTelaSom` em `Landing.tsx`: clicar numa metade passa o som da TV para
+ela; o celular escolhe ouvir a tela 1, a 2 ou as duas, com o ajuste do fone Bluetooth) e, depois dos
+recursos, **Tudo o que ele faz** (`TudoQueFaz`: a lista completa de recursos, com filtro por tema). Ao
+acrescentar um recurso nos apps, acrescente o cartão em `TUDO`. O topo dela é uma réplica da
 interface real (`TelaDoApp.tsx`: Início, Ao vivo e On Demand, com lista de
 demonstração), mais `/formato` (formato de lista do Saimo), `/privacidade`, `/termos`, `/conteudo`, `/exclusao-de-dados` e `/suporte`. O e-mail de
 contato e o responsável legal ficam em `src/landing/config.ts`. A aba iPhone de `/app`

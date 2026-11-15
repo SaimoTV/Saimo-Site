@@ -111,6 +111,24 @@ const TRACOS: Record<string, string> = {
   globo: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18',
   usuario: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0',
   controle: 'M7 8h10a4 4 0 0 1 4 4v1a3 3 0 0 1-5.2 2L14 13h-4l-1.8 2A3 3 0 0 1 3 13v-1a4 4 0 0 1 4-4Zm1 3v3m-1.5-1.5h3M16 11.5h.01M18 13h.01',
+  fone: 'M4 14v-2a8 8 0 0 1 16 0v2M4 14a2 2 0 0 1 2-2h1v7H6a2 2 0 0 1-2-2v-3Zm16 0a2 2 0 0 0-2-2h-1v7h1a2 2 0 0 0 2-2v-3Z',
+  multi: 'M3 5.5A1.5 1.5 0 0 1 4.5 4h15A1.5 1.5 0 0 1 21 5.5v11a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 16.5v-11ZM12 4v14M9 21h6',
+  legenda: 'M3 5h18v14H3zM7 13h4M13 13h4M7 16h7',
+  pular: 'M5 6l7 6-7 6V6ZM13 6l7 6-7 6V6Z',
+  pip: 'M3 5h18v14H3zM12 11h7v6h-7z',
+  voz: 'M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3ZM5 11a7 7 0 0 0 14 0M12 18v3',
+  oculos: 'M3 9h18v6a2 2 0 0 1-2 2h-4l-3-3-3 3H5a2 2 0 0 1-2-2V9ZM7.5 12.5h.01M16.5 12.5h.01',
+  cast: 'M3 8V6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-6M3 12a7 7 0 0 1 7 7M3 15.5a3.5 3.5 0 0 1 3.5 3.5M3 19h.01',
+  peca: 'M10 4a2 2 0 1 1 4 0v2h4v4h-2a2 2 0 1 0 0 4h2v4h-4v-2a2 2 0 1 0-4 0v2H6v-4h2a2 2 0 1 0 0-4H6V6h4V4Z',
+  raio: 'M13 3 5 13h6l-1 8 8-10h-6l1-8Z',
+  eq: 'M6 20V10M12 20V4M18 20v-7',
+  relogio: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 4v5l3 2',
+  busca: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14Zm9 16-4-4',
+  sync: 'M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4',
+  volume: 'M4 10v4h4l5 4V6L8 10H4Zm12-1a4 4 0 0 1 0 6m2.5-8.5a7.5 7.5 0 0 1 0 11',
+  mudo: 'M4 10v4h4l5 4V6L8 10H4Zm12 0 5 5m0-5-5 5',
+  lista: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',
+  brilho: 'M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z',
 };
 function Icone({ nome, tamanho = 24 }: IconeProps) {
   return (
@@ -184,12 +202,13 @@ function Heroi() {
           </h1>
           <p className="rv d2">
             O Saimo é um <strong>player</strong>, não um catálogo. Você traz a sua lista de IPTV
-            (M3U, usuário e senha) e a gente cuida do resto: ao vivo, filmes, séries, animes, rádios, jogos e guia,
-            na TV, no celular e no computador.
+            (M3U, usuário e senha) e ele vira uma TV completa: ao vivo com guia, <strong>dois canais na mesma tela</strong>,
+            o <strong>som da TV no fone do celular</strong>, filmes e séries com pular abertura e legendas, rádios e os
+            jogos do dia, em 10 tipos de tela.
           </p>
           <div className="heroi-botoes rv d3">
             <a className="botao botao-principal" href="#baixar"><Icone nome="baixar" tamanho={18} /> Baixar grátis</a>
-            <a className="botao botao-vidro" href="#como"><Icone nome="play" tamanho={16} /> Ver como funciona</a>
+            <a className="botao botao-vidro" href="#tudo"><Icone nome="play" tamanho={16} /> Ver tudo o que ele faz</a>
           </div>
           <ul className="selos rv d4">
             <li><Icone nome="check" tamanho={15} /> Sem anúncios</li>
@@ -209,7 +228,7 @@ function Heroi() {
 
 /* ───────────────────────────── faixa de palavras ───────────────────────────── */
 
-const PALAVRAS = ['Android', 'TV Box e Android TV', 'Samsung', 'LG', 'Roku', 'Mac', 'Windows', 'Linux', 'Navegador', 'iPhone em breve'];
+const PALAVRAS = ['TV Box e Android TV', 'Samsung', 'LG', 'Roku', 'Celular e tablet', 'Mac', 'Windows', 'Linux', 'Navegador', 'Óculos VR', 'Multi tela', 'Som no celular', 'iPhone em breve'];
 
 function Faixa() {
   const itens = [...PALAVRAS, ...PALAVRAS];
@@ -257,7 +276,7 @@ function Manifesto() {
           <Pilar n={4} icone="usuario" titulo="Responsabilidade é de quem usa" texto="Use o Saimo com conteúdo que você tem direito de assistir. Respeitamos os direitos autorais e esperamos o mesmo de você." />
         </div>
         <div className="numeros rv">
-          <div><strong><Contador ate={9} /></strong><span>plataformas</span></div>
+          <div><strong><Contador ate={10} /></strong><span>tipos de tela</span></div>
           <div><strong><Contador ate={0} /></strong><span>anúncios</span></div>
           <div><strong><Contador ate={0} /></strong><span>contas obrigatórias</span></div>
           <div><strong><Contador ate={100} sufixo="%" /></strong><span>dados no seu aparelho</span></div>
@@ -410,6 +429,156 @@ function Demo() {
   );
 }
 
+/* ───────────────────────────── multi tela e som no celular ───────────────────────────── */
+
+const TELAS_DEMO = [
+  { canal: 'Esportes Ao Vivo', numero: 12, icone: 'bola', programa: 'Final do campeonato · 2º tempo', cor: 4 },
+  { canal: 'Cinema Clássico', numero: 31, icone: 'film', programa: 'Sessão da tarde · 48 min', cor: 5 },
+] as const;
+
+type Ouvir = 'nenhuma' | 0 | 1 | 'as-duas';
+
+/**
+ * Dois canais lado a lado, como na TV Box: a metade com contorno é a que tem
+ * som. O celular, pelo Saimo Connect, toca o som de uma tela ou das duas,
+ * acertado com a imagem — é por isso que dá para ver o jogo na sala e ouvir o
+ * filme no fone.
+ */
+function MultiTelaSom() {
+  const [ativa, setAtiva] = useState<0 | 1>(0);
+  const [ouvir, setOuvir] = useState<Ouvir>(1);
+  const [atraso, setAtraso] = useState(120);
+  const [placar, setPlacar] = useState([2, 1]);
+  const [minuto, setMinuto] = useState(67);
+  const raiz = useRef<HTMLElement | null>(null);
+  const [mexeu, setMexeu] = useState(false);
+  const [visivel, setVisivel] = useState(false);
+
+  useEffect(() => {
+    const el = raiz.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([e]) => setVisivel(e.isIntersecting), { threshold: 0.3 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  // O relógio do jogo anda, e às vezes sai gol.
+  useEffect(() => {
+    if (!visivel) return;
+    const t = window.setInterval(() => {
+      setMinuto((m) => (m >= 90 ? 46 : m + 1));
+      if (Math.random() < 0.12) setPlacar(([a, b]) => (Math.random() < 0.5 ? [a + 1, b] : [a, b + 1]));
+    }, 1600);
+    return () => window.clearInterval(t);
+  }, [visivel]);
+
+  // Sem ninguém mexendo, a demonstração troca sozinha a metade com som e o que o celular ouve.
+  useEffect(() => {
+    if (mexeu || !visivel) return;
+    const passos: [0 | 1, Ouvir][] = [[0, 1], [1, 0], [0, 'as-duas'], [0, 1]];
+    let i = 0;
+    const t = window.setInterval(() => {
+      i = (i + 1) % passos.length;
+      setAtiva(passos[i][0]);
+      setOuvir(passos[i][1]);
+    }, 3800);
+    return () => window.clearInterval(t);
+  }, [mexeu, visivel]);
+
+  const escolherTela = (i: 0 | 1) => { setMexeu(true); setAtiva(i); };
+  const escolherOuvir = (o: Ouvir) => { setMexeu(true); setOuvir(o); };
+  const celularOuve = (i: 0 | 1) => ouvir === i || ouvir === 'as-duas';
+  const rotuloOuvir = ouvir === 'nenhuma' ? 'Som só na TV' : ouvir === 'as-duas' ? 'Ouvindo as duas telas' : `Ouvindo a tela ${ouvir + 1}`;
+
+  return (
+    <section className="secao multitela" id="multitela" ref={raiz}>
+      <div className="miolo">
+        <span className="eyebrow rv"><i /> Multi tela e som no celular</span>
+        <h2 className="titulo-grande rv d1">Dois canais na mesma tela.<br /><span className="grad">Cada som onde você quiser.</span></h2>
+        <p className="lead rv d2">
+          O jogo na tela 1 para a sala, o filme na tela 2 no seu fone. Com a <strong>multi tela</strong> você assiste dois canais
+          lado a lado e escolhe qual tem som. Com o <strong>som no celular</strong>, o Saimo Connect manda o áudio de uma tela,
+          ou das duas, para o seu celular, acertado com a imagem da TV, até com a tela do celular apagada.
+        </p>
+
+        <div className="mt-palco rv d3">
+          <div className="mt-tv">
+            <div className="mt-tela">
+              {TELAS_DEMO.map((c, i) => {
+                const [a, b] = CORES_POSTER[c.cor];
+                const idx = i as 0 | 1;
+                return (
+                  <button key={c.canal} type="button" className={`mt-metade ${ativa === idx ? 'ativa' : ''}`} onClick={() => escolherTela(idx)}
+                    aria-pressed={ativa === idx} aria-label={`Tela ${i + 1}: ${c.canal}. ${ativa === idx ? 'Com som' : 'Sem som'}`}>
+                    <span className="mt-fundo" style={{ background: `linear-gradient(150deg, ${a}, ${b})` }} />
+                    {i === 0 ? (
+                      <span className="mt-jogo">
+                        <span className="mt-placar"><b>{placar[0]}</b><i>x</i><b>{placar[1]}</b></span>
+                        <span className="mt-minuto">{minuto}'</span>
+                        <span className="mt-bola"><Icone nome="bola" tamanho={26} /></span>
+                      </span>
+                    ) : (
+                      <span className="mt-filme">
+                        <span className="mt-lua" /><span className="mt-serra" /><span className="mt-serra mt-serra2" />
+                        <span className="mt-legenda">— A gente ainda chega antes do amanhecer.</span>
+                      </span>
+                    )}
+                    <span className="mt-canal">
+                      <span className="mt-logo"><Icone nome={c.icone} tamanho={15} /></span>
+                      <span className="mt-num">{c.numero}</span>
+                      <span className="mt-nome">{c.canal}</span>
+                    </span>
+                    <span className="mt-som"><Icone nome={ativa === idx ? 'volume' : 'mudo'} tamanho={16} /> <span className="mt-txt">{ativa === idx ? 'Som na TV' : 'Mudo'}</span></span>
+                    {celularOuve(idx) && <span className="mt-fone"><Icone nome="fone" tamanho={14} /> <span className="mt-txt">no celular</span></span>}
+                    <span className="mt-prog">{c.programa}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-pe" />
+            <p className="mt-dica"><Icone nome="play" tamanho={13} /> Clique numa metade para dar o som da TV a ela.</p>
+          </div>
+
+          <div className={`mt-fluxo ${ouvir === 'nenhuma' ? '' : 'ligado'}`} aria-hidden="true"><span /><span /><span /><span /></div>
+
+          <div className="mt-cel">
+            <div className="mt-cel-tela">
+              <div className="ccel-entalhe" />
+              <div className="mt-cel-cab"><Icone nome="wifi" tamanho={13} /> TV da sala · Saimo Connect</div>
+              <div className={`mt-cel-fone ${ouvir === 'nenhuma' ? '' : 'tocando'}`}>
+                <span className="mt-anel" /><span className="mt-anel" />
+                <Icone nome="fone" tamanho={42} />
+              </div>
+              <strong className="mt-cel-rotulo">{rotuloOuvir}</strong>
+              <div className="mt-eq">{Array.from({ length: 16 }, (_, i) => <i key={i} className={ouvir === 'nenhuma' ? 'parado' : ''} style={{ animationDelay: `${(i % 8) * 0.08}s` }} />)}</div>
+              <div className="mt-opcoes" role="group" aria-label="O que tocar no celular">
+                {([['Tela 1', 0], ['Tela 2', 1], ['As duas', 'as-duas'], ['Desligar', 'nenhuma']] as [string, Ouvir][]).map(([r, v]) => (
+                  <button key={r} type="button" className={ouvir === v ? 'on' : ''} aria-pressed={ouvir === v} onClick={() => escolherOuvir(v)}>{r}</button>
+                ))}
+              </div>
+              <label className="mt-atraso">
+                <span>Ajuste do fone Bluetooth <b>{atraso} ms</b></span>
+                <input type="range" min={0} max={400} step={10} value={atraso} onChange={(e) => { setMexeu(true); setAtraso(Number(e.target.value)); }} />
+              </label>
+              <span className="mt-sinc"><i /> Sincronizado com a TV</span>
+            </div>
+          </div>
+        </div>
+
+        <ul className="mt-lista rv">
+          <li><Icone nome="multi" tamanho={22} /><div><strong>Dois canais lado a lado</strong><span>Cada metade com logo, número e programa. As setas, os números e a lista trocam o canal da metade em foco.</span></div></li>
+          <li><Icone nome="volume" tamanho={22} /><div><strong>Você escolhe quem tem som</strong><span>Só a metade com contorno toca na TV. Um clique, ou seta para o lado, e o som passa para a outra.</span></div></li>
+          <li><Icone nome="fone" tamanho={22} /><div><strong>O som da TV no seu fone</strong><span>Ouça a tela 1, a tela 2 ou as duas no celular, colado na imagem, com a tela apagada e o app em segundo plano.</span></div></li>
+          <li><Icone nome="sync" tamanho={22} /><div><strong>Afinado no milissegundo</strong><span>O celular acompanha a TV o tempo todo, e um ajuste fino compensa o atraso do fone Bluetooth.</span></div></li>
+          <li><Icone nome="raio" tamanho={22} /><div><strong>Fonte reserva nas duas</strong><span>Se o sinal de uma metade cai, ela troca de fonte sozinha, sem mexer na outra.</span></div></li>
+          <li><Icone nome="controle" tamanho={22} /><div><strong>Comanda do celular</strong><span>Ligue e desligue a multi tela, escolha a metade e troque o canal de cada uma pelo Saimo Connect.</span></div></li>
+        </ul>
+        <p className="mt-onde rv">Multi tela na TV Box e Android TV, Samsung, LG, Mac, Windows, Linux e navegador. Som no celular com a TV Box, o Mac, o Windows e o Linux.</p>
+      </div>
+    </section>
+  );
+}
+
 /* ───────────────────────────── recursos ───────────────────────────── */
 
 type Cena = 'tv' | 'film' | 'series' | 'anime' | 'radio' | 'bola' | 'guia' | 'controle';
@@ -483,16 +652,102 @@ function Recursos() {
   );
 }
 
+/* ───────────────────────────── tudo o que ele faz ───────────────────────────── */
+
+type Grupo = 'aovivo' | 'acervo' | 'imagem' | 'conectado' | 'casa';
+const GRUPOS: { id: Grupo | 'todos'; nome: string }[] = [
+  { id: 'todos', nome: 'Tudo' }, { id: 'aovivo', nome: 'Ao vivo' }, { id: 'acervo', nome: 'Filmes e séries' },
+  { id: 'imagem', nome: 'Som e imagem' }, { id: 'conectado', nome: 'Entre aparelhos' }, { id: 'casa', nome: 'Sua lista e sua casa' },
+];
+
+const TUDO: { g: Grupo; ic: string; t: string; d: string }[] = [
+  { g: 'aovivo', ic: 'tv', t: 'Troca de canal na hora', d: 'Segure a seta para pular 3 ou 10 canais, digite o número ou volte ao anterior.' },
+  { g: 'aovivo', ic: 'raio', t: 'Fonte reserva automática', d: 'Se o sinal cai, outra fonte entra sozinha. Ou escolha a Fonte 1, 2, 3 com a qualidade de cada uma.' },
+  { g: 'aovivo', ic: 'multi', t: 'Multi tela', d: 'Dois canais lado a lado, e você escolhe qual metade tem som.' },
+  { g: 'aovivo', ic: 'guia', t: 'Guia de programação', d: 'O que passa agora e depois, com sinopse e a barra do que já foi.' },
+  { g: 'aovivo', ic: 'relogio', t: 'Lembretes e timer de sono', d: 'Avisa quando o programa vai começar e desliga sozinho na hora marcada.' },
+  { g: 'aovivo', ic: 'bola', t: 'Jogos do dia', d: 'Agenda com escudos e placar ao vivo, ligada ao canal da sua lista que passa o jogo.' },
+  { g: 'aovivo', ic: 'radio', t: 'Rádios', d: 'Por estilo, com logo e equalizador, tocando com a tela apagada.' },
+  { g: 'aovivo', ic: 'lista', t: 'Seções e favoritos', d: 'TV Aberta, Esportes, Notícias, Infantil e os seus favoritos, com número fixo por canal.' },
+  { g: 'acervo', ic: 'film', t: 'Ficha completa', d: 'Sinopse, elenco, nota, classificação, temporadas e "Mais como este".' },
+  { g: 'acervo', ic: 'busca', t: 'Filtros dos grandes serviços', d: 'Gênero, ano, idade, nota mínima e ordem: mais novos, mais populares, de A a Z.' },
+  { g: 'acervo', ic: 'play', t: 'Continue de onde parou', d: 'Em qualquer aparelho seu, e com um × para tirar da fileira o que não quer mais.' },
+  { g: 'acervo', ic: 'pular', t: 'Pular abertura e resumo', d: 'Um toque pula a abertura e o "anteriormente", com os tempos certos de cada episódio.' },
+  { g: 'acervo', ic: 'series', t: 'Próximo episódio sozinho', d: 'O cartão aparece nos créditos, e a série segue na mesma fonte e no mesmo áudio.' },
+  { g: 'acervo', ic: 'legenda', t: 'Legendas automáticas', d: 'Português, inglês e espanhol para filmes e séries, com tamanho, fundo e ajuste de sincronia.' },
+  { g: 'acervo', ic: 'anime', t: 'Animes e doramas', d: 'Seções próprias, dublados ou legendados, com coleções.' },
+  { g: 'acervo', ic: 'voz', t: 'Busca por voz', d: 'Canais, filmes, séries e atores numa busca só, que entende erro de digitação.' },
+  { g: 'acervo', ic: 'baixar', t: 'Baixar para ver sem internet', d: 'No celular, filmes e episódios ficam guardados para a viagem.' },
+  { g: 'acervo', ic: 'peca', t: 'Addons', d: 'Conecte os addons e as contas que você já usa. O Saimo vem sem nenhum.' },
+  { g: 'imagem', ic: 'eq', t: 'Áudio Inteligente', d: 'Iguala o volume entre canais: nada de comercial estourando nem canal baixinho.' },
+  { g: 'imagem', ic: 'brilho', t: 'Super Resolução', d: 'Deixa mais nítido o vídeo de resolução baixa na tela grande.' },
+  { g: 'imagem', ic: 'raio', t: 'Zero Delay', d: 'O ao vivo mais perto do tempo real, para não ouvir o gol do vizinho antes.' },
+  { g: 'imagem', ic: 'pip', t: 'Janelinha', d: 'O vídeo flutuando por cima de tudo no celular e no computador.' },
+  { g: 'imagem', ic: 'fone', t: 'Som no celular', d: 'O áudio da TV no seu fone, sincronizado, para não acordar ninguém.' },
+  { g: 'imagem', ic: 'legenda', t: 'Áudio e legenda à sua escolha', d: 'Dublado ou original, faixa de áudio, legenda e qualidade no mesmo painel.' },
+  { g: 'conectado', ic: 'controle', t: 'Celular vira controle', d: 'Setas, OK, voltar e volume da TV direto do celular, pelo Saimo Connect.' },
+  { g: 'conectado', ic: 'link', t: 'Digite no celular', d: 'Links de lista e buscas sem sofrer com o teclado da TV.' },
+  { g: 'conectado', ic: 'sync', t: 'Tudo sincronizado', d: 'Favoritos, onde você parou e suas listas passam de um aparelho para o outro.' },
+  { g: 'conectado', ic: 'cast', t: 'Chromecast e AirPlay', d: 'Mande o vídeo do celular, do Mac ou do navegador para a TV.' },
+  { g: 'conectado', ic: 'box', t: 'Google TV integrado', d: 'Continuar assistindo e busca do próprio sistema, e links que abrem direto no canal.' },
+  { g: 'conectado', ic: 'oculos', t: 'Óculos de realidade virtual', d: 'O app da TV roda em óculos Android, como o Meta Quest, com olhar e pinça.' },
+  { g: 'conectado', ic: 'baixar', t: 'Avisa quando há versão nova', d: 'O app mostra a novidade e abre o download, sem loja nenhuma no meio.' },
+  { g: 'casa', ic: 'link', t: 'M3U ou usuário e senha', d: 'Cole o link da lista ou o servidor do provedor. Usuário e senha só se a lista pedir.' },
+  { g: 'casa', ic: 'lista', t: 'Até 10 listas', d: 'Por link ou arquivo, cada uma liga e desliga, e as de link se atualizam sozinhas.' },
+  { g: 'casa', ic: 'lock', t: 'Controle parental', d: 'O que é só para adultos fica atrás de um código. As crianças usam sem esbarrar.' },
+  { g: 'casa', ic: 'shield', t: 'Endereços escondidos', d: 'A tela mostra Fonte 1, Fonte 2 e a qualidade. O endereço da sua lista não aparece.' },
+  { g: 'casa', ic: 'usuario', t: 'Sem conta e sem anúncio', d: 'Nada de cadastro, e-mail ou rastreio. Abriu, usou.' },
+  { g: 'casa', ic: 'box', t: 'Leve até em aparelho simples', d: 'Pensado para TV Box de 1 GB de memória e para controle remoto sem botão de menu.' },
+];
+
+function TudoQueFaz() {
+  const [grupo, setGrupo] = useState<Grupo | 'todos'>('todos');
+  const lista = grupo === 'todos' ? TUDO : TUDO.filter((x) => x.g === grupo);
+  const aoMover = (e: React.PointerEvent<HTMLElement>) => {
+    const el = e.currentTarget;
+    const r = el.getBoundingClientRect();
+    el.style.setProperty('--gx', `${e.clientX - r.left}px`);
+    el.style.setProperty('--gy', `${e.clientY - r.top}px`);
+  };
+  return (
+    <section className="secao tudo" id="tudo">
+      <div className="miolo">
+        <span className="eyebrow rv"><i /> Tudo o que ele faz</span>
+        <h2 className="titulo-grande rv d1"><span className="grad"><Contador ate={TUDO.length} /> recursos</span><br />numa TV que é sua.</h2>
+        <p className="lead rv d2">Do canal que abre na hora ao som no fone, tudo o que você acharia em vários aplicativos está num só, igual em todas as telas.</p>
+        <div className="tudo-filtros rv d3" role="tablist" aria-label="Filtrar recursos">
+          {GRUPOS.map((x) => (
+            <button key={x.id} type="button" role="tab" aria-selected={grupo === x.id} className={grupo === x.id ? 'on' : ''} onClick={() => setGrupo(x.id)}>
+              {x.nome}<em>{x.id === 'todos' ? TUDO.length : TUDO.filter((y) => y.g === x.id).length}</em>
+            </button>
+          ))}
+        </div>
+        <div className="tudo-grade" onPointerMove={aoMover}>
+          {lista.map((x, i) => (
+            <article key={x.t} className="tudo-item" style={{ animationDelay: `${Math.min(i, 18) * 28}ms` }}>
+              <span className="tudo-ic"><Icone nome={x.ic} tamanho={22} /></span>
+              <h3>{x.t}</h3>
+              <p>{x.d}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ───────────────────────────── aparelhos ───────────────────────────── */
 
 interface Aparelho { id: string; nome: string; icone: string; detalhe: string; estado: 'disponivel' | 'embreve'; para: string }
 const APARELHOS: Aparelho[] = [
-  { id: 'tvbox', nome: 'TV Box e Android TV', icone: 'box', detalhe: 'Android TV, Fire TV Stick, Mi Box, Chromecast com Google TV e TV Box Android. Feito para o controle remoto.', estado: 'disponivel', para: '/app' },
-  { id: 'samsung', nome: 'Samsung e LG', icone: 'tv', detalhe: 'Smart TVs Samsung (Tizen) e LG (webOS), com navegação pelo controle e a mesma tela inicial.', estado: 'disponivel', para: '/app' },
+  { id: 'tvbox', nome: 'TV Box e Android TV', icone: 'box', detalhe: 'Android TV, Fire TV Stick, Mi Box, Chromecast com Google TV e TV Box Android. Feito para o controle remoto, com multi tela, busca por voz e leve até em aparelho de 1 GB.', estado: 'disponivel', para: '/app' },
+  { id: 'samsung', nome: 'Samsung e LG', icone: 'tv', detalhe: 'Smart TVs Samsung (Tizen) e LG (webOS), com navegação pelo controle, multi tela e a mesma tela inicial.', estado: 'disponivel', para: '/app' },
   { id: 'roku', nome: 'Roku', icone: 'tv', detalhe: 'Canal nativo para TVs e aparelhos Roku, leve e com suporte total ao controle.', estado: 'disponivel', para: '/app' },
-  { id: 'cell', nome: 'Android (celular e tablet)', icone: 'phone', detalhe: 'No bolso: ao vivo, filmes, séries, downloads para assistir offline e controle remoto da TV.', estado: 'disponivel', para: '/app' },
-  { id: 'mac', nome: 'Mac', icone: 'laptop', detalhe: 'App nativo para Mac com chip Apple, com tela cheia, picture-in-picture e atalhos de teclado.', estado: 'disponivel', para: '/app' },
-  { id: 'win', nome: 'Windows', icone: 'laptop', detalhe: 'App de verdade para Windows 10 e 11, não é o site numa janela: o vídeo roda no próprio PC.', estado: 'disponivel', para: '/app' },
+  { id: 'cell', nome: 'Android (celular e tablet)', icone: 'phone', detalhe: 'No bolso: ao vivo, filmes, séries, downloads para ver sem internet, janelinha, Chromecast, e o controle remoto e o fone da sua TV.', estado: 'disponivel', para: '/app' },
+  { id: 'mac', nome: 'Mac', icone: 'laptop', detalhe: 'App nativo para Mac com chip Apple: multi tela, picture-in-picture, AirPlay, Chromecast, atalhos de teclado e o som no celular.', estado: 'disponivel', para: '/app' },
+  { id: 'win', nome: 'Windows', icone: 'laptop', detalhe: 'App de verdade para Windows 10 e 11, não é o site numa janela: o vídeo roda no próprio PC, com multi tela, janelinha e o som no celular.', estado: 'disponivel', para: '/app' },
+  { id: 'linux', nome: 'Linux', icone: 'laptop', detalhe: 'O mesmo app do Windows, com a mesma tela: AppImage para qualquer distribuição recente ou .deb para Ubuntu, Debian e Mint, no PC comum e no ARM.', estado: 'disponivel', para: '/app' },
+  { id: 'vr', nome: 'Óculos VR', icone: 'oculos', detalhe: 'O app da TV Box reconhece óculos Android, como Meta Quest, Pico e Android XR, e funciona com o olhar e a pinça: uma tela de cinema onde você estiver.', estado: 'disponivel', para: '/app' },
   { id: 'ios', nome: 'iPhone e iPad', icone: 'phone', detalhe: 'O aplicativo para iPhone e iPad está a caminho da App Store.', estado: 'embreve', para: '/app' },
   { id: 'web', nome: 'Navegador', icone: 'globo', detalhe: 'Sem instalar nada: abra o Saimo no navegador do computador, do celular ou da TV.', estado: 'disponivel', para: '/' },
 ];
@@ -575,7 +830,8 @@ function Connect() {
         <h2 className="titulo-grande rv d1">Seu celular vira o <span className="grad">controle remoto.</span></h2>
         <p className="lead rv d2">
           O Saimo Connect liga os seus aparelhos pela própria rede da sua casa. Sem conta, sem nuvem e sem servidor nosso no meio.
-          Use o celular para navegar na TV, digitar links sem sofrer com o controle e levar o que você assistia de um aparelho para outro.
+          Use o celular para navegar na TV, digitar links sem sofrer com o controle, ouvir o som da TV no seu fone e levar o que você assistia
+          de um aparelho para outro. Funciona com a TV Box, o Mac, o Windows e o Linux.
         </p>
         <div className="connect-cena rv d3">
           <div className="connect-tv">
@@ -621,9 +877,12 @@ function Connect() {
           </div>
         </div>
         <ul className="connect-lista rv">
+          <li><Icone nome="fone" tamanho={20} /><div><strong>Som da TV no fone</strong><span>Ouça a TV no celular, sincronizado, sem incomodar ninguém.</span></div></li>
+          <li><Icone nome="multi" tamanho={20} /><div><strong>Comanda a multi tela</strong><span>Liga, escolhe a metade e troca o canal de cada uma.</span></div></li>
           <li><Icone nome="controle" tamanho={20} /><div><strong>Controle remoto</strong><span>Setas, OK, voltar e volume, direto do celular.</span></div></li>
           <li><Icone nome="link" tamanho={20} /><div><strong>Digite no celular</strong><span>Mande links de lista e buscas sem teclado de TV.</span></div></li>
           <li><Icone nome="heart" tamanho={20} /><div><strong>Tudo sincronizado</strong><span>Favoritos, progresso e listas entre os seus aparelhos.</span></div></li>
+          <li><Icone nome="film" tamanho={20} /><div><strong>Abre filmes na TV</strong><span>Escolha no celular e o filme ou episódio começa na tela grande.</span></div></li>
           <li><Icone nome="wifi" tamanho={20} /><div><strong>Só na sua rede</strong><span>Funciona dentro de casa. Nada sai para a internet.</span></div></li>
         </ul>
       </div>
@@ -661,7 +920,7 @@ function Privacidade() {
 function Baixar() {
   const itens = useMemo(() => [
     { nome: 'TV Box', ic: 'box' }, { nome: 'Samsung', ic: 'tv' }, { nome: 'LG', ic: 'tv' }, { nome: 'Roku', ic: 'tv' },
-    { nome: 'Android', ic: 'phone' }, { nome: 'Mac', ic: 'laptop' }, { nome: 'Windows', ic: 'laptop' },
+    { nome: 'Android', ic: 'phone' }, { nome: 'Mac', ic: 'laptop' }, { nome: 'Windows', ic: 'laptop' }, { nome: 'Linux', ic: 'laptop' },
   ], []);
   return (
     <section className="secao baixar" id="baixar">
@@ -700,6 +959,9 @@ const PERGUNTAS: [string, string][] = [
   ['O que é uma lista M3U ou "usuário e senha"?', 'M3U é um arquivo (ou link) com a relação de canais ou vídeos que você tem direito a assistir. Alguns provedores entregam servidor, usuário e senha (formato Xtream) em vez de um link. O Saimo aceita os dois, e só pede usuário e senha se a sua lista exigir.'],
   ['Meus dados vão para algum servidor?', 'Seus favoritos, progresso e listas ficam no seu aparelho. Para tocar um vídeo, o app se conecta ao servidor da sua própria lista. Detalhes completos na Política de Privacidade.'],
   ['O que é o Saimo Connect?', 'É a ponte entre os seus aparelhos dentro da sua rede doméstica: o celular vira controle remoto da TV, digita links por você e sincroniza favoritos e progresso. Não usa nuvem.'],
+  ['Dá para ver dois canais ao mesmo tempo?', 'Sim, com a multi tela: dois canais lado a lado na TV Box, nas TVs Samsung e LG, no computador e no navegador. Você escolhe qual metade tem som, e cada uma troca de fonte sozinha se o sinal cair.'],
+  ['Posso ouvir o som da TV no celular?', 'Pode. Com o Saimo Connect, o celular toca o som da TV acertado com a imagem, no fone ou no alto-falante, até com a tela apagada. Na multi tela, você escolhe ouvir a tela 1, a tela 2 ou as duas, e um ajuste compensa o atraso do fone Bluetooth.'],
+  ['Funciona no Linux e em óculos VR?', 'Sim. No Linux há o AppImage, que roda em qualquer distribuição recente, e o .deb para Ubuntu, Debian e Mint. O app da TV Box também roda em óculos Android, como o Meta Quest.'],
   ['Tem app para iPhone?', 'Está a caminho da App Store. Enquanto isso, o Saimo funciona no navegador do iPhone: no Safari, toque em Compartilhar › Adicionar à Tela de Início.'],
   ['É grátis?', 'Sim, sem anúncios. O projeto é mantido por apoio voluntário de quem quer ajudar, e isso nunca é obrigatório.'],
 ];
@@ -741,7 +1003,7 @@ export function Landing() {
     document.title = `${SITE.nomeCompleto} — seu IPTV, suas telas, um só lugar`;
     const meta = document.querySelector('meta[name="description"]');
     const anterior = meta?.getAttribute('content') ?? null;
-    meta?.setAttribute('content', 'O Saimo TV é um player e ecossistema para a sua lista de IPTV (M3U ou usuário e senha): ao vivo, filmes, séries, animes, rádios, jogos e guia em TV, celular e computador. Sem anúncios, sem cadastro e sem conteúdo embutido.');
+    meta?.setAttribute('content', 'O Saimo TV é um player e ecossistema para a sua lista de IPTV (M3U ou usuário e senha): ao vivo com guia, multi tela, som da TV no celular, filmes e séries com pular abertura e legendas, rádios e jogos do dia, em TV Box, Samsung, LG, Roku, celular, Mac, Windows, Linux e navegador. Sem anúncios, sem cadastro e sem conteúdo embutido.');
     return () => {
       document.title = tituloAnterior.includes('um só lugar') ? SITE.nomeCompleto : tituloAnterior;
       if (anterior !== null) meta?.setAttribute('content', anterior);
@@ -755,7 +1017,9 @@ export function Landing() {
         <Faixa />
         <Manifesto />
         <Demo />
+        <MultiTelaSom />
         <Recursos />
+        <TudoQueFaz />
         <Aparelhos />
         <Connect />
         <Privacidade />

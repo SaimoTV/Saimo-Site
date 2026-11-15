@@ -38,8 +38,8 @@ export function Cabecalho({ ancoras = false }: { ancoras?: boolean }) {
           {ancoras ? (
             <>
               <a href="#sobre" onClick={fechar}>Sobre</a>
-              <a href="#como" onClick={fechar}>Como funciona</a>
-              <a href="#recursos" onClick={fechar}>Recursos</a>
+              <a href="#multitela" onClick={fechar}>Multi tela</a>
+              <a href="#tudo" onClick={fechar}>Recursos</a>
               <a href="#connect" onClick={fechar}>Saimo Connect</a>
               <a href="#aparelhos" onClick={fechar}>Aparelhos</a>
             </>
