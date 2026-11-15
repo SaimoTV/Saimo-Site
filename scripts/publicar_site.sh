@@ -2,10 +2,14 @@
 #
 # Publica o site no Cloudflare Pages sem passar pelo GitHub (upload direto).
 #
-# ATENÇÃO: o site de verdade (saimo-tv.pages.dev) é um projeto ligado ao Git e publica sozinho
-# a cada push na `main` de SaimoTV/Saimo-Site. Este script publica os endereços antigos
-# (saimo-tv2 e saimo-tv-f2w), que ficam na mesma conta (Saimo.tv.gs): continuam servindo
-# /api/* para apps velhos, e a página leva o usuário ao saimo-tv.pages.dev com os dados.
+# Desde 14/11/2026 os três endereços do site ficam na conta Cloudflare
+# gabrielsaimo97@gmail.com e todos são de upload direto (sem Git): saimo-tv
+# (o site de verdade), saimo-tv2 e saimo-tv-f2w (espelhos que servem /api/* para
+# apps velhos). Publicar no GitHub não publica mais o site: rode este script.
+# A variável CATALOGO_FILMES (secreta) de cada projeto aponta para
+# https://filmes-saimo.pages.dev. Para voltar a publicar sozinho a cada push, é
+# preciso conectar o GitHub ao projeto na conta nova (exige a verificação do
+# GitHub, que só o dono faz).
 #
 #   ./scripts/publicar_site.sh
 #
@@ -16,9 +20,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-export CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID:-e074091e48d179d86d956620fc8fa5f6}"
-export XDG_CONFIG_HOME="${SAIMO_CF_CONFIG:-$HOME/Library/Application Support/SaimoTV/wrangler-novo}"
-PROJETOS="${SAIMO_PROJETO_SITE:-saimo-tv saimo-tv2}"
+export CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID:-968be6f37516925498f07fe527c0f42d}"
+export XDG_CONFIG_HOME="${SAIMO_CF_CONFIG:-$HOME/Library/Application Support/SaimoTV/wrangler-97}"
+PROJETOS="${SAIMO_PROJETO_SITE:-saimo-tv saimo-tv2 saimo-tv-f2w}"
 
 achar_wrangler() {
   if command -v wrangler >/dev/null 2>&1; then command -v wrangler; return; fi
