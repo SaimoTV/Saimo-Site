@@ -52,36 +52,43 @@ async function melhorVarianteHls(masterUrl: string): Promise<string | null> {
 
 async function buscarRedeFlix(tmdbId: string, isSerie: boolean, season: string, episode: string, versao: string, clientIp?: string, debugObj?: any): Promise<string | null> {
   if (!/^\d+$/.test(tmdbId)) return null;
-  const pagina = isSerie
-    ? `${REDEFLIX_BASE}/serie/${tmdbId}/${season}/${episode}`
-    : `${REDEFLIX_BASE}/filme/${tmdbId}`;
+  const relPath = isSerie
+    ? `/serie/${tmdbId}/${season}/${episode}`
+    : `/filme/${tmdbId}`;
   const servidores = versao === 'leg' ? ['legendado', 'default'] : ['default', 'legendado'];
   const baseHeaders: Record<string, string> = {
     'User-Agent': AGENTE,
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-    'Referer': `${REDEFLIX_BASE}/`,
+    'Referer': 'https://redeflixapi.click/',
   };
 
-  // 1. Tenta carregar o HTML da página do título (direto ou via fallback anti-520)
+  // 1. Tenta carregar o HTML da página do título (tenta HTTP puro primeiro para evitar 520 de TLS cross-zone, depois HTTPS)
   let html = '';
-  try {
-    const c1 = new AbortController();
-    const t1 = setTimeout(() => c1.abort(), 3500);
-    const r1 = await fetch(pagina, { headers: baseHeaders, signal: c1.signal });
-    clearTimeout(t1);
-    if (debugObj) debugObj.r1 = { status: r1.status, ok: r1.ok, pagina };
-    if (r1.ok) {
-      html = await r1.text();
+  let usedBase = 'http://redeflixapi.click';
+  for (const base of ['http://redeflixapi.click', 'https://redeflixapi.click']) {
+    try {
+      const pagina = `${base}${relPath}`;
+      const c1 = new AbortController();
+      const t1 = setTimeout(() => c1.abort(), 3500);
+      const r1 = await fetch(pagina, { headers: baseHeaders, signal: c1.signal });
+      clearTimeout(t1);
+      if (debugObj) debugObj[base] = { status: r1.status, ok: r1.ok, pagina };
+      if (r1.ok) {
+        html = await r1.text();
+        usedBase = base;
+        break;
+      }
+    } catch (e: any) {
+      if (debugObj) debugObj[`${base}Err`] = e?.message;
     }
-  } catch (e: any) {
-    if (debugObj) debugObj.r1Err = e?.message;
   }
 
   if (!html) {
     try {
       const cProxy = new AbortController();
       const tProxy = setTimeout(() => cProxy.abort(), 6000);
+      const pagina = `https://redeflixapi.click${relPath}`;
       const rProxy = await fetch(`https://r.jina.ai/${pagina}`, {
         headers: { 'X-Return-Format': 'html', 'User-Agent': AGENTE },
         signal: cProxy.signal,
@@ -121,10 +128,10 @@ async function buscarRedeFlix(tmdbId: string, isSerie: boolean, season: string, 
             'X-Requested-With': 'RedeFlixPlayer',
             'Accept': 'application/json, text/plain, */*',
             'Content-Type': 'application/json',
-            'Referer': pagina,
-            'Origin': REDEFLIX_BASE,
+            'Referer': `${usedBase}${relPath}`,
+            'Origin': usedBase,
           };
-          const r2 = await fetch(`${REDEFLIX_BASE}/playback-resolve.php`, {
+          const r2 = await fetch(`${usedBase}/playback-resolve.php`, {
             method: 'POST',
             headers: r2Headers,
             body: JSON.stringify({ ticket: m[1], server: servidor }),
@@ -140,29 +147,35 @@ async function buscarRedeFlix(tmdbId: string, isSerie: boolean, season: string, 
 
       if (!launchTicket) continue;
 
-      // 3. Resolve a URL final no source.php
-      const c3 = new AbortController();
-      const t3 = setTimeout(() => c3.abort(), 4000);
-      const r3Headers: Record<string, string> = {
-        'User-Agent': AGENTE,
-        'X-Requested-With': 'RedeFlixPlayer',
-        'Accept': 'application/json, text/plain, */*',
-        'Content-Type': 'application/json',
-        'Referer': `${REDEFLIX_BASE}/playerkys/index.html`,
-        'Origin': REDEFLIX_BASE,
-      };
-      const r3 = await fetch(`${REDEFLIX_BASE}/playerkys/source.php`, {
-        method: 'POST',
-        headers: r3Headers,
-        body: JSON.stringify({ ticket: launchTicket }),
-        signal: c3.signal,
-      });
-      clearTimeout(t3);
-      if (debugObj) debugObj.r3 = { status: r3.status, ok: r3.ok };
-      if (!r3.ok) continue;
-      const j3 = (await r3.json()) as { url?: string };
-      if (debugObj) debugObj.finalUrl = j3?.url;
-      if (j3?.url) return j3.url;
+      // 3. Resolve a URL final no source.php (tenta usedBase e fallback)
+      for (const base of [usedBase, 'http://redeflixapi.click', 'https://redeflixapi.click']) {
+        try {
+          const c3 = new AbortController();
+          const t3 = setTimeout(() => c3.abort(), 4000);
+          const r3Headers: Record<string, string> = {
+            'User-Agent': AGENTE,
+            'X-Requested-With': 'RedeFlixPlayer',
+            'Accept': 'application/json, text/plain, */*',
+            'Content-Type': 'application/json',
+            'Referer': `${base}/playerkys/index.html`,
+            'Origin': base,
+          };
+          const r3 = await fetch(`${base}/playerkys/source.php`, {
+            method: 'POST',
+            headers: r3Headers,
+            body: JSON.stringify({ ticket: launchTicket }),
+            signal: c3.signal,
+          });
+          clearTimeout(t3);
+          if (debugObj) debugObj.r3 = { status: r3.status, ok: r3.ok, base };
+          if (!r3.ok) continue;
+          const j3 = (await r3.json()) as { url?: string };
+          if (debugObj) debugObj.finalUrl = j3?.url;
+          if (j3?.url) return j3.url;
+        } catch (e: any) {
+          if (debugObj) debugObj.r3Err = e?.message;
+        }
+      }
     } catch (e: any) {
       if (debugObj) debugObj.err = e?.message || String(e);
     }

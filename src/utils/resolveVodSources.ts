@@ -23,6 +23,67 @@ export type ResolvedMovieSources = MovieSource[] & {
   somenteApp?: boolean;
 };
 
+async function resolverRedeFlixDireto(url: string, signal: AbortSignal): Promise<string | null> {
+  try {
+    const u = new URL(url);
+    const idRaw = (u.searchParams.get('id') || '').replace(/^tmdb:/, '');
+    const cleanId = idRaw.split(':')[0];
+    if (!cleanId || !/^\d+$/.test(cleanId)) return null;
+
+    const tipo = (u.searchParams.get('tipo') || u.searchParams.get('type') || 'movie').toLowerCase();
+    const isSerie = tipo === 'series' || tipo === 'tv';
+    const s = u.searchParams.get('s') || u.searchParams.get('temporada') || '1';
+    const e = u.searchParams.get('e') || u.searchParams.get('episodio') || '1';
+    const versao = (u.searchParams.get('versao') || u.searchParams.get('v') || 'dub').toLowerCase();
+
+    const pageUrl = isSerie
+      ? `https://redeflixapi.click/serie/${cleanId}/${s}/${e}`
+      : `https://redeflixapi.click/filme/${cleanId}`;
+
+    const pageRes = await fetch(pageUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
+      signal,
+    });
+    if (!pageRes.ok) return null;
+    const html = await pageRes.text();
+
+    let launchTicket = '';
+    const fastMatch = /fastLaunchTickets\s*=\s*(\{.*?\});/.exec(html);
+    if (fastMatch?.[1]) {
+      try {
+        const tickets = JSON.parse(fastMatch[1]);
+        launchTicket = versao === 'leg' ? (tickets.legendado || tickets.default) : (tickets.default || tickets.legendado);
+      } catch (_) {}
+    }
+    if (!launchTicket) {
+      const mTicket = /playbackResolveTicket\s*=\s*"([^"]+)"/.exec(html);
+      if (mTicket?.[1]) launchTicket = mTicket[1];
+    }
+    if (!launchTicket) return null;
+
+    const sourceRes = await fetch('https://redeflixapi.click/playerkys/source.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'RedeFlixPlayer',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': 'https://redeflixapi.click/playerkys/index.html',
+        'Origin': 'https://redeflixapi.click',
+      },
+      body: JSON.stringify({ ticket: launchTicket }),
+      signal,
+    });
+    if (!sourceRes.ok) return null;
+    const j = await sourceRes.json();
+    return j?.url || null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * `null` quando o servidor afirma que não há vídeo (404): o episódio ainda não
  * saiu em lugar nenhum. Tocar o endereço mesmo assim dava "formato inválido".
@@ -34,6 +95,10 @@ async function resolverDinamica(source: MovieSource, signal: AbortSignal): Promi
     endereco.searchParams.set('json', '1');
     const response = await fetch(endereco.href, { signal });
     if (response.status === 404) {
+      const direto = await resolverRedeFlixDireto(source.url, signal);
+      if (direto) {
+        return { source: { ...source, url: direto }, somenteApp: false };
+      }
       try {
         const body = await response.json();
         return { source: null, somenteApp: !!body?.somenteApp };
@@ -41,13 +106,29 @@ async function resolverDinamica(source: MovieSource, signal: AbortSignal): Promi
         return { source: null, somenteApp: true };
       }
     }
-    if (!response.ok) return { source };
+    if (!response.ok) {
+      const direto = await resolverRedeFlixDireto(source.url, signal);
+      if (direto) return { source: { ...source, url: direto }, somenteApp: false };
+      return { source };
+    }
     const data = await response.json();
+    if (typeof data.url === 'string' && data.url) {
+      return {
+        source: { ...source, url: data.url },
+        somenteApp: !!data.somenteApp,
+      };
+    }
+    const direto = await resolverRedeFlixDireto(source.url, signal);
+    if (direto) return { source: { ...source, url: direto }, somenteApp: false };
     return {
-      source: typeof data.url === 'string' && data.url ? { ...source, url: data.url } : source,
+      source,
       somenteApp: !!data.somenteApp,
     };
-  } catch { return { source }; }
+  } catch {
+    const direto = await resolverRedeFlixDireto(source.url, signal);
+    if (direto) return { source: { ...source, url: direto }, somenteApp: false };
+    return { source };
+  }
 }
 
 /** Resolve ao abrir o título: URLs assinadas não ficam gravadas no catálogo. Fontes de addons/Debrid nunca vão ao proxy. */
