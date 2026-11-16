@@ -51,6 +51,36 @@ interface Pedido {
   tabelas: TabelasGuia;
   /** Nome do canal -> id da Pluto. */
   pluto?: Record<string, PlutoDoCanal>;
+  /** epg.json do endereço de canais: o guia já montado no servidor. */
+  central?: string;
+}
+
+/** `{g: {slug: [[ini, fim, título, sinopse]]}, m: {código: [[ini, fim, título, gênero]]}}`, em segundos. */
+interface GuiaCentral {
+  g: Record<string, [number, number, string, string?][]>;
+  m: Record<string, [number, number, string, string?][]>;
+}
+
+async function carregarCentral(url: string | undefined): Promise<GuiaCentral | null> {
+  if (!url) return null;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const d = await r.json() as GuiaCentral;
+    return d && d.g && d.m ? d : null;
+  } catch {
+    return null;
+  }
+}
+
+function doCentral(lista: [number, number, string, string?][] | undefined, deSinopse: boolean): WorkerProgramme[] {
+  return (lista ?? []).map(([ini, fim, title, extra]) => ({
+    title,
+    category: deSinopse ? '' : extra ?? '',
+    start: ini * 1000,
+    stop: fim * 1000,
+    ...(deSinopse && extra ? { description: extra } : {}),
+  }));
 }
 
 /*
@@ -532,8 +562,11 @@ async function comLimite<T, R>(itens: T[], limite: number, trabalho: (item: T) =
 
 const httpOuHttps = (url: string) => /^https?:\/\//i.test(url);
 
-async function montar({ names: todos, origin, tabelas, pluto = {} }: Pedido): Promise<void> {
+async function montar({ names: todos, origin, tabelas, pluto = {}, central: urlCentral }: Pedido): Promise<void> {
   const agora = Date.now();
+  // Guia já montado no servidor (11h e 18h): sem ele, cada página passaria pelo
+  // /api/proxy (Function paga) e seria lida aqui, uma por canal.
+  const central = await carregarCentral(urlCentral);
   const de = agora - PAST_WINDOW_MS;
   const ate = agora + FUTURE_WINDOW_MS;
   const grade: Grade = {};
@@ -587,6 +620,7 @@ async function montar({ names: todos, origin, tabelas, pluto = {} }: Pedido): Pr
   }
 
   const baixarSlugGuiaDeTv = async (slug: string): Promise<readonly [string, WorkerProgramme[]]> => {
+    if (central?.g[slug]) return [slug, doCentral(central.g[slug], true).filter((p) => p.stop > de && p.start < ate)];
     try {
       const alvo = httpOuHttps(slug) ? slug : `https://www.guiadetv.com/canal/${slug}`;
       const r = await fetch(`${origin}/api/proxy?url=${encodeURIComponent(alvo)}`);
@@ -625,6 +659,7 @@ async function montar({ names: todos, origin, tabelas, pluto = {} }: Pedido): Pr
 
   const baixarMeuGuia = async ([name, code]: readonly [string, string], tentativa = 0):
     Promise<readonly [string, WorkerProgramme[]]> => {
+    if (central?.m[code]) return [name, doCentral(central.m[code], false).filter((p) => p.stop > de && p.start < ate)];
     try {
       const alvo = httpOuHttps(code) ? code : `https://meuguia.tv/programacao/canal/${code}`;
       const r = await fetch(`${origin}/api/proxy?url=${encodeURIComponent(alvo)}`);

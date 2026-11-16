@@ -337,7 +337,8 @@ async function iniciarWorker(): Promise<void> {
     }
   };
 
-  worker.postMessage({ names: nomes, pluto, origin: proxyBase(), tabelas });
+  const base = linkCanais();
+  worker.postMessage({ names: nomes, pluto, origin: proxyBase(), tabelas, central: base ? `${base}epg.json` : undefined });
 }
 
 /** Lista vazia única: uma nova a cada consulta redesenharia à toa as linhas sem grade. */

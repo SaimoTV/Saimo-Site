@@ -8,6 +8,7 @@ import { Storage } from './Storage';
 import { MinhasListas } from './MinhasListas';
 import { Addons, TvAddonStreamOption } from './Addons';
 import { resolveImdbToTmdb } from '../../../src/utils/addonClient';
+import { normalise } from '../../../src/utils/nomes';
 
 export interface ChannelVariant {
   url: string;
@@ -256,9 +257,36 @@ export class Api {
     try {
       const res = await fetch(`${this.getBaseUrl('canais')}guia.txt`);
       if (!res.ok) return;
-      const fila = (await res.text()).split('\n')
-        .map((l) => l.trim().split('\t'))
-        .filter((p) => p[0] === 'meuguia' && p.length >= 3);
+      const linhas = (await res.text()).split('\n').map((l) => l.trim().split('\t'));
+      const fila = linhas.filter((p) => p[0] === 'meuguia' && p.length >= 3);
+      // Guia central (epg-leve.json, montado no servidor às 11h e às 18h): um
+      // arquivo só em vez de 69 páginas de ~300 KB lidas na TV.
+      try {
+        const r = await fetch(`${this.getBaseUrl('canais')}epg-leve.json`);
+        if (r.ok) {
+          const central = await r.json() as { g?: Record<string, number[][]>; m?: Record<string, number[][]> };
+          if (central && central.g && central.m) {
+            const converter = (lista?: unknown[][]): EpgProgram[] => (lista ?? []).map((p) => {
+              const ini = (p[0] as number) * 1000;
+              const fim = (p[1] as number) * 1000;
+              return { title: String(p[2]), start: new Date(ini), stop: new Date(fim), durationMin: Math.round((fim - ini) / 60000), remainingMin: 0, progress: 0 };
+            }).filter((p) => p.stop.getTime() > Date.now()).slice(0, 12);
+            // guiadetv (horários exatos) pelo nome normalizado; meuguia pelo nome do catálogo.
+            for (const l of linhas) {
+              if (l[0] === 'guiadetv' && l.length >= 3) {
+                const lista = converter(central.g[l[2]]);
+                if (lista.length) this.epgCache.set(normalise(l[1]), lista);
+              }
+            }
+            for (const l of fila) {
+              if (this.epgCache.has(normalise(l[1]))) continue;
+              const lista = converter(central.m[l[2]]);
+              if (lista.length) this.epgCache.set(l[1], lista);
+            }
+            return;
+          }
+        }
+      } catch { /* sem guia central: página por página, como antes */ }
       const trabalhador = async () => {
         for (let item = fila.shift(); item; item = fila.shift()) {
           try {
@@ -302,7 +330,8 @@ export class Api {
   }
 
   static getNowNext(channelName: string): { current?: EpgProgram; next?: EpgProgram } {
-    const list = this.epgCache.get(channelName);
+    // Pelo nome exato e, sem ele, pelo normalizado (canais das listas da pessoa).
+    const list = this.epgCache.get(channelName) ?? this.epgCache.get(normalise(channelName));
     if (!list || list.length === 0) return {};
     const now = Date.now();
     const sorted = [...list].sort((a, b) => a.start.getTime() - b.start.getTime());
