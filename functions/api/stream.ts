@@ -14,6 +14,9 @@ const MAGNET_BASE = 'https://magnetflix.flixbr.online';
 const FROST_BASE = 'https://froststream.cloutteam.com';
 const HOLLY_BASE = 'https://embedplayer2.xyz';
 const REDEFLIX_BASE = 'https://redeflixapi.click';
+const NIXPLAY_BASE = 'https://nixplay.lat';
+const NIXPLAY_USER = 'saimo-vods';
+const NIXPLAY_PASS = '221097';
 const AGENTE = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 const AGENTE_FROST = 'OnePlay-Matrix/3.3.9 Kodi';
 
@@ -587,6 +590,47 @@ async function respondeVideo(url: string): Promise<string | null> {
   }
 }
 
+/**
+ * Testa se a URL determinística do NixPlay possui vídeo real ativo.
+ * NixPlay responde HTTP 302 redirecionando para Cloudflare R2 com vídeo quando existe,
+ * ou HTTP 200 com texto "ERRO: Vídeo não encontrado..." quando não existe.
+ */
+async function testarNixplay(url: string): Promise<string | null> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 3500);
+  try {
+    const r = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'User-Agent': AGENTE,
+        'Range': 'bytes=0-1023',
+      },
+      redirect: 'manual',
+      signal: ctrl.signal,
+    });
+    // Status 301, 302, 307 ou 308 com redirecionamento para CDN/R2 significa vídeo disponível!
+    if (r.status === 301 || r.status === 302 || r.status === 307 || r.status === 308) {
+      return url;
+    }
+    // Caso responda 200/206 com corpo de vídeo direto
+    if (r.status === 200 || r.status === 206) {
+      const ct = (r.headers.get('content-type') || '').toLowerCase();
+      if (ct.includes('video/') || ct.includes('octet-stream')) {
+        return url;
+      }
+      const corpo = await r.text();
+      if (!corpo.includes('ERRO:') && !corpo.includes('não encontrado')) {
+        return url;
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export const onRequestGet: PagesFunction<{ CATALOGO_FILMES?: string }> = async ({ request, env }) => {
   CATALOGO_BASE = String(env?.CATALOGO_FILMES ?? '').trim().replace(/\/+$/, '');
   const url = new URL(request.url);
@@ -629,6 +673,36 @@ export const onRequestGet: PagesFunction<{ CATALOGO_FILMES?: string }> = async (
   }
   const prefixId = cleanId.startsWith('tt') ? cleanId : `tmdb:${cleanId}`;
   const isSerie = tipo === 'series' || tipo === 'tv';
+
+  // PRIORIDADE #1: Nixplay oficial (ultra-rápido, determinístico por TMDB ID, acervo ilimitado)
+  if (/^\d+$/.test(cleanId) && versao !== 'leg') {
+    const nixUrl = isSerie
+      ? `${NIXPLAY_BASE}/series/${NIXPLAY_USER}/${NIXPLAY_PASS}/${cleanId}/${season}/${episode}.mp4`
+      : `${NIXPLAY_BASE}/movie/${NIXPLAY_USER}/${NIXPLAY_PASS}/${cleanId}.mp4`;
+    const nixDisponivel = await testarNixplay(nixUrl);
+    if (nixDisponivel) {
+      const headers = new Headers();
+      headers.set('Access-Control-Allow-Origin', '*');
+      headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      headers.set('Cache-Control', 'public, max-age=1800');
+
+      if (querJson) {
+        headers.set('Content-Type', 'application/json');
+        return new Response(JSON.stringify({
+          url: nixUrl,
+          tipo,
+          id: cleanId,
+          temporada: isSerie ? parseInt(season, 10) : undefined,
+          episodio: isSerie ? parseInt(episode, 10) : undefined,
+          versao,
+          server: 'nixplay',
+        }), { status: 200, headers });
+      }
+
+      headers.set('Location', nixUrl);
+      return new Response(null, { status: 302, headers });
+    }
+  }
 
   let imdbId = cleanId.startsWith('tt') ? cleanId : '';
   if (!imdbId && /^\d+$/.test(cleanId)) {
