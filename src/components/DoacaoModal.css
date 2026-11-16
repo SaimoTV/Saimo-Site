@@ -474,3 +474,28 @@ body:has(.video-player-container.fullscreen) .saimo-doacao-backdrop {
   visibility: hidden !important;
   pointer-events: none !important;
 }
+
+/* Apoie chamativo: as cores correm pelo botão e ele brilha em pulsos.
+   Quem pede menos movimento no sistema vê o botão colorido, parado. */
+.saimo-doacao-trigger {
+  background: linear-gradient(90deg, #ff4d8d, #a855f7, #3b82f6, #14b8a6, #f59e0b, #ff4d8d);
+  background-size: 300% 100%;
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #fff;
+  animation: apoie-cores 4s linear infinite, apoie-brilho 1.6s ease-in-out infinite;
+}
+.saimo-doacao-trigger:hover {
+  background: linear-gradient(90deg, #ff4d8d, #a855f7, #3b82f6, #14b8a6, #f59e0b, #ff4d8d);
+  background-size: 300% 100%;
+}
+@keyframes apoie-cores {
+  from { background-position: 0% 50%; }
+  to { background-position: 300% 50%; }
+}
+@keyframes apoie-brilho {
+  0%, 100% { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 0 0 rgba(255, 77, 141, 0.55); }
+  50% { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 22px 6px rgba(168, 85, 247, 0.55); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .saimo-doacao-trigger { animation: none; }
+}

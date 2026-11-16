@@ -192,10 +192,11 @@ html.tizen.video-ativo, html.tizen.video-ativo body { background: transparent !i
 .tv-multi-aviso { position: absolute; left: 0; top: 860px; width: 1920px; text-align: center; font-size: 30px; color: #D5DCE5; }
 
 /* ===== Apoie o Saimo TV ===== */
-.tv-menu-tab.destaque { background: linear-gradient(135deg, #0fa89a, #2563eb); color: #fff; animation: tv-apoie-pulso 2.4s ease-in-out infinite; }
-.tv-menu-tab.destaque.active { background: linear-gradient(135deg, #0fa89a, #2563eb) !important; box-shadow: 0 0 0 3px rgba(255,255,255,.35); }
+.tv-menu-tab.destaque { background: linear-gradient(90deg, #ff4d8d, #a855f7, #3b82f6, #14b8a6, #f59e0b, #ff4d8d); background-size: 300% 100%; color: #fff; animation: tv-apoie-cores 4s linear infinite, tv-apoie-pulso 1.6s ease-in-out infinite; }
+.tv-menu-tab.destaque.active { background: linear-gradient(90deg, #ff4d8d, #a855f7, #3b82f6, #14b8a6, #f59e0b, #ff4d8d) !important; background-size: 300% 100% !important; box-shadow: 0 0 0 3px rgba(255,255,255,.35); }
 .tv-menu-tab.destaque.nav-focused { background: #fff !important; color: #0e7490 !important; animation: none; }
-@keyframes tv-apoie-pulso { 0%, 100% { box-shadow: 0 0 0 0 rgba(79,227,208,.55); } 50% { box-shadow: 0 0 0 10px rgba(79,227,208,0); } }
+@keyframes tv-apoie-pulso { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,77,141,.6); } 50% { box-shadow: 0 0 18px 8px rgba(168,85,247,.55); } }
+@keyframes tv-apoie-cores { from { background-position: 0% 50%; } to { background-position: 300% 50%; } }
 .tv-doacao { background: radial-gradient(1200px 700px at 85% 30%, rgba(20,184,166,.22), transparent 60%), radial-gradient(900px 600px at 10% 90%, rgba(37,99,235,.16), transparent 60%), #0a0d16; }
 .tv-doacao-corpo { position: absolute; top: 150px; left: 120px; right: 120px; bottom: 60px; display: flex; gap: 90px; align-items: center; }
 .tv-doacao-texto { flex: 1; color: #fff; }
