@@ -254,3 +254,10 @@ html.tizen.video-ativo, html.tizen.video-ativo body { background: transparent !i
 .tv-addons-qr-svg svg { width: 220px; height: 220px; display: block; margin: 0 auto; image-rendering: pixelated; }
 .tv-addons-qr-url { margin-top: 14px; font-size: 20px; font-weight: 700; color: #0e7490; word-break: break-all; }
 .tv-addons-qr-nota { margin-top: 10px; font-size: 18px; line-height: 1.35; color: #4b5563; }
+
+/* Logo do canal/filme que enche de cor enquanto o vídeo abre. */
+.tv-logo-carregando { position: fixed; left: 810px; top: 380px; width: 300px; height: 300px; z-index: 50; pointer-events: none; }
+.tv-logo-carregando img { width: 300px; height: 300px; object-fit: contain; }
+.tv-logo-carregando .base { position: absolute; left: 0; top: 0; opacity: .22; -webkit-filter: grayscale(1); filter: grayscale(1); }
+.tv-logo-carregando .cor { position: absolute; left: 0; top: 0; height: 300px; width: 0; overflow: hidden; transition: width 12s cubic-bezier(.22,.61,.36,1); }
+.tv-logo-carregando.anda .cor { width: 276px; }

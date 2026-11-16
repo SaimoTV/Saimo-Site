@@ -19,6 +19,7 @@ import { PlayerOSD } from '../components/PlayerOSD';
 import { SourceModal, SourceModalOption } from '../components/SourceModal';
 import { Escolha, OpcaoEscolha } from '../components/Escolha';
 import { SpatialNav } from '../core/SpatialNav';
+import { LogoCarregando } from '../components/LogoCarregando';
 
 interface SubCue {
   start: number;
@@ -266,12 +267,14 @@ export class PlayerScreen {
       .catch(() => {});
 
     try {
+      LogoCarregando.mostrar((vod as { poster?: string; logo?: string }).poster || (vod as { logo?: string }).logo);
       await this.player.play({
         url: streamUrl,
         title,
         headers: chosenOpt?.headers,
         isLive: false,
       });
+      LogoCarregando.esconder();
 
       // Retomada: verifica se havia progresso salvo
       const saved = Storage.getProgress(vod.title);
@@ -283,12 +286,14 @@ export class PlayerScreen {
       this.isPlaying = true;
       this.startProgressTracker();
     } catch (e) {
+      LogoCarregando.esconder();
       console.warn('[PlayerScreen] Erro na fonte atual. Tentando failover automático...', e);
       this.failoverNextSource();
     }
   }
 
   leave() {
+    LogoCarregando.esconder();
     this.element.classList.add('hidden');
     this.osd.hide();
     this.sourceModal.close();

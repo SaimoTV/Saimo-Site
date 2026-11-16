@@ -14,6 +14,7 @@ import { ZapHUD } from '../components/ZapHUD';
 import { ChannelDrawer } from '../components/ChannelDrawer';
 import { SourceModal } from '../components/SourceModal';
 import { SpatialNav } from '../core/SpatialNav';
+import { LogoCarregando } from '../components/LogoCarregando';
 
 export class LiveScreen {
   private element: HTMLElement;
@@ -217,6 +218,7 @@ export class LiveScreen {
   }
 
   leave() {
+    LogoCarregando.esconder();
     this.element.classList.add('hidden');
     clearInterval(this.vigia);
     this.zapHud.hide();
@@ -273,6 +275,7 @@ export class LiveScreen {
 
     // Exibe o Zap HUD imediatamente (< 1ms)
     this.zapHud.show(channel, idx);
+    LogoCarregando.mostrar(channel.logo);
     this.vigiar(channel, idx);
 
     try {
@@ -313,6 +316,7 @@ export class LiveScreen {
       } else if (agora > base + 1) {
         clearInterval(this.vigia);
         this.confirmada = true;
+        LogoCarregando.esconder();
         this.retentou = false;
         Storage.setFonteCanal(channel.name, idx);
         return;
@@ -341,6 +345,7 @@ export class LiveScreen {
       return;
     }
     const total = canal.variants.length;
+    LogoCarregando.esconder();
     for (let passo = 1; passo < total; passo++) {
       const proxima = (State.currentVariantIndex + passo) % total;
       if (!this.tentadas.has(proxima)) {
