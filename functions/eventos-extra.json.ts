@@ -124,7 +124,31 @@ function lerGrade(html: string, agora: number): Programa[] {
   return progs;
 }
 
+/**
+ * A grade central (epg.json do endereço de canais, montado no Mac às 11h e às
+ * 18h): o meuguia não responde às Functions do Cloudflare, então ler a página
+ * daqui deixava todos os jogos sem canal. Chaves `m` = código do meuguia.
+ */
+let central: { em: number; m: Record<string, [number, number, string, string?][]> } | null = null;
+async function gradeCentral(agora: number): Promise<Record<string, [number, number, string, string?][]> | null> {
+  if (central && agora - central.em < 10 * 60_000) return central.m;
+  try {
+    const r = await fetch('https://canais-saimo.pages.dev/epg.json');
+    if (!r.ok) return null;
+    const d = (await r.json()) as { m?: Record<string, [number, number, string, string?][]> };
+    if (!d?.m) return null;
+    central = { em: agora, m: d.m };
+    return d.m;
+  } catch {
+    return null;
+  }
+}
+
 async function grade(codigo: string, agora: number): Promise<Programa[]> {
+  const m = await gradeCentral(agora);
+  if (m && m[codigo]) {
+    return m[codigo].map(([ini, , titulo]) => ({ inicio: ini * 1000, titulo })).filter((p) => aoVivo(p.titulo));
+  }
   const url = `https://meuguia.tv/programacao/canal/${codigo}`;
   const chave = new Request(`https://saimo-cache.invalid/grade/${codigo}`);
   let cache: Cache | undefined;
