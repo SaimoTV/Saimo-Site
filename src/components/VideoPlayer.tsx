@@ -19,6 +19,7 @@ import './VideoPlayer.css';
 import './AvisoApp.css';
 import { ehAppDaTv } from '../plataforma/tv';
 import { alternarTelaCheia, elementoEmTelaCheia, EVENTOS_TELA_CHEIA, soltarOrientacao } from '../utils/telaCheia';
+import { LogoCarregando } from './LogoCarregando';
 
 interface VideoPlayerProps {
   channel: Channel | null;
@@ -1096,11 +1097,7 @@ export const VideoPlayer = memo(function VideoPlayer({
 
           {isLoading && (
             <div className="loading-overlay">
-              <div className="loader">
-                <div className="loader-ring"></div>
-                <div className="loader-ring"></div>
-                <div className="loader-ring"></div>
-              </div>
+              <LogoCarregando src={channel.logo} nome={channel.name} />
               <p>Carregando {channel.name}...</p>
             </div>
           )}

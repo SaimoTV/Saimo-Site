@@ -1,0 +1,39 @@
+.logo-carregando {
+  position: relative;
+  width: clamp(96px, 18vw, 168px);
+  height: clamp(96px, 18vw, 168px);
+}
+.logo-carregando img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+}
+.lc-base {
+  position: absolute;
+  inset: 0;
+  opacity: 0.22;
+  filter: grayscale(1);
+}
+/* A camada colorida cresce da esquerda; a imagem dentro dela tem sempre a
+   largura inteira do logo (por isso o tamanho fixo em relação ao pai). */
+.lc-cor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 0;
+  overflow: hidden;
+  animation: lc-enche 12s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+.lc-cor img {
+  width: clamp(96px, 18vw, 168px);
+  height: 100%;
+  max-width: none;
+}
+@keyframes lc-enche {
+  to { width: 92%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lc-cor { animation-duration: 0.01s; width: 55%; }
+}

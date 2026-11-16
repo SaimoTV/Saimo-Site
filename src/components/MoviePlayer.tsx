@@ -26,6 +26,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import { CHAVE_UPSCALING, type ModoUpscaling } from '../telas/Ajustes';
 import { audioInteligenteService } from '../services/audioInteligente';
 import { IconeMaterial } from './IconeMaterial';
+import { LogoCarregando } from './LogoCarregando';
 
 interface MoviePlayerProps {
   movie: Movie | null;
@@ -1305,8 +1306,8 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
       {/* Loading overlay */}
       {isLoading && (
         <div className="player-overlay loading" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="spinner" />
-          <span style={{ marginBottom: fontes.length > 1 ? '20px' : '0' }}>Carregando...</span>
+          <LogoCarregando src={movie?.logo} nome={movie?.name} />
+          <span style={{ marginTop: '14px', marginBottom: fontes.length > 1 ? '20px' : '0' }}>Carregando...</span>
           
           {fontes.length > 1 && (
             <button
