@@ -121,8 +121,23 @@ export function buscarVersao(): Promise<Versao | null> {
     ])
       .then(([release, publicado]) => {
         // O release manda: é o que está publicado para baixar agora.
-        const arquivos = { ...publicado?.arquivos, ...release?.arquivos };
-        const versao = release?.versao || publicado?.versao || '';
+        // Se a API do GitHub atrasa (cache) ou falha (limite de 60 pedidos por hora por
+        // IP, comum em rede compartilhada), vale a maior das duas versões.
+        const maior = (a: string, b: string) => {
+          const n = (v: string) => v.split('.').map(x => parseInt(x, 10) || 0);
+          const [x, y] = [n(a), n(b)];
+          for (let i = 0; i < Math.max(x.length, y.length); i++) {
+            if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0) ? a : b;
+          }
+          return a;
+        };
+        const versaoRelease = release?.versao || '';
+        const versaoJson = publicado?.versao || '';
+        const versao = versaoRelease && versaoJson ? maior(versaoRelease, versaoJson) : versaoRelease || versaoJson;
+        // Os links vêm da fonte da versão que ganhou; a outra só completa o que faltar.
+        const arquivos = versao === versaoJson && versaoJson !== versaoRelease
+          ? { ...release?.arquivos, ...publicado?.arquivos }
+          : { ...publicado?.arquivos, ...release?.arquivos };
         if (!versao && !Object.keys(arquivos).length) return null;
         return { versao, arquivos };
       })
