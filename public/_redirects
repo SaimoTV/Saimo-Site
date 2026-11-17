@@ -2,4 +2,5 @@
 # /tvbox, /celular, /mac, /windows, /linux e /linux-arm são Pages Functions (functions/*.ts): leem o
 # versao.json publicado e redirecionam, sem dono/repo escritos aqui.
 /baixar   /app  302
+/apoio    /apoie  301
 /*    /index.html   200
