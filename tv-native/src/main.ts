@@ -4,6 +4,9 @@
  */
 
 import './core/polyfills';
+// Logo depois dos polyfills: favoritos, progresso e recentes leem do perfil ativo.
+import '../../src/perfis/instalar';
+import { definirCaminhoAvatar, deveEscolherAoAbrir } from '../../src/perfis/perfis';
 import './styles/tv.css';
 import './styles/tv-box.css';
 import { Platform } from './core/Platform';
@@ -30,6 +33,10 @@ import { MinhasListasScreen } from './screens/MinhasListasScreen';
 import { AddonsScreen } from './screens/AddonsScreen';
 import { DoacaoScreen } from './screens/DoacaoScreen';
 import { NovelinhaScreen } from './screens/NovelinhaScreen';
+import { PerfisScreen } from './screens/PerfisScreen';
+
+// O pacote da TV leva os avatares em PNG, ao lado do index.html.
+definirCaminhoAvatar((id) => `img/avatares/${id}.png`);
 
 class SaimoTVApp {
   private videoEl: HTMLVideoElement;
@@ -77,6 +84,9 @@ class SaimoTVApp {
     this.screens.set('addons', new AddonsScreen());
     this.screens.set('doacao', new DoacaoScreen());
     this.screens.set('novelinha', new NovelinhaScreen());
+    const telaPerfis = new PerfisScreen();
+    this.screens.set('perfis', telaPerfis);
+    State.on('abrir-perfis', (modo: 'escolher' | 'gerenciar') => telaPerfis.abrir(modo || 'escolher'));
 
     Addons.initBridge();
 
@@ -107,6 +117,13 @@ class SaimoTVApp {
     Api.fetchChannels().then((c) => { if (c.length) State.channels = c; }).catch(() => {});
     Api.fetchEPG();
 
+    // Com 2 ou mais perfis, a partida pergunta quem está assistindo.
+    if (deveEscolherAoAbrir()) {
+      (this.screens.get('perfis') as PerfisScreen).obrigatoria = true;
+      State.setScreen('perfis');
+      return;
+    }
+
     const prefs = Storage.getPrefs();
     if (prefs.abrirEm === 'canal' && prefs.ultimoCanal) {
       State.setScreen('live');
@@ -123,7 +140,7 @@ class SaimoTVApp {
 
     // Mostra/esconde o menu do topo
     const menuEl = this.menuGlobal.getElement();
-    menuEl.style.display = nextScreen === 'player' || nextScreen === 'novelinha' ? 'none' : 'flex';
+    menuEl.style.display = nextScreen === 'player' || nextScreen === 'novelinha' || nextScreen === 'perfis' ? 'none' : 'flex';
     // Na Samsung o vídeo fica atrás da página: o fundo tem de sumir.
     const comVideo = nextScreen === 'live' || nextScreen === 'player';
     document.documentElement.classList.toggle('video-ativo', comVideo);
@@ -142,7 +159,9 @@ class SaimoTVApp {
 
       const current = State.currentScreen;
 
-      if (current === 'ficha') {
+      if (current === 'perfis') {
+        State.emit('perfis-voltar');
+      } else if (current === 'ficha') {
         State.setScreen(State.previousScreen === 'player' ? 'home' : State.previousScreen);
       } else if (current === 'player') {
         State.setScreen('ficha');

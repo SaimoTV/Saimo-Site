@@ -20,7 +20,8 @@ export type ScreenType =
   | 'search'
   | 'settings'
   | 'doacao'
-  | 'novelinha';
+  | 'novelinha'
+  | 'perfis';
 
 export type MenuTab =
   | 'buscar'
@@ -32,7 +33,8 @@ export type MenuTab =
   | 'radios'
   | 'extras'
   | 'ajustes'
-  | 'apoie';
+  | 'apoie'
+  | 'perfil';
 
 export class State {
   static currentScreen: ScreenType = 'home';
@@ -102,6 +104,7 @@ export class State {
     else if (screen === 'settings' || screen === 'minhas' || screen === 'addons') this.activeTab = 'ajustes';
     else if (screen === 'favorites') this.activeTab = 'favoritos';
     else if (screen === 'doacao') this.activeTab = 'apoie';
+    else if (screen === 'perfis') this.activeTab = 'perfil';
 
     console.info(`[SaimoTV] Navegando para tela: ${screen}`);
     this.emit('screen-changed', { screen, previous: this.previousScreen, params });

@@ -6,6 +6,8 @@
 import { State, MenuTab } from '../core/State';
 import { SpatialNav } from '../core/SpatialNav';
 import { icone } from './Icones';
+import { assinar as assinarPerfis, ativo as perfilAtivo } from '../../../src/perfis/perfis';
+import { avatarHtml } from '../screens/PerfisScreen';
 
 export class MenuGlobal {
   private element: HTMLElement;
@@ -34,6 +36,8 @@ export class MenuGlobal {
 
     State.on('screen-changed', () => this.updateActiveTab());
     State.on('extras-unlocked', () => this.renderTabs());
+    // Nome ou avatar do perfil mudou: o avatar do menu acompanha.
+    assinarPerfis(() => this.renderTabs());
   }
 
   getElement(): HTMLElement {
@@ -52,6 +56,7 @@ export class MenuGlobal {
       { id: 'favoritos', label: 'Favoritos', icon: 'star', screen: 'favorites' },
       { id: 'radios', label: 'Rádios', icon: 'radio', screen: 'radios' },
       { id: 'apoie', label: 'Apoie', icon: 'favorite', screen: 'doacao' },
+      { id: 'perfil', label: '', icon: '', screen: 'perfis' },
       { id: 'ajustes', label: '', icon: 'settings', screen: 'settings' },
     ];
 
@@ -65,10 +70,14 @@ export class MenuGlobal {
       btn.setAttribute('data-nav', 'true');
       btn.setAttribute('data-tab-id', t.id);
       btn.id = `menu-tab-${t.id}`;
-      btn.innerHTML = `${icone(t.icon)}${t.label ? `<span>${t.label}</span>` : ''}`;
+      btn.innerHTML = t.id === 'perfil'
+        ? avatarHtml(perfilAtivo(), 'menu')
+        : `${icone(t.icon)}${t.label ? `<span>${t.label}</span>` : ''}`;
+      if (t.id === 'perfil') btn.className += ' tv-menu-perfil';
 
       btn.addEventListener('click', () => {
-        State.setScreen(t.screen);
+        if (t.id === 'perfil') State.emit('abrir-perfis', 'escolher');
+        else State.setScreen(t.screen);
       });
 
       this.tabsContainer.appendChild(btn);

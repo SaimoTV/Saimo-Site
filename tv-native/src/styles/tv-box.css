@@ -263,3 +263,37 @@ html.tizen.video-ativo, html.tizen.video-ativo body { background: transparent !i
 .tv-logo-carregando .base { position: absolute; left: 0; top: 0; opacity: .22; -webkit-filter: grayscale(1); filter: grayscale(1); }
 .tv-logo-carregando .cor { position: absolute; left: 0; top: 0; height: 300px; width: 0; overflow: hidden; transition: width 12s cubic-bezier(.22,.61,.36,1); }
 .tv-logo-carregando.anda .cor { width: 276px; }
+
+/* ── perfis ── */
+.tv-perfis { padding: 90px 120px 60px; text-align: center; }
+.tv-perfis-titulo { font-size: 64px; font-weight: 700; color: #fff; }
+.tv-perfis-sub { margin-top: 16px; font-size: 28px; color: rgba(255,255,255,.62); }
+.tv-perfis-grade { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 60px; }
+.tv-perfil { width: 220px; margin: 0 22px 36px; padding: 12px 0; border-radius: 28px; color: rgba(255,255,255,.7); border: 0 !important; background: none !important; }
+.tv-perfil-moldura { position: relative; width: 180px; height: 180px; margin: 0 auto; border-radius: 40px; transition: transform .18s; }
+.tv-perfil.nav-focused { color: #fff !important; }
+.tv-perfil.nav-focused .tv-perfil-moldura { transform: scale(1.08); box-shadow: 0 0 0 7px #fff, 0 18px 50px rgba(0,0,0,.5); }
+.tv-perfil-nome { margin-top: 20px; font-size: 30px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tv-perfil.atual .tv-perfil-nome:after { content: ''; display: block; width: 40px; height: 5px; margin: 10px auto 0; border-radius: 4px; background: #4ff3e0; }
+.tv-perfil-avatar { display: block; width: 100%; height: 100%; overflow: hidden; border-radius: inherit; background: linear-gradient(160deg, #7c8cff, #1a1f5c); }
+.tv-perfil-avatar img { display: block; width: 100%; height: 100%; }
+.tv-perfil-avatar b { display: flex; align-items: center; justify-content: center; height: 100%; font-size: 80px; color: #fff; }
+.tv-perfil.editando .tv-perfil-avatar { opacity: .5; }
+.tv-perfil-lapis { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%; border: 5px solid #fff; }
+.tv-perfil-lapis:after { content: ''; position: absolute; left: 22px; top: 8px; width: 10px; height: 34px; background: #fff; transform: rotate(40deg); border-radius: 3px; }
+.tv-perfil-mais { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; border-radius: 40px; border: 4px dashed rgba(255,255,255,.4); font-size: 100px; font-weight: 300; color: rgba(255,255,255,.8); box-sizing: border-box; }
+.tv-perfis-acoes { margin-top: 40px; }
+.tv-perfis-acoes .tv-btn { margin: 0 12px 16px; }
+.tv-perfis-perigo { color: #ffb3b3 !important; }
+.tv-perfis-perigo.nav-focused { background: #ff7a7a !important; color: #1a0606 !important; }
+.tv-perfis-nota { margin: 30px auto 0; max-width: 1100px; font-size: 24px; color: rgba(255,255,255,.5); }
+.tv-perfis-editar-topo { display: flex; align-items: center; justify-content: center; margin-top: 50px; }
+.tv-perfis-editar-topo .tv-perfil-avatar.grande { width: 170px; height: 170px; border-radius: 38px; margin-right: 40px; }
+.tv-perfis-editar-topo .tv-campo { width: 800px; margin: 0; text-align: left; }
+.tv-perfis-avatares { display: flex; flex-wrap: wrap; justify-content: center; max-width: 1400px; margin: 24px auto 0; }
+.tv-perfil-opcao { width: 116px; height: 116px; margin: 10px; border-radius: 26px; overflow: hidden; border: 0 !important; background: none !important; }
+.tv-perfil-opcao img { display: block; width: 100%; height: 100%; }
+.tv-perfil-opcao.on { box-shadow: 0 0 0 6px #4ff3e0; }
+.tv-perfil-opcao.nav-focused { transform: scale(1.1); box-shadow: 0 0 0 6px #fff; }
+.tv-perfis-aviso { margin-top: 16px; font-size: 26px; color: #ffb3b3; min-height: 30px; }
+.tv-menu-perfil .tv-perfil-avatar.menu { width: 52px; height: 52px; border-radius: 14px; }

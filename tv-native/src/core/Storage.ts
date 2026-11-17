@@ -76,16 +76,28 @@ export class Storage {
     } catch (e) {}
   }
 
+  // O último canal é de cada perfil (o resto dos ajustes vale para o aparelho todo).
+  // Chave própria, que o módulo de perfis separa por perfil; quem já tinha o canal
+  // guardado nos ajustes (perfil principal, versões anteriores) continua com ele.
+  private static ULTIMO_CANAL_KEY = 'saimo_tv_ultimo_canal';
+
   static getPrefs(): TVPreferences {
+    let prefs: TVPreferences = { ...DEFAULT_PREFS };
     try {
       const data = localStorage.getItem(this.PREFS_KEY);
-      if (data) return { ...DEFAULT_PREFS, ...JSON.parse(data) };
+      if (data) prefs = { ...DEFAULT_PREFS, ...JSON.parse(data) };
     } catch (e) {}
-    return { ...DEFAULT_PREFS };
+    try {
+      const ultimo = localStorage.getItem(this.ULTIMO_CANAL_KEY);
+      if (ultimo !== null) prefs.ultimoCanal = ultimo;
+      else if (localStorage.getItem('saimo-perfil-ativo') && localStorage.getItem('saimo-perfil-ativo') !== 'principal') prefs.ultimoCanal = '';
+    } catch (e) {}
+    return prefs;
   }
 
   static savePrefs(prefs: Partial<TVPreferences>) {
     try {
+      if (typeof prefs.ultimoCanal === 'string') localStorage.setItem(this.ULTIMO_CANAL_KEY, prefs.ultimoCanal);
       const current = this.getPrefs();
       const updated = { ...current, ...prefs };
       localStorage.setItem(this.PREFS_KEY, JSON.stringify(updated));
