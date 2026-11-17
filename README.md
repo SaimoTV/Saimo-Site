@@ -131,3 +131,15 @@ O código da web é empacotado para Smart TVs através do script:
 
 Gera `build/tv/SaimoTV-Samsung.wgt` e `build/tv/SaimoTV-LG.ipk`.
 O pacote contém o carregador leve (`tv/comum/carregador.js`) que busca a versão atualizada do site ao abrir.
+
+## Perfis, Kids e controle parental (3.2.0)
+
+Contrato comum dos apps: `SaimoPlayer/docs/perfis.md`. Até 10 perfis, cada um com avatar (21, de
+`SaimoPlayer/docs/avatares`), os seus favoritos, onde parou e recentes; listas, fontes e ajustes valem
+para o aparelho todo. O perfil principal usa os dados de antes (ninguém perde nada ao atualizar).
+Com 2 ou mais perfis o app abre em "Quem está assistindo?". Perfil Kids: só filmes e séries com
+classificação até 12 anos (sem classificação, escondido), nada adulto, sem addons; sair dele,
+gerenciar perfis e abrir os Ajustes pedem um código de 4 dígitos (guardado como SHA-256). Controle
+parental visível no fim dos Ajustes, discreto: senha padrão 0000, trocável; no Kids nunca libera.
+
+No site e no app da Samsung/LG (`tv-native`): `src/perfis/` (as chaves de perfil ganham `@<id>` na entrada do localStorage, antes de qualquer módulo ler; SHA-256 em JS puro porque a TV roda em `file://`), filtro do Kids em `vodService`/`tv-native/src/core/Api.ts`, `ControleParental.tsx` no fim dos Ajustes. Os catálogos publicados pelo Saimo não têm conteúdo adulto (`SaimoCatalogos/scripts/sem_adulto.py`).
