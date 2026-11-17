@@ -94,6 +94,25 @@ export async function sondarProxy(): Promise<void> {
   }
 }
 
+/**
+ * Se o vídeo pode passar pelo proxy.
+ *
+ * No site, não: cada pedaço de vídeo que passa por `/api/proxy` é um pedido
+ * cobrado na Cloudflare, e um canal aberto gera milhares por hora. Canal que só
+ * abre pelo proxy (Referer/User-Agent obrigatório, servidor sem CORS) fica para
+ * o aplicativo. Continuam usando: o app da TV (Samsung/LG), que não tem outro
+ * caminho, e o app de janela, cujo proxy é local e não custa nada.
+ */
+export function proxyDeVideoLiberado(): boolean {
+  if (ehAppDaTv()) return true;
+  return !!(globalThis as { __SAIMO_PROXY__?: string }).__SAIMO_PROXY__;
+}
+
+/** Fonte que o servidor só entrega com Referer ou User-Agent próprios, coisa que o navegador não manda. */
+export function exigeCabecalho(source: ChannelSource): boolean {
+  return !!(source.referer || source.userAgent);
+}
+
 /** Endereço do proxy desta origem para uma fonte, com os cabeçalhos dela. */
 export function proxyUrl(source: ChannelSource): string {
   const base = proxyBase();
@@ -105,7 +124,7 @@ export function proxyUrl(source: ChannelSource): string {
 
 /** Endereço a entregar ao player: o proxy quando obrigatório, a origem quando não. */
 export function playableUrl(source: ChannelSource): string {
-  return needsProxy(source) ? proxyUrl(source) : source.url;
+  return needsProxy(source) && proxyDeVideoLiberado() ? proxyUrl(source) : source.url;
 }
 
 /** Uma tentativa de reprodução: a mesma fonte, por um caminho ou pelo outro. */
@@ -170,6 +189,13 @@ export function buildAttempts(sources: ChannelSource[]): Attempt[] {
     const direta = tv && !source.referer && !source.userAgent;
     if (direta) out.push({ source, url: source.url, viaProxy: false });
     if (direta && isHls(source.url) && hlsNativo()) out.push({ source, url: source.url, viaProxy: false, nativo: true });
+    if (!tv && !proxyDeVideoLiberado()) {
+      // Site: só a tentativa direta. Fonte http entra na lista (o aviso de página
+      // separada depende dela) mas nunca é tentada; fonte com cabeçalho obrigatório
+      // não abre no navegador e fica de fora: o canal aparece como "só no aplicativo".
+      if (!exigeCabecalho(source)) out.push({ source, url: source.url, viaProxy: false });
+      continue;
+    }
     if (!tv && !needsProxy(source) && !precisaComecarPeloProxy(source)) {
       out.push({ source, url: source.url, viaProxy: false });
     }

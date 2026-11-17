@@ -12,7 +12,7 @@ import { criarCarregadorDireto } from '../utils/segmentoDireto';
 import { aoBloquearExtensao, extensaoBloqueada } from '../plataforma/bloqueioExtensoes';
 import type { Movie, SeriesEpisodeInfo, MovieSource } from '../types/movie';
 import { getProxiedUrl, needsProxy } from '../utils/proxyUrl';
-import { isHls } from '../utils/streamUrl';
+import { isHls, proxyDeVideoLiberado } from '../utils/streamUrl';
 import { httpsFirst, initialSourceIndex } from '../utils/sourceOrder';
 import { fontePreferida, lembrarFonte } from '../utils/fontePreferida';
 import { resolveVodSources } from '../utils/resolveVodSources';
@@ -472,13 +472,20 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
       setIsLoading(false);
       avisarFalha(`código ${code ?? '?'}`);
       let message = 'Não foi possível reproduzir este vídeo nas fontes disponíveis.';
+      // Site sem proxy de vídeo (custo): fonte http ou .txt não abre aqui. Mostra o aviso de
+      // página separada e do aplicativo, em vez de um erro genérico.
+      if (!ehExternaAddon && needsProxy(urlAtiva) && !proxyDeVideoLiberado()) {
+        setIsProxyBlocked(true);
+        setError('Este vídeo não abre dentro do site.');
+        return;
+      }
 
       switch (code) {
         case 1: message = 'O carregamento foi cancelado.'; break;
         case 2: message = 'Erro de rede ao carregar as fontes disponíveis.'; break;
         case 3: message = 'O vídeo não pôde ser decodificado.'; break;
         case 4:
-          if (!ehExternaAddon && needsProxy(urlAtiva)) {
+          if (!ehExternaAddon && needsProxy(urlAtiva) && proxyDeVideoLiberado()) {
             fetch(getProxiedUrl(urlAtiva), { method: 'HEAD', signal: abortador.signal })
               .then((resposta) => seguro(() => {
                 if (resposta.status === 403) {

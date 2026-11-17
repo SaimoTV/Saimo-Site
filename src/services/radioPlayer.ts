@@ -4,7 +4,7 @@
  * rádio (e o ao vivo volta), como no app do Mac.
  */
 import Hls from 'hls.js';
-import { needsProxy, proxyUrl } from '../utils/streamUrl';
+import { needsProxy, proxyDeVideoLiberado, proxyUrl } from '../utils/streamUrl';
 import { ouviu, type Radio } from './radios';
 import { aoBloquearExtensao, extensaoBloqueada } from '../plataforma/bloqueioExtensoes';
 
@@ -56,7 +56,7 @@ export function tocar(radio: Radio): void {
   // Extensão de captura ativa (FlowPick): nada toca, o aviso cobre a tela.
   if (extensaoBloqueada()) return;
   mudar({ radio, estado: 'carregando' });
-  const url = needsProxy({ url: radio.url }) ? proxyUrl({ url: radio.url }) : radio.url;
+  const url = needsProxy({ url: radio.url }) && proxyDeVideoLiberado() ? proxyUrl({ url: radio.url }) : radio.url;
   if (/\.m3u8(\?|$)/i.test(radio.url) && !a.canPlayType('application/vnd.apple.mpegurl') && Hls.isSupported()) {
     const h = new Hls();
     hls = h;

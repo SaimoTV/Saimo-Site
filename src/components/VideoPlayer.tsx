@@ -6,7 +6,7 @@ import mpegts from 'mpegts.js';
 import type { Channel, ChannelSource } from '../types/channel';
 import { ProgramInfo } from './ProgramInfo';
 import castService, { type CastMethod, type CastState } from '../services/castService';
-import { buildAttempts, isDash, isMpegTs, marcarSemCors, type Attempt } from '../utils/streamUrl';
+import { buildAttempts, exigeCabecalho, isDash, isMpegTs, marcarSemCors, proxyDeVideoLiberado, type Attempt } from '../utils/streamUrl';
 import { makeNestedPathLoader } from '../utils/hlsLoader';
 import { criarCarregadorDireto } from '../utils/segmentoDireto';
 import { aoBloquearExtensao, extensaoBloqueada } from '../plataforma/bloqueioExtensoes';
@@ -202,6 +202,14 @@ export const VideoPlayer = memo(function VideoPlayer({
     return buildAttempts(sources);
   }, [channel]);
 
+  // Site: canal cujas fontes todas exigem Referer/User-Agent só abre pelo proxy, que aqui
+  // fica desligado (custo). Ele não some da lista: avisa que abre no aplicativo.
+  const soNoApp = useMemo(() => {
+    if (!channel || attempts.length > 0 || proxyDeVideoLiberado()) return false;
+    const sources: ChannelSource[] = channel.sources?.length ? channel.sources : [];
+    return sources.some(exigeCabecalho);
+  }, [channel, attempts]);
+
   const [sourceIndex, setSourceIndex] = useState(0);
   const [reloadTick, setReloadTick] = useState(0);
   // Extensão de captura detectada: refaz o carregamento, a limpeza derruba o
@@ -320,7 +328,9 @@ export const VideoPlayer = memo(function VideoPlayer({
     const attempt = attempts[sourceIndex];
     if (!attempt) {
       encerrar();
-      setError('Nenhuma fonte disponível para este canal.');
+      setError(soNoApp
+        ? 'Este canal só abre no aplicativo: o servidor dele exige um acesso que o navegador não consegue fazer.'
+        : 'Nenhuma fonte disponível para este canal.');
       setIsLoading(false);
       return;
     }
@@ -634,7 +644,7 @@ export const VideoPlayer = memo(function VideoPlayer({
       limpar();
       if (nativo) { video.removeAttribute('src'); video.load(); }
     };
-  }, [channel, attempts, sourceIndex, reloadTick, semCaminhoNoSite, tentavel]);
+  }, [channel, attempts, sourceIndex, reloadTick, semCaminhoNoSite, soNoApp, tentavel]);
 
   // Volume sync
   useEffect(() => {
@@ -1155,9 +1165,25 @@ export const VideoPlayer = memo(function VideoPlayer({
                 <path d="M12 8v4M12 16h.01" />
               </svg>
               <p>{error}</p>
-              <button onClick={retryLoad} className="retry-btn">
-                Tentar novamente
-              </button>
+              {!proxyDeVideoLiberado() && (
+                <div className="aviso-app">
+                  <div>
+                    <strong>No aplicativo, este canal pode abrir normalmente.</strong>
+                    <span>
+                      O Saimo TV para Windows, Mac, Android e TV Box fala direto com o servidor do
+                      canal, sem os bloqueios que existem aqui dentro do navegador.
+                    </span>
+                  </div>
+                  <a href={rota('/app')} className="aviso-app-botao" data-focusable="true">
+                    Baixar o aplicativo
+                  </a>
+                </div>
+              )}
+              {!soNoApp && (
+                <button onClick={retryLoad} className="retry-btn">
+                  Tentar novamente
+                </button>
+              )}
             </div>
           )}
 
