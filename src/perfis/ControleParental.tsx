@@ -5,7 +5,7 @@
  */
 import { useState } from 'react';
 import { useAdultMode } from '../contexts/adultoContexto';
-import { conferirSenha, senhaEhPadrao, trocarSenha, SENHA_PADRAO } from './parental';
+import { conferirSenha, senhaEhPadrao, trocarSenha } from './parental';
 import { ehKids } from './kids';
 
 export function ControleParental() {
@@ -34,7 +34,7 @@ export function ControleParental() {
       <h2>Controle parental</h2>
       <p>
         Conteúdo adulto: <strong>{isAdultUnlocked ? 'liberado' : 'bloqueado'}</strong>.
-        {senhaEhPadrao() ? ` A senha inicial é ${SENHA_PADRAO}; troque-a aqui.` : ''}
+        {senhaEhPadrao() ? ' Ainda com a senha de fábrica: troque-a aqui.' : ''}
       </p>
       {aberto === null ? (
         <div className="ajustes-botoes">

@@ -14,7 +14,7 @@ import { Platform } from '../core/Platform';
 import { SpatialNav } from '../core/SpatialNav';
 import { caixaDeCodigo } from './PerfisScreen';
 import { ativo as perfilAtivo, conferirCodigo, pedeCodigo, perfis } from '../../../src/perfis/perfis';
-import { conferirSenha, senhaEhPadrao, trocarSenha, SENHA_PADRAO } from '../../../src/perfis/parental';
+import { conferirSenha, senhaEhPadrao, trocarSenha } from '../../../src/perfis/parental';
 import { ehKids } from '../../../src/perfis/kids';
 
 export class SettingsScreen {
@@ -254,10 +254,10 @@ export class SettingsScreen {
       };
       addOption('parental', 'Conteúdo adulto', State.unlockedExtras ? 'Liberado (OK bloqueia)' : 'Bloqueado', () => {
         if (State.unlockedExtras) { State.unlockedExtras = false; State.emit('extras-unlocked'); return; }
-        pedirSenha(senhaEhPadrao() ? `Digite a senha. A senha inicial é ${SENHA_PADRAO}.` : 'Digite a senha.', ['Senha'],
+        pedirSenha('Digite a senha do controle parental.', ['Senha'],
           (v) => (State.unlockParental(v[0]) ? null : 'Senha errada.'));
       });
-      addOption('parental-senha', 'Trocar a senha', senhaEhPadrao() ? `Senha inicial: ${SENHA_PADRAO}` : 'Senha própria', () => {
+      addOption('parental-senha', 'Trocar a senha', senhaEhPadrao() ? 'Ainda com a senha de fábrica' : 'Senha própria', () => {
         pedirSenha('Digite a senha atual e a nova (4 números).', ['Senha atual', 'Senha nova'], (v) => {
           if (!conferirSenha(v[0])) return 'Senha atual errada.';
           return trocarSenha(v[0], v[1]) ? null : 'A senha nova tem 4 números.';
