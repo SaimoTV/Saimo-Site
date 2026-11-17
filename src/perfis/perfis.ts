@@ -10,12 +10,18 @@
  * página, então nada do perfil anterior fica na memória.
  */
 
+import { sha256 } from './sha256';
+
 export interface Perfil {
   id: string;
   nome: string;
   avatar: string;
   /** Quando nome ou avatar mudaram por último (ms). */
   em: number;
+  /** Perfil infantil: só o que é liberado (perfis/kids.ts), e sair dele pede o código. */
+  kids?: boolean;
+  /** SHA-256 de `saimo-kids:<id>:<código>`; o código em si nunca é guardado. */
+  codigo?: string;
 }
 
 export interface Remocao { id: string; em: number }
@@ -23,6 +29,22 @@ export interface Remocao { id: string; em: number }
 export const PRINCIPAL = 'principal';
 export const MAX_PERFIS = 10;
 export const MAX_NOME = 20;
+
+
+export function hashCodigo(id: string, codigo: string): string {
+  return sha256(`saimo-kids:${id}:${codigo}`);
+}
+
+/** Código de 4 dígitos do perfil Kids confere? Perfil comum: sempre. */
+export function conferirCodigo(p: Perfil, codigo: string): boolean {
+  if (!p.kids || !p.codigo) return true;
+  return hashCodigo(p.id, codigo) === p.codigo;
+}
+
+/** Sair deste perfil (ou editar, ou abrir os Ajustes) pede o código? */
+export function pedeCodigo(p: Perfil): boolean {
+  return !!p.kids && !!p.codigo;
+}
 
 /** Os avatares, na ordem da grade (ids de SaimoPlayer/docs/avatares/ids.txt). */
 export const AVATARES = [
@@ -116,19 +138,31 @@ function novoId(): string {
   return 'p' + Array.from(bytes, (b) => letras[b % letras.length]).join('');
 }
 
-export function criar(nome: string, avatar: string): Perfil | null {
+export function criar(nome: string, avatar: string, kids?: { codigo: string }): Perfil | null {
   const lista = perfis();
   const limpo = limparNome(nome);
   if (!limpo || lista.length >= MAX_PERFIS) return null;
-  const p: Perfil = { id: novoId(), nome: limpo, avatar, em: Date.now() };
+  const id = novoId();
+  const p: Perfil = { id, nome: limpo, avatar, em: Date.now() };
+  if (kids && /^\d{4}$/.test(kids.codigo)) { p.kids = true; p.codigo = hashCodigo(id, kids.codigo); }
   gravar([...lista, p]);
   return p;
 }
 
-export function editar(id: string, nome: string, avatar: string): void {
+/**
+ * Muda nome e avatar. `kids`: undefined mantém como está; `null` tira o Kids;
+ * `{ codigo }` liga (ou troca o código).
+ */
+export function editar(id: string, nome: string, avatar: string, kids?: { codigo: string } | null): void {
   const limpo = limparNome(nome);
   if (!limpo) return;
-  gravar(perfis().map((p) => (p.id === id ? { ...p, nome: limpo, avatar, em: Date.now() } : p)));
+  gravar(perfis().map((p) => {
+    if (p.id !== id) return p;
+    const novo: Perfil = { ...p, nome: limpo, avatar, em: Date.now() };
+    if (kids === null) { delete novo.kids; delete novo.codigo; }
+    else if (kids && /^\d{4}$/.test(kids.codigo) && id !== PRINCIPAL) { novo.kids = true; novo.codigo = hashCodigo(id, kids.codigo); }
+    return novo;
+  }));
 }
 
 /** Apaga o perfil e os dados dele. O principal não sai. */

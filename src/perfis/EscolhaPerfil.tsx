@@ -2,12 +2,16 @@
  * "Quem está assistindo?": a escolha de perfil ao abrir, e o lugar de criar,
  * editar e apagar perfis. Abre sozinha com 2 ou mais perfis (uma vez por aba)
  * e também pelo avatar da barra do topo e pelos Ajustes.
+ *
+ * Perfil Kids: sair dele (escolher outro), gerenciar estando nele e editar ou
+ * apagar um Kids pedem o código de 4 dígitos.
  */
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
-  AVATARES, MAX_NOME, MAX_PERFIS, PRINCIPAL, apagar, assinar, avatarUrl, criar, deveEscolherAoAbrir, editar,
-  entrar, idAtivo, marcarEscolhido, perfis, versaoAtual, EVENTO_ABRIR, type Perfil,
+  AVATARES, MAX_NOME, MAX_PERFIS, PRINCIPAL, apagar, assinar, ativo, avatarUrl, criar, deveEscolherAoAbrir, editar,
+  entrar, idAtivo, marcarEscolhido, pedeCodigo, perfis, versaoAtual, EVENTO_ABRIR, type Perfil,
 } from './perfis';
+import { PedirCodigo } from './PedirCodigo';
 import './perfis.css';
 
 export function Avatar({ perfil, tamanho = 96 }: { perfil: Pick<Perfil, 'nome' | 'avatar'>; tamanho?: number }) {
@@ -21,7 +25,11 @@ export function Avatar({ perfil, tamanho = 96 }: { perfil: Pick<Perfil, 'nome' |
   );
 }
 
-type Modo = 'escolher' | 'gerenciar' | { editar: Perfil | null };
+type Modo =
+  | 'escolher'
+  | 'gerenciar'
+  | { editar: Perfil | null }
+  | { codigo: Perfil; motivo: string; depois: () => void; voltar: Modo };
 
 export function EscolhaPerfil() {
   useSyncExternalStore(assinar, versaoAtual);
@@ -29,15 +37,29 @@ export function EscolhaPerfil() {
   const [modo, setModo] = useState<Modo>('escolher');
   // Aberta sozinha ao entrar: sem perfil escolhido, não dá para fechar sem escolher.
   const [obrigatoria, setObrigatoria] = useState(aberto);
+  // Código do Kids ativo já digitado nesta abertura (vale para gerenciar e editar).
+  const [destrancado, setDestrancado] = useState(false);
   const lista = perfis();
   const atual = idAtivo();
+  const perfilAtual = ativo();
+
+  /** Roda `acao` direto, ou depois do código do perfil `p` (Kids). */
+  const comCodigo = useCallback((p: Perfil, motivo: string, acao: () => void, voltar: Modo) => {
+    if (!pedeCodigo(p) || (destrancado && p.id === atual)) { acao(); return; }
+    setModo({ codigo: p, motivo, voltar, depois: () => { if (p.id === atual) setDestrancado(true); acao(); } });
+  }, [destrancado, atual]);
 
   useEffect(() => {
     const abrir = (e: Event) => {
       const m = (e as CustomEvent<'escolher' | 'gerenciar'>).detail;
-      setModo(m === 'gerenciar' ? 'gerenciar' : 'escolher');
       setObrigatoria(false);
+      setDestrancado(false);
       setAberto(true);
+      if (m === 'gerenciar') {
+        const a = ativo();
+        if (pedeCodigo(a)) setModo({ codigo: a, motivo: 'Para gerenciar os perfis, digite o código deste perfil Kids.', voltar: 'escolher', depois: () => { setDestrancado(true); setModo('gerenciar'); } });
+        else setModo('gerenciar');
+      } else setModo('escolher');
     };
     window.addEventListener(EVENTO_ABRIR, abrir);
     return () => window.removeEventListener(EVENTO_ABRIR, abrir);
@@ -57,7 +79,7 @@ export function EscolhaPerfil() {
       if (e.key === 'Backspace' && alvo && (alvo.tagName === 'INPUT' || alvo.tagName === 'TEXTAREA')) return;
       e.preventDefault();
       e.stopPropagation();
-      if (typeof modo === 'object') setModo('gerenciar');
+      if (typeof modo === 'object') setModo('codigo' in modo ? modo.voltar : 'gerenciar');
       else if (modo === 'gerenciar') setModo('escolher');
       else fechar();
     };
@@ -76,11 +98,30 @@ export function EscolhaPerfil() {
   if (!aberto) return null;
 
   const escolher = (p: Perfil) => {
-    setObrigatoria(false);
-    marcarEscolhido();
-    if (p.id === atual) { setAberto(false); setModo('escolher'); }
-    entrar(p.id);
+    const ir = () => {
+      setObrigatoria(false);
+      marcarEscolhido();
+      if (p.id === atual) { setAberto(false); setModo('escolher'); }
+      entrar(p.id);
+    };
+    // Sair do Kids para outro perfil pede o código dele.
+    if (p.id !== atual) comCodigo(perfilAtual, `Para sair do perfil ${perfilAtual.nome}, digite o código.`, ir, 'escolher');
+    else ir();
   };
+
+  const irGerenciar = () => comCodigo(perfilAtual, 'Para gerenciar os perfis, digite o código deste perfil Kids.', () => setModo('gerenciar'), 'escolher');
+  const irEditar = (p: Perfil | null) => {
+    if (p && pedeCodigo(p)) comCodigo(p, `Para editar o perfil ${p.nome}, digite o código dele.`, () => setModo({ editar: p }), 'gerenciar');
+    else setModo({ editar: p });
+  };
+
+  if (typeof modo === 'object' && 'codigo' in modo) {
+    return (
+      <div className="perfis-fundo" role="dialog" aria-modal="true" aria-labelledby="perfis-titulo">
+        <PedirCodigo perfil={modo.codigo} motivo={modo.motivo} aoConfirmar={modo.depois} aoCancelar={() => setModo(modo.voltar)} />
+      </div>
+    );
+  }
 
   return (
     <div className="perfis-fundo" role="dialog" aria-modal="true" aria-labelledby="perfis-titulo">
@@ -93,7 +134,7 @@ export function EscolhaPerfil() {
       ) : (
         <div className="perfis-caixa">
           <h1 id="perfis-titulo">{modo === 'gerenciar' ? 'Gerenciar perfis' : 'Quem está assistindo?'}</h1>
-          {modo === 'gerenciar' && <p className="perfis-sub">Escolha um perfil para mudar o nome ou o avatar.</p>}
+          {modo === 'gerenciar' && <p className="perfis-sub">Escolha um perfil para mudar o nome, o avatar ou o Kids.</p>}
           <ul className="perfis-grade">
             {lista.map((p, i) => (
               <li key={p.id}>
@@ -102,10 +143,11 @@ export function EscolhaPerfil() {
                   className={`perfis-item ${p.id === atual ? 'atual' : ''} ${modo === 'gerenciar' ? 'editando' : ''}`}
                   data-focusable="true"
                   autoFocus={modo === 'escolher' ? p.id === atual : i === 0}
-                  onClick={() => (modo === 'gerenciar' ? setModo({ editar: p }) : escolher(p))}
+                  onClick={() => (modo === 'gerenciar' ? irEditar(p) : escolher(p))}
                 >
                   <span className="perfis-moldura">
                     <Avatar perfil={p} tamanho={132} />
+                    {p.kids && <span className="perfis-selo-kids">KIDS</span>}
                     {modo === 'gerenciar' && (
                       <span className="perfis-lapis" aria-hidden="true">
                         <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" /></svg>
@@ -116,9 +158,10 @@ export function EscolhaPerfil() {
                 </button>
               </li>
             ))}
-            {lista.length < MAX_PERFIS && (
+            {lista.length < MAX_PERFIS && (modo === 'gerenciar' || !perfilAtual.kids) && (
               <li>
-                <button type="button" className="perfis-item perfis-novo" data-focusable="true" onClick={() => setModo({ editar: null })}>
+                <button type="button" className="perfis-item perfis-novo" data-focusable="true"
+                  onClick={() => (modo === 'gerenciar' ? irEditar(null) : comCodigo(perfilAtual, 'Para criar um perfil, digite o código deste perfil Kids.', () => setModo({ editar: null }), 'escolher'))}>
                   <span className="perfis-moldura">
                     <span className="perfis-mais" aria-hidden="true">
                       <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg>
@@ -134,14 +177,14 @@ export function EscolhaPerfil() {
               <button type="button" className="perfis-botao principal" data-focusable="true" onClick={() => setModo('escolher')}>Pronto</button>
             ) : (
               <>
-                <button type="button" className="perfis-botao" data-focusable="true" onClick={() => setModo('gerenciar')}>Gerenciar perfis</button>
+                <button type="button" className="perfis-botao" data-focusable="true" onClick={irGerenciar}>Gerenciar perfis</button>
                 {!obrigatoria && <button type="button" className="perfis-botao" data-focusable="true" onClick={fechar}>Fechar</button>}
               </>
             )}
           </div>
           <p className="perfis-nota">
             Cada perfil tem os seus favoritos, o que está assistindo e os recentes. As listas e os ajustes valem para todos.
-            Até {MAX_PERFIS} perfis.
+            Até {MAX_PERFIS} perfis. O perfil Kids só mostra filmes e séries classificados até 12 anos e nada adulto.
           </p>
         </div>
       )}
@@ -152,18 +195,35 @@ export function EscolhaPerfil() {
 function EditarPerfil({ perfil, aoVoltar, aoSalvar }: { perfil: Perfil | null; aoVoltar: () => void; aoSalvar: () => void }) {
   const [nome, setNome] = useState(perfil?.nome ?? '');
   const [avatar, setAvatar] = useState(perfil?.avatar ?? sugestao());
+  const [kids, setKids] = useState(perfil?.kids === true);
+  const [codigo, setCodigo] = useState('');
+  const [codigo2, setCodigo2] = useState('');
+  const [aviso, setAviso] = useState('');
   const [confirmar, setConfirmar] = useState(false);
   const campo = useRef<HTMLInputElement>(null);
   const valido = nome.trim().length > 0;
+  const podeKids = perfil?.id !== PRINCIPAL;
+  // Kids novo (ou que virou Kids agora) precisa do código; o que já era pode manter o dele.
+  const precisaCodigo = kids && !(perfil?.kids && perfil.codigo);
 
   useEffect(() => { if (!perfil) campo.current?.focus(); }, [perfil]);
 
   const salvar = () => {
     if (!valido) { campo.current?.focus(); return; }
-    if (perfil) editar(perfil.id, nome, avatar);
-    else criar(nome, avatar);
+    let kidsArg: { codigo: string } | null | undefined;
+    if (kids) {
+      if (codigo || codigo2 || precisaCodigo) {
+        if (!/^\d{4}$/.test(codigo)) { setAviso('O código do Kids tem 4 números.'); return; }
+        if (codigo !== codigo2) { setAviso('Os dois códigos não são iguais.'); return; }
+        kidsArg = { codigo };
+      }
+    } else if (perfil?.kids) kidsArg = null;
+    if (perfil) editar(perfil.id, nome, avatar, kidsArg);
+    else criar(nome, avatar, kidsArg ?? undefined);
     aoSalvar();
   };
+
+  const so4 = (v: string) => v.replace(/\D/g, '').slice(0, 4);
 
   return (
     <div className="perfis-caixa perfis-editar">
@@ -200,6 +260,33 @@ function EditarPerfil({ perfil, aoVoltar, aoSalvar }: { perfil: Perfil | null; a
           </button>
         ))}
       </div>
+      {podeKids && (
+        <>
+          <button type="button" className={`perfis-kids-opcao ${kids ? 'on' : ''}`} data-focusable="true" aria-pressed={kids}
+            onClick={() => { setKids(!kids); setAviso(''); }}>
+            <span className="marca" aria-hidden="true" />
+            <span>
+              <strong>Perfil Kids</strong>
+              <span>Só filmes e séries classificados até 12 anos, nada adulto. Sair dele pede um código de 4 números.</span>
+            </span>
+          </button>
+          {kids && (
+            <div className="perfis-kids-codigos">
+              <label className="perfis-campo">
+                <span>{precisaCodigo ? 'Código (4 números)' : 'Novo código (opcional)'}</span>
+                <input type="password" inputMode="numeric" maxLength={4} value={codigo} placeholder="••••" data-focusable="true"
+                  onChange={(e) => { setCodigo(so4(e.target.value)); setAviso(''); }} />
+              </label>
+              <label className="perfis-campo">
+                <span>Repita o código</span>
+                <input type="password" inputMode="numeric" maxLength={4} value={codigo2} placeholder="••••" data-focusable="true"
+                  onChange={(e) => { setCodigo2(so4(e.target.value)); setAviso(''); }} />
+              </label>
+            </div>
+          )}
+        </>
+      )}
+      <p className="perfis-aviso" role="alert">{aviso}</p>
       <div className="perfis-acoes">
         <button type="button" className="perfis-botao principal" data-focusable="true" disabled={!valido} onClick={salvar}>Salvar</button>
         <button type="button" className="perfis-botao" data-focusable="true" onClick={aoVoltar}>Cancelar</button>

@@ -18,6 +18,7 @@ import { useTemAddons } from './services/addons';
 import { useTemMinhasListas } from './hooks/useTemMinhasListas';
 import { RaizDoSite, raizAbreOApp } from './landing/RaizDoSite';
 import { EscolhaPerfil } from './perfis/EscolhaPerfil';
+import { ehKids } from './perfis/kids';
 import { Landing } from './landing/Landing';
 import { Privacidade, Termos, Conteudo, Exclusao, Suporte } from './landing/Legal';
 import Formato from './landing/Formato';
@@ -704,18 +705,21 @@ function AppLayout() {
 
 // Provedor de contexto adulto
 function AdultModeProvider({ children }: { children: React.ReactNode }) {
-  const [isAdultUnlocked, setIsAdultUnlocked] = useLocalStorage<boolean>('adult-mode-global', false);
+  const [guardado, setIsAdultUnlocked] = useLocalStorage<boolean>('adult-mode-global', false);
+  // No perfil Kids o conteúdo adulto nunca aparece, esteja o aparelho liberado ou não.
+  const isAdultUnlocked = guardado && !ehKids();
   const [toast, setToast] = useState<ToastState | null>(null);
 
   const unlockAdult = useCallback(() => {
+    if (ehKids()) return;
     setIsAdultUnlocked(true);
-    setToast({ message: '🔓 Modo adulto desbloqueado!', type: 'success', id: Date.now() });
+    setToast({ message: 'Conteúdo adulto liberado', type: 'success', id: Date.now() });
     setTimeout(() => setToast(null), 3000);
   }, [setIsAdultUnlocked]);
 
   const lockAdult = useCallback(() => {
     setIsAdultUnlocked(false);
-    setToast({ message: '🔒 Modo adulto bloqueado', type: 'info', id: Date.now() });
+    setToast({ message: 'Conteúdo adulto bloqueado', type: 'info', id: Date.now() });
     setTimeout(() => setToast(null), 3000);
   }, [setIsAdultUnlocked]);
 

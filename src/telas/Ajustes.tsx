@@ -25,10 +25,12 @@ import type { Channel } from '../types/channel';
 import './Ajustes.css';
 import { IconeMaterial } from '../components/IconeMaterial';
 import { MinhasListas } from './MinhasListas';
-import { ChuvaApoiadores } from '../components/ChuvaApoiadores';
 import { abrirModalDoacao } from '../services/doacaoService';
 import { abrirEscolha, assinar as assinarPerfis, ativo as perfilAtivo, definirPerguntar, perfis as listaPerfis, perguntarAoAbrir, versaoAtual as versaoPerfis } from '../perfis/perfis';
 import { Avatar } from '../perfis/EscolhaPerfil';
+import { ControleParental } from '../perfis/ControleParental';
+import { PedirCodigo } from '../perfis/PedirCodigo';
+import { pedeCodigo } from '../perfis/perfis';
 
 export type AoIniciar = 'inicio' | 'ultimo';
 export const CHAVE_AO_INICIAR = 'saimo-ao-iniciar';
@@ -37,6 +39,20 @@ export type ModoUpscaling = 'off' | 'hd' | '4k';
 export const CHAVE_UPSCALING = 'saimo-upscaling';
 
 
+/** No perfil Kids os Ajustes pedem o código do perfil: a criança não mexe nas listas nem nos ajustes. */
+export function Ajustes() {
+  const navigate = useNavigate();
+  const perfil = perfilAtivo();
+  const [liberado, setLiberado] = useState(() => !pedeCodigo(perfil));
+  if (liberado) return <AjustesConteudo />;
+  return (
+    <div className="perfis-fundo" role="dialog" aria-modal="true" aria-labelledby="perfis-titulo">
+      <PedirCodigo perfil={perfil} motivo="Os Ajustes ficam trancados no perfil Kids. Digite o código para abrir."
+        aoConfirmar={() => setLiberado(true)} aoCancelar={() => navigate('/home')} />
+    </div>
+  );
+}
+
 const LIMPAR: { rotulo: string; chaves: string[]; aviso: string }[] = [
   { rotulo: 'Limpar “Continue assistindo”', chaves: ['saimo-continuar'], aviso: 'Histórico limpo' },
   { rotulo: 'Limpar buscas recentes', chaves: ['saimo-buscas-recentes'], aviso: 'Buscas limpas' },
@@ -44,7 +60,7 @@ const LIMPAR: { rotulo: string; chaves: string[]; aviso: string }[] = [
   { rotulo: 'Limpar favoritos', chaves: ['tv-favorites', 'saimo-vod-favoritos'], aviso: 'Favoritos limpos' },
 ];
 
-export function Ajustes() {
+function AjustesConteudo() {
   const navigate = useNavigate();
   const location = useLocation();
   const canais = useCanais();
@@ -135,7 +151,6 @@ export function Ajustes() {
 
   return (
     <div className="tela tela-com-barra">
-      <ChuvaApoiadores />
       <BarraTopo />
       <div className="tela-miolo ajustes">
         <h1 className="tela-titulo">Ajustes</h1>
@@ -302,6 +317,8 @@ export function Ajustes() {
             )}
           </div>
         </section>
+
+        <ControleParental />
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+import { ehKids } from '../perfis/kids';
 /**
  * Serviço Web / Mode-TV de Addons (Protocolo Stremio) + Descoberta TMDB.
  *
@@ -103,16 +104,17 @@ export function getAddons(): AddonRecord[] {
   return snapshotAddons;
 }
 
+// Perfil Kids: addons não têm classificação indicativa, então ficam desligados lá.
 export function getEnabledAddons(): AddonRecord[] {
-  return snapshotAddons.filter((a) => a.enabled);
+  return ehKids() ? [] : snapshotAddons.filter((a) => a.enabled);
 }
 
 export function hasEnabledAddons(): boolean {
-  return snapshotAddons.some((a) => a.enabled);
+  return !ehKids() && snapshotAddons.some((a) => a.enabled);
 }
 
 export function hasEnabledStreamAddons(): boolean {
-  return snapshotAddons.some((a) => a.enabled && addonSupportsResource(a, 'stream'));
+  return !ehKids() && snapshotAddons.some((a) => a.enabled && addonSupportsResource(a, 'stream'));
 }
 
 export function aoMudarAddons(cb: () => void): () => void {
@@ -137,7 +139,7 @@ export function useAddons(): AddonRecord[] {
 
 export function useTemAddons(): boolean {
   const addons = useAddons();
-  return addons.some((a) => a.enabled);
+  return !ehKids() && addons.some((a) => a.enabled);
 }
 
 export async function installAddonFromUrl(rawUrl: string): Promise<AddonInstallResult> {

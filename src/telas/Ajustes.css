@@ -38,3 +38,12 @@
 .ajustes-perfil { display: flex; align-items: center; gap: 16px; margin: 14px 0 16px; }
 .ajustes-perfil strong { display: block; font-size: 18px; }
 .ajustes-perfil span { display: block; margin-top: 3px; color: rgba(255, 255, 255, 0.6); font-size: 14px; }
+
+/* Controle parental: no fim, separado e discreto. */
+.ajustes-parental { margin-top: 48px; opacity: 0.72; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 22px; }
+.ajustes-parental:hover, .ajustes-parental:focus-within { opacity: 1; }
+.ajustes-parental h2 { font-size: 15px; }
+.ajustes-parental p { font-size: 13.5px; }
+.ajustes-parental-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.ajustes-parental-form input { width: 130px; height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.06); color: #fff; font: 600 16px/1 inherit; font-family: inherit; letter-spacing: 0.3em; }
+.ajustes-parental-aviso { margin-top: 10px; font-size: 13px; color: #ffb3b3; }

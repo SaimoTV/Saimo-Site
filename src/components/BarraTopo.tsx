@@ -14,6 +14,8 @@ import './AppHeader.css';
 import './BarraTopo.css';
 import { abrirEscolha, assinar as assinarPerfis, ativo as perfilAtivo, versaoAtual as versaoPerfis } from '../perfis/perfis';
 import { Avatar } from '../perfis/EscolhaPerfil';
+import { conferirSenha } from '../perfis/parental';
+import { ehKids } from '../perfis/kids';
 
 interface Aba {
   rota: string;
@@ -179,6 +181,7 @@ export const BarraTopo = memo(function BarraTopo({ visible: visibleProp, autoHid
     (e.currentTarget as HTMLElement)?.blur();
     navigate('/home');
     if (isAdultUnlocked) { lockAdult(); return; }
+    if (ehKids()) return;
     if (zerar.current) clearTimeout(zerar.current);
     const n = cliques + 1;
     setCliques(n);
@@ -187,7 +190,7 @@ export const BarraTopo = memo(function BarraTopo({ visible: visibleProp, autoHid
   };
 
   const enviarPin = () => {
-    if (pin === '0000') { unlockAdult(); setPedePin(false); }
+    if (conferirSenha(pin)) { unlockAdult(); setPedePin(false); }
     setPin('');
   };
 

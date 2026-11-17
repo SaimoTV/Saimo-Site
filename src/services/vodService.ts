@@ -14,6 +14,7 @@
  * torna a busca confiável o bastante para usar sem checagem manual.
  */
 
+import { filtrarKids, ehKids } from '../perfis/kids';
 import { linkFilmes } from './listas';
 import { melhorMatch, posterUrl, type TmdbTipo } from './tmdbService';
 import { peneirar as semDesligados } from './fontesDesativadas';
@@ -186,7 +187,7 @@ async function comBases<T>(trabalho: () => Promise<T>): Promise<T> {
   return trabalho();
 }
 
-export async function filmes(letra: string, reservados = false): Promise<Filme[]> {
+async function filmesBruto(letra: string, reservados = false): Promise<Filme[]> {
   return comBases(async () => {
     const prefixo = reservados ? 'reservado' : 'filmes';
     const texto = await arquivo(`${prefixo}-${gaveta(letra)}.txt`);
@@ -214,7 +215,7 @@ export async function filmes(letra: string, reservados = false): Promise<Filme[]
   });
 }
 
-export async function series(letra: string): Promise<Serie[]> {
+async function seriesBruto(letra: string): Promise<Serie[]> {
   const texto = await arquivo(`series-${gaveta(letra)}.txt`);
   if (!texto) return [];
   const out: Serie[] = [];
@@ -282,7 +283,7 @@ function normalizar(texto: string): string {
  * O índice traz só nome, tipo e letra — menos de um megabyte para trinta mil
  * títulos — então dá para procurar no acervo inteiro sem baixar o acervo.
  */
-export async function buscar(termo: string): Promise<Achado[]> {
+async function buscarBruto(termo: string): Promise<Achado[]> {
   const alvo = normalizar(termo);
   if (alvo.length < 2) return [];
   sincronizar();
@@ -318,7 +319,7 @@ export async function buscar(termo: string): Promise<Achado[]> {
  * sem escolher letra nenhuma. O endereço de cada título continua vindo da
  * letra dele, na hora em que for aberto.
  */
-export async function todos(serie: boolean): Promise<Achado[]> {
+async function todosBruto(serie: boolean): Promise<Achado[]> {
   sincronizar();
   const texto = indiceBusca ?? (await arquivo('busca.txt'));
   if (!texto) return [];
@@ -342,7 +343,7 @@ export async function todos(serie: boolean): Promise<Achado[]> {
 }
 
 /** Um filme específico, pelo nome, dentro da letra dele. */
-export async function filme(achado: Achado): Promise<Filme | null> {
+async function filmeBruto(achado: Achado): Promise<Filme | null> {
   const lista = await filmes(achado.letra);
   let direto = lista.find((f) => f.titulo === achado.titulo);
   if (!direto) {
@@ -360,7 +361,7 @@ export async function filme(achado: Achado): Promise<Filme | null> {
 }
 
 /** Uma série específica, pelo nome, dentro da letra dela. */
-export async function serie(achado: Achado): Promise<Serie | null> {
+async function serieBruto(achado: Achado): Promise<Serie | null> {
   const lista = await series(achado.letra);
   let direto = lista.find(
     (s) => s.titulo === achado.titulo && (!achado.ano.trim() || s.ano === achado.ano),
@@ -373,7 +374,7 @@ export async function serie(achado: Achado): Promise<Serie | null> {
 }
 
 /** Lê `vod/redeflix/links-animes.txt` ou `links-doramas.txt`. */
-export async function colecao(tipo: ColecaoVod): Promise<SerieColecao[]> {
+async function colecaoBruto(tipo: ColecaoVod): Promise<SerieColecao[]> {
   const BASE = sincronizar();
   if (!BASE) return [];
   if (!bases.length) await indice();
@@ -488,7 +489,7 @@ export interface FilaDestaque {
 
 let filasEmMemoria: FilaDestaque[] | null = null;
 
-export async function destaques(): Promise<FilaDestaque[]> {
+async function destaquesBruto(): Promise<FilaDestaque[]> {
   sincronizar();
   if (filasEmMemoria) return filasEmMemoria;
   const texto = await arquivo('destaques.txt');
@@ -741,4 +742,50 @@ export function temGenero(g: Generos, titulo: string, serie: boolean, genero: st
     return lista.includes('Ficção e fantasia') || lista.includes('Ficção científica') || lista.includes('Fantasia');
   }
   return false;
+}
+
+/* ───────── Perfil Kids: o filtro mora aqui, na leitura (ver perfis/kids.ts) ───────── */
+
+export async function filmes(letra: string, reservados = false): Promise<Filme[]> {
+  return filtrarKids(await filmesBruto(letra, reservados), (f) => f.titulo, () => false);
+}
+
+export async function series(letra: string): Promise<Serie[]> {
+  return filtrarKids(await seriesBruto(letra), (s) => s.titulo, () => true, (s) => s.nomeCompleto);
+}
+
+export async function buscar(termo: string): Promise<Achado[]> {
+  return filtrarKids(await buscarBruto(termo), (a) => a.titulo, (a) => a.serie, (a) => a.nomeCompleto);
+}
+
+export async function todos(serie: boolean): Promise<Achado[]> {
+  return filtrarKids(await todosBruto(serie), (a) => a.titulo, (a) => a.serie, (a) => a.nomeCompleto);
+}
+
+export async function colecao(tipo: ColecaoVod): Promise<SerieColecao[]> {
+  return filtrarKids(await colecaoBruto(tipo), (s) => s.titulo, () => true, (s) => s.nomeCompleto);
+}
+
+export async function destaques(): Promise<FilaDestaque[]> {
+  const filas = await destaquesBruto();
+  if (!ehKids()) return filas;
+  const out: FilaDestaque[] = [];
+  for (const f of filas) {
+    const itens = await filtrarKids(f.itens, (i) => i.titulo,
+      (i) => (i.tipo === 'f' ? false : i.tipo === 's' ? true : 'qualquer'));
+    if (itens.length) out.push({ ...f, itens });
+  }
+  return out;
+}
+
+export async function filme(achado: Achado): Promise<Filme | null> {
+  const f = await filmeBruto(achado);
+  if (!f) return null;
+  return (await filtrarKids([f], (x) => x.titulo, () => false)).length ? f : null;
+}
+
+export async function serie(achado: Achado): Promise<Serie | null> {
+  const s = await serieBruto(achado);
+  if (!s) return null;
+  return (await filtrarKids([s], (x) => x.titulo, () => true, (x) => x.nomeCompleto)).length ? s : null;
 }

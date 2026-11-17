@@ -187,3 +187,60 @@
   .perfis-editar-topo { flex-direction: column; text-align: center; }
   .perfis-campo { width: 100%; }
 }
+
+/* Kids */
+.perfis-selo-kids {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: linear-gradient(120deg, #ffd23f, #ff8a3d);
+  color: #2a1400;
+  font: 800 12px/1 inherit;
+  font-family: inherit;
+  letter-spacing: 0.04em;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+.perfis-codigo { max-width: 560px; }
+.perfis-codigo-campo {
+  display: block;
+  width: 220px;
+  height: 70px;
+  margin: 30px auto 0;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font: 700 34px/1 inherit;
+  font-family: inherit;
+  letter-spacing: 0.5em;
+  text-align: center;
+  outline: none;
+}
+.perfis-codigo-campo:focus, .perfis-codigo-campo.focused { border-color: #4ff3e0; box-shadow: 0 0 0 3px rgba(79, 243, 224, 0.2); }
+.perfis-aviso { min-height: 22px; margin: 12px 0 0; color: #ffb3b3; font-size: 15px; }
+.perfis-kids-opcao {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 26px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  outline: none;
+}
+.perfis-kids-opcao:hover, .perfis-kids-opcao:focus-visible, .perfis-kids-opcao.focused { border-color: #4ff3e0; }
+.perfis-kids-opcao .marca { flex: none; width: 26px; height: 26px; border-radius: 8px; border: 2px solid rgba(255, 255, 255, 0.5); display: grid; place-items: center; }
+.perfis-kids-opcao.on .marca { background: #4ff3e0; border-color: #4ff3e0; }
+.perfis-kids-opcao.on .marca::after { content: ''; width: 10px; height: 6px; border-left: 3px solid #04141a; border-bottom: 3px solid #04141a; transform: rotate(-45deg) translate(1px, -1px); }
+.perfis-kids-opcao strong { display: block; font-size: 17px; }
+.perfis-kids-opcao span { display: block; margin-top: 3px; font-size: 14px; color: rgba(255, 255, 255, 0.6); }
+.perfis-kids-codigos { display: flex; gap: 14px; margin-top: 14px; text-align: left; }
+.perfis-kids-codigos .perfis-campo input { letter-spacing: 0.4em; }
