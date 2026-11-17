@@ -675,10 +675,11 @@ export const onRequestGet: PagesFunction<{ CATALOGO_FILMES?: string }> = async (
   const isSerie = tipo === 'series' || tipo === 'tv';
 
   // PRIORIDADE #1: Nixplay oficial (ultra-rápido, determinístico por TMDB ID, acervo ilimitado)
-  if (/^\d+$/.test(cleanId) && versao !== 'leg') {
+  if (/^\d+$/.test(cleanId)) {
+    const sufixoLang = versao === 'leg' ? '?lang=leg' : '';
     const nixUrl = isSerie
-      ? `${NIXPLAY_BASE}/series/${NIXPLAY_USER}/${NIXPLAY_PASS}/${cleanId}/${season}/${episode}.mp4`
-      : `${NIXPLAY_BASE}/movie/${NIXPLAY_USER}/${NIXPLAY_PASS}/${cleanId}.mp4`;
+      ? `${NIXPLAY_BASE}/series/${NIXPLAY_USER}/${NIXPLAY_PASS}/${cleanId}/${season}/${episode}.mp4${sufixoLang}`
+      : `${NIXPLAY_BASE}/movie/${NIXPLAY_USER}/${NIXPLAY_PASS}/${cleanId}.mp4${sufixoLang}`;
     const nixDisponivel = await testarNixplay(nixUrl);
     if (nixDisponivel) {
       const headers = new Headers();
@@ -876,16 +877,30 @@ export const onRequestGet: PagesFunction<{ CATALOGO_FILMES?: string }> = async (
   if (!escolhido) {
     const validos = ordenados.filter(st => !SERVIDORES_MORTOS.some(h => st.url!.includes(h)));
     if (validos.length === 0) {
-      // Provedor limitando não quer dizer que o título não existe: quem audita o
-      // acervo precisa distinguir, senão filme bom sai do app.
-      const limitado = resultados.some(r => r.status === 429);
-      return new Response(JSON.stringify({
-        error: 'Este título só funciona nos aplicativos do Saimo TV. No site não vai funcionar.',
-        somenteApp: true,
-      }), {
-        status: limitado ? 503 : 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' },
-      });
+      // Fallback para Nixplay dublado se o pedido foi legendado mas não havia cópia legendada em nenhum servidor
+      if (/^\d+$/.test(cleanId) && versao === 'leg') {
+        const nixDubFallback = isSerie
+          ? `${NIXPLAY_BASE}/series/${NIXPLAY_USER}/${NIXPLAY_PASS}/${cleanId}/${season}/${episode}.mp4`
+          : `${NIXPLAY_BASE}/movie/${NIXPLAY_USER}/${NIXPLAY_PASS}/${cleanId}.mp4`;
+        const dubDisponivel = await testarNixplay(nixDubFallback);
+        if (dubDisponivel) {
+          escolhido = nixDubFallback;
+          ehFallback = true;
+        }
+      }
+
+      if (!escolhido) {
+        // Provedor limitando não quer dizer que o título não existe: quem audita o
+        // acervo precisa distinguir, senão filme bom sai do app.
+        const limitado = resultados.some(r => r.status === 429);
+        return new Response(JSON.stringify({
+          error: 'Este título só funciona nos aplicativos do Saimo TV. No site não vai funcionar.',
+          somenteApp: true,
+        }), {
+          status: limitado ? 503 : 404,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' },
+        });
+      }
     }
     let candidato = normalizar(validos[0].url!);
     if (candidato.includes('froststream.cloutteam.com')) {
