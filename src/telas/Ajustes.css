@@ -45,5 +45,5 @@
 .ajustes-parental h2 { font-size: 15px; }
 .ajustes-parental p { font-size: 13.5px; }
 .ajustes-parental-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-.ajustes-parental-form input { width: 130px; height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.06); color: #fff; font: 600 16px/1 inherit; font-family: inherit; letter-spacing: 0.3em; }
+.ajustes-parental-form input { width: 130px; height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.06); color: #fff; font-weight: 600; font-size: 16px; line-height: 1; font-family: inherit; letter-spacing: 0.3em; }
 .ajustes-parental-aviso { margin-top: 10px; font-size: 13px; color: #ffb3b3; }

@@ -109,7 +109,7 @@
   border: 1px solid rgba(255, 255, 255, 0.28);
   background: rgba(255, 255, 255, 0.05);
   color: #fff;
-  font: 600 16px/1 inherit;
+  font-weight: 600; font-size: 16px; line-height: 1;
   font-family: inherit;
   cursor: pointer;
   outline: none;
@@ -135,7 +135,7 @@
   border: 1px solid rgba(255, 255, 255, 0.22);
   background: rgba(255, 255, 255, 0.06);
   color: #fff;
-  font: 600 20px/1 inherit;
+  font-weight: 600; font-size: 20px; line-height: 1;
   font-family: inherit;
   outline: none;
 }
@@ -197,7 +197,7 @@
   border-radius: 999px;
   background: linear-gradient(120deg, #ffd23f, #ff8a3d);
   color: #2a1400;
-  font: 800 12px/1 inherit;
+  font-weight: 800; font-size: 12px; line-height: 1;
   font-family: inherit;
   letter-spacing: 0.04em;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
@@ -212,7 +212,7 @@
   border: 1px solid rgba(255, 255, 255, 0.25);
   background: rgba(255, 255, 255, 0.06);
   color: #fff;
-  font: 700 34px/1 inherit;
+  font-weight: 700; font-size: 34px; line-height: 1;
   font-family: inherit;
   letter-spacing: 0.5em;
   text-align: center;

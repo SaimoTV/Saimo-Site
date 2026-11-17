@@ -579,6 +579,65 @@ function MultiTelaSom() {
   );
 }
 
+/* ───────────────────────────── perfis e Kids ───────────────────────────── */
+
+const AVATARES_VITRINE = ['gato', 'coelho', 'dino', 'raposa', 'panda', 'astronauta', 'coruja', 'robo', 'polvo', 'leao'];
+
+function Perfis() {
+  const [ativo, setAtivo] = useState(0);
+  const pessoas = [
+    { nome: 'Gabriel', avatar: 'gato', kids: false, linha: 'Continua a série de ontem, no episódio 6' },
+    { nome: 'Ana', avatar: 'coelho', kids: false, linha: 'Os canais favoritos dela, na ordem dela' },
+    { nome: 'Léo', avatar: 'dino', kids: true, linha: 'Só filmes e séries até 12 anos, nada adulto' },
+  ];
+  useEffect(() => {
+    const t = window.setInterval(() => setAtivo((a) => (a + 1) % pessoas.length), 2600);
+    return () => window.clearInterval(t);
+  }, [pessoas.length]);
+  return (
+    <section className="secao perfis-lp" id="perfis">
+      <div className="miolo">
+        <span className="eyebrow rv"><i /> Novo · Perfis</span>
+        <h2 className="titulo-grande rv d1">Um perfil para cada<br /><span className="grad">pessoa da casa.</span></h2>
+        <p className="lead rv d2">
+          Até <strong>10 perfis</strong>, cada um com o seu avatar, os seus favoritos, o que está assistindo e os recentes. As listas
+          e os ajustes ficam iguais para todos, então ninguém precisa configurar nada de novo. E o <strong>perfil Kids</strong> mostra
+          só filmes e séries classificados até 12 anos, sem nada adulto, e só deixa sair com um código.
+        </p>
+        <div className="perfis-lp-palco rv d3">
+          <div className="perfis-lp-tela">
+            <strong>Quem está assistindo?</strong>
+            <div className="perfis-lp-grade">
+              {pessoas.map((p, i) => (
+                <button key={p.nome} type="button" className={`perfis-lp-item ${i === ativo ? 'on' : ''}`} onClick={() => setAtivo(i)}>
+                  <span className="perfis-lp-avatar">
+                    <img src={`/avatares/${p.avatar}.svg`} alt="" width={96} height={96} />
+                    {p.kids && <em>KIDS</em>}
+                  </span>
+                  <span>{p.nome}</span>
+                </button>
+              ))}
+              <span className="perfis-lp-item perfis-lp-mais"><span className="perfis-lp-avatar">+</span><span>Adicionar</span></span>
+            </div>
+            <p className="perfis-lp-linha" key={ativo}>{pessoas[ativo].linha}</p>
+          </div>
+          <ul className="perfis-lp-lista">
+            <li><Icone nome="usuario" tamanho={22} /><div><strong>Até 10 perfis com avatar</strong><span>21 avatares desenhados para o Saimo, iguais em todos os aparelhos.</span></div></li>
+            <li><Icone nome="heart" tamanho={22} /><div><strong>Cada um com o seu</strong><span>Favoritos, continuar assistindo, último canal e recentes separados por pessoa.</span></div></li>
+            <li><Icone nome="sync" tamanho={22} /><div><strong>Os mesmos perfis na TV e no celular</strong><span>O Saimo Connect leva os perfis e os dados de cada um entre os seus aparelhos.</span></div></li>
+            <li><Icone nome="shield" tamanho={22} /><div><strong>Perfil Kids com código</strong><span>Só títulos classificados até 12 anos. Sair do Kids e abrir os Ajustes pedem um código de 4 números.</span></div></li>
+            <li><Icone nome="lock" tamanho={22} /><div><strong>Controle parental à vista</strong><span>No fim dos Ajustes, com senha que você troca. No Kids, nada adulto aparece nem com a senha.</span></div></li>
+            <li><Icone nome="check" tamanho={22} /><div><strong>Ninguém perde nada</strong><span>Quem já usava o Saimo vira o perfil principal, com todos os favoritos e o progresso de antes.</span></div></li>
+          </ul>
+        </div>
+        <div className="perfis-lp-avatares rv" aria-hidden="true">
+          {AVATARES_VITRINE.map((a) => <img key={a} src={`/avatares/${a}.svg`} alt="" width={56} height={56} />)}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ───────────────────────────── recursos ───────────────────────────── */
 
 type Cena = 'tv' | 'film' | 'series' | 'anime' | 'radio' | 'bola' | 'guia' | 'controle';
@@ -704,7 +763,9 @@ const TUDO: { g: Grupo; ic: string; t: string; d: string }[] = [
   { g: 'conectado', ic: 'link', t: 'Links que abrem o canal', d: 'Atalhos saimo:// levam direto a um canal ou título, mesmo com o app fechado.' },
   { g: 'casa', ic: 'link', t: 'M3U ou usuário e senha', d: 'Cole o link da lista ou o servidor do provedor. Usuário e senha só se a lista pedir.' },
   { g: 'casa', ic: 'lista', t: 'Até 10 listas', d: 'Por link ou arquivo, cada uma liga e desliga, e as de link se atualizam sozinhas.' },
-  { g: 'casa', ic: 'lock', t: 'Controle parental', d: 'O que é só para adultos fica atrás de um código. As crianças usam sem esbarrar.' },
+  { g: 'casa', ic: 'usuario', t: 'Perfis para a casa toda', d: 'Até 10 perfis com avatar, cada um com os seus favoritos, onde parou e recentes.' },
+  { g: 'casa', ic: 'shield', t: 'Perfil Kids', d: 'Só filmes e séries classificados até 12 anos, nada adulto. Sair pede um código.' },
+  { g: 'casa', ic: 'lock', t: 'Controle parental', d: 'No fim dos Ajustes, com senha que você troca. No perfil Kids nunca libera.' },
   { g: 'casa', ic: 'shield', t: 'Endereços escondidos', d: 'A tela mostra Fonte 1, Fonte 2 e a qualidade. O endereço da sua lista não aparece.' },
   { g: 'casa', ic: 'usuario', t: 'Sem conta e sem anúncio', d: 'Nada de cadastro, e-mail ou rastreio. Abriu, usou.' },
   { g: 'casa', ic: 'box', t: 'Leve até em aparelho simples', d: 'Pensado para TV Box de 1 GB de memória e para controle remoto sem botão de menu.' },
@@ -763,6 +824,7 @@ const APPS: AppDetalhe[] = [
     requisitos: 'Android 6 ou mais novo · Fire TV, Mi Box, Chromecast com Google TV, TV Box, óculos VR',
     resumo: 'O app mais completo, feito do zero para o controle remoto e para aparelhos de pouca memória.',
     destaques: [
+      'Até 10 perfis com avatar, perfil Kids e controle parental',
       'Segure a seta para pular 1, 3 ou 10 canais; CH+ e CH− pulam de seção',
       'Abre no último canal, e LAST volta ao anterior',
       'Multi tela com dois canais, cada metade com fonte reserva própria',
@@ -781,6 +843,7 @@ const APPS: AppDetalhe[] = [
     requisitos: 'Smart TVs Samsung (Tizen) e LG (webOS)',
     resumo: 'Instalado na própria TV, sem aparelho extra: a mesma tela inicial, navegada pelo controle.',
     destaques: [
+      'Até 10 perfis com avatar, perfil Kids e controle parental',
       'Navegação inteira pelo controle remoto da TV',
       'Toca também endereços http, que o navegador recusa',
       'Usa o decodificador da própria TV quando o player comum não abre',
@@ -796,6 +859,7 @@ const APPS: AppDetalhe[] = [
     requisitos: 'TVs e aparelhos Roku · pensado para sticks de 512 MB',
     resumo: 'Canal nativo, leve e rápido, com tudo no controle do Roku.',
     destaques: [
+      'Até 10 perfis com avatar, perfil Kids e controle parental',
       'Troca rápida de canal, números diretos e mini guia na tela',
       'Segure OK: canais, guia, anterior, favorito, áudio e legenda, fontes e timer',
       'Fonte que não abre em 8 segundos é trocada sozinha',
@@ -811,6 +875,7 @@ const APPS: AppDetalhe[] = [
     requisitos: 'Celulares e tablets Android',
     resumo: 'As suas listas no bolso, e o controle remoto e o fone da sua TV.',
     destaques: [
+      'Até 10 perfis com avatar, perfil Kids e controle parental',
       'Janela flutuante: o vídeo por cima de outros apps',
       'Downloads para ver sem internet, com aviso de andamento',
       'Chromecast, ou mande para a TV pelo Saimo Connect',
@@ -827,6 +892,7 @@ const APPS: AppDetalhe[] = [
     requisitos: 'macOS 15 ou mais novo · visual Liquid Glass no macOS 26',
     resumo: 'App nativo, feito para mouse, teclado e janela de qualquer tamanho.',
     destaques: [
+      'Até 10 perfis com avatar, perfil Kids e controle parental',
       'Conversor embutido abre DASH e HEVC, que o player da Apple recusa',
       'Multi tela, picture-in-picture, AirPlay e Chromecast',
       'Atalhos: ⌘1 a ⌘8 trocam de aba, ⇧⌘L mostra a lista, E abre os episódios',
@@ -842,6 +908,7 @@ const APPS: AppDetalhe[] = [
     requisitos: 'Windows 10 e 11 · Linux por AppImage ou .deb, em PC comum e ARM',
     resumo: 'App de verdade, não o site numa janela: tela desenhada pela placa de vídeo e vídeo pelo mpv.',
     destaques: [
+      'Até 10 perfis com avatar, perfil Kids e controle parental',
       'Reconhece link com usuário e senha e lê as categorias do provedor',
       'Até 10 listas de até 20 mil canais cada, por link ou arquivo',
       'O que toca aparece no quadro de mídia do Windows e na tela de bloqueio',
@@ -856,6 +923,7 @@ const APPS: AppDetalhe[] = [
     requisitos: 'Computador, celular ou TV com navegador atual',
     resumo: 'Sem instalar nada. Bom para conhecer o Saimo e para usar em qualquer lugar.',
     destaques: [
+      'Até 10 perfis com avatar, perfil Kids e controle parental',
       'Funciona no computador, no celular e no navegador da TV',
       'Vira app na tela de início: no Safari, Compartilhar e Adicionar à Tela de Início',
       'Multi tela, guia de programação, jogos do dia e rádios',
@@ -1236,6 +1304,8 @@ const PERGUNTAS: [string, string][] = [
   ['Funciona em aparelho fraco?', 'Sim. O app da TV Box foi ajustado num aparelho de 1 GB de memória, e o de Roku foi pensado para sticks de 512 MB.'],
   ['Como fico sabendo de versão nova?', 'O próprio app avisa e abre o download, sem loja no meio. No Mac, a atualização é baixada por trás e conferida antes de instalar.'],
   ['Tem legenda?', 'Para filmes e séries da sua lista, o app busca legendas em português, inglês e espanhol, com ajuste de sincronia, sem cadastro.'],
+  ['Dá para ter um perfil para cada pessoa?', 'Sim. São até 10 perfis, cada um com avatar, os seus favoritos, o que está assistindo e os recentes. As listas e os ajustes valem para todos, e o Saimo Connect leva os perfis entre a TV e o celular. Quem já usava o app vira o perfil principal, sem perder nada.'],
+  ['O que é o perfil Kids?', 'Um perfil para crianças: mostra só filmes e séries com classificação indicativa até 12 anos, esconde o que não tem classificação e nunca mostra conteúdo adulto. Para sair do Kids ou abrir os Ajustes nele, o app pede um código de 4 números escolhido por você.'],
   ['É grátis?', 'Sim, sem anúncios. O projeto é mantido por apoio voluntário de quem quer ajudar, e isso nunca é obrigatório.'],
 ];
 
@@ -1291,6 +1361,7 @@ export function Landing() {
         <Manifesto />
         <Demo />
         <MultiTelaSom />
+        <Perfis />
         <Recursos />
         <TudoQueFaz />
         <AppPorApp />

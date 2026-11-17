@@ -535,7 +535,7 @@ body:has(.landing) nav.navegacao-mobile, body:has(.legal) nav.navegacao-mobile {
 .porapp { background: radial-gradient(900px 520px at 8% 20%, rgba(124, 92, 255, 0.14), transparent 60%), var(--bg); }
 .porapp-grade { display: grid; grid-template-columns: 290px 1fr; gap: 28px; margin-top: 56px; }
 .porapp-abas { display: grid; gap: 8px; align-content: start; }
-.porapp-abas button { display: flex; align-items: center; gap: 14px; padding: 15px 18px; border-radius: 16px; border: 1px solid var(--borda); background: rgba(255, 255, 255, 0.03); color: var(--suave); font: 600 15.5px/1.2 inherit; font-family: inherit; cursor: pointer; text-align: left; transition: all 0.25s; }
+.porapp-abas button { display: flex; align-items: center; gap: 14px; padding: 15px 18px; border-radius: 16px; border: 1px solid var(--borda); background: rgba(255, 255, 255, 0.03); color: var(--suave); font-weight: 600; font-size: 15.5px; line-height: 1.2; font-family: inherit; cursor: pointer; text-align: left; transition: all 0.25s; }
 .porapp-abas button:hover { color: var(--texto); background: rgba(255, 255, 255, 0.06); }
 .porapp-abas button.ativa { color: #fff; background: linear-gradient(120deg, rgba(79, 227, 208, 0.18), rgba(124, 92, 255, 0.2)); border-color: rgba(79, 227, 208, 0.4); transform: translateX(6px); }
 .porapp-abas button.ativa svg { color: var(--acc); }
@@ -557,13 +557,13 @@ body:has(.landing) nav.navegacao-mobile, body:has(.legal) nav.navegacao-mobile {
 .controle-grade { display: grid; grid-template-columns: 1.3fr 1fr; gap: 28px; margin-top: 52px; align-items: start; }
 .controle-tabela { padding: 26px; border-radius: 26px; border: 1px solid var(--borda); background: linear-gradient(160deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)); }
 .controle-modos { display: inline-flex; gap: 6px; padding: 5px; border-radius: 999px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--borda); margin-bottom: 18px; }
-.controle-modos button { height: 38px; padding: 0 18px; border-radius: 999px; border: 0; background: transparent; color: var(--suave); font: 600 14px/1 inherit; font-family: inherit; cursor: pointer; transition: all 0.25s; }
+.controle-modos button { height: 38px; padding: 0 18px; border-radius: 999px; border: 0; background: transparent; color: var(--suave); font-weight: 600; font-size: 14px; line-height: 1; font-family: inherit; cursor: pointer; transition: all 0.25s; }
 .controle-modos button.on { color: #04141a; background: linear-gradient(120deg, var(--acc), #67a8ff 60%, var(--acc2)); }
 .controle-tabela dl { margin: 0; display: grid; gap: 4px; }
 .controle-tabela dl > div { display: grid; grid-template-columns: 210px 1fr; gap: 16px; align-items: center; padding: 11px 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); opacity: 0; animation: tilePop 0.45s cubic-bezier(.2,1.2,.4,1) forwards; }
 .controle-tabela dl > div:last-child { border-bottom: 0; }
 .controle-tabela dd { margin: 0; color: var(--suave); font-size: 15px; }
-.controle-tabela kbd { display: inline-block; padding: 6px 11px; border-radius: 10px; border: 1px solid rgba(79, 227, 208, 0.35); background: rgba(79, 227, 208, 0.08); color: var(--texto); font: 600 13.5px/1.2 inherit; font-family: inherit; }
+.controle-tabela kbd { display: inline-block; padding: 6px 11px; border-radius: 10px; border: 1px solid rgba(79, 227, 208, 0.35); background: rgba(79, 227, 208, 0.08); color: var(--texto); font-weight: 600; font-size: 13.5px; line-height: 1.2; font-family: inherit; }
 .controle-notas { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
 .controle-notas li { display: flex; gap: 14px; padding: 20px; border-radius: 20px; border: 1px solid var(--borda); background: rgba(255, 255, 255, 0.03); }
 .controle-notas li > svg { color: var(--acc); flex: none; margin-top: 2px; }
@@ -592,3 +592,26 @@ body:has(.landing) nav.navegacao-mobile, body:has(.legal) nav.navegacao-mobile {
   .porapp-painel { padding: 24px; }
   .controle-tabela dl > div { grid-template-columns: 1fr; gap: 6px; }
 }
+
+/* ── perfis e Kids ── */
+.perfis-lp { background: radial-gradient(900px 520px at 90% 20%, rgba(255, 180, 61, 0.1), transparent 60%), var(--bg); }
+.perfis-lp-palco { display: grid; grid-template-columns: 1.05fr 1fr; gap: 34px; margin-top: 52px; align-items: center; }
+.perfis-lp-tela { padding: 36px 30px 30px; border-radius: 28px; border: 1px solid var(--borda); background: linear-gradient(160deg, #151a45, #0b0f2a 70%); text-align: center; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45); }
+.perfis-lp-tela > strong { display: block; font-size: clamp(22px, 2.4vw, 30px); letter-spacing: -0.02em; }
+.perfis-lp-grade { display: flex; justify-content: center; flex-wrap: wrap; gap: 18px; margin-top: 26px; }
+.perfis-lp-item { display: grid; justify-items: center; gap: 10px; padding: 0; border: 0; background: none; color: var(--suave); font-weight: 600; font-size: 15px; line-height: 1; font-family: inherit; cursor: pointer; }
+.perfis-lp-avatar { position: relative; display: grid; place-items: center; width: 96px; height: 96px; border-radius: 24px; transition: transform 0.25s, box-shadow 0.25s; font-size: 40px; color: rgba(255, 255, 255, 0.7); }
+.perfis-lp-avatar img { width: 96px; height: 96px; border-radius: 24px; display: block; }
+.perfis-lp-avatar em { position: absolute; right: -6px; bottom: -6px; padding: 3px 8px; border-radius: 999px; background: linear-gradient(120deg, #ffd23f, #ff8a3d); color: #2a1400; font-weight: 800; font-size: 11px; line-height: 1; font-family: inherit; font-style: normal; }
+.perfis-lp-item.on { color: #fff; }
+.perfis-lp-item.on .perfis-lp-avatar { transform: scale(1.08); box-shadow: 0 0 0 4px var(--acc), 0 14px 34px rgba(0, 0, 0, 0.45); }
+.perfis-lp-mais .perfis-lp-avatar { border: 2px dashed rgba(255, 255, 255, 0.3); cursor: default; }
+.perfis-lp-linha { margin-top: 22px; color: var(--acc); font-weight: 600; animation: entra 0.4s; }
+.perfis-lp-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.perfis-lp-lista li { display: flex; gap: 14px; }
+.perfis-lp-lista li > svg { color: var(--acc); flex: none; margin-top: 2px; }
+.perfis-lp-lista strong { display: block; font-size: 16px; }
+.perfis-lp-lista span { display: block; margin-top: 4px; color: var(--suave); font-size: 14.5px; line-height: 1.5; }
+.perfis-lp-avatares { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 40px; opacity: 0.85; }
+.perfis-lp-avatares img { border-radius: 14px; }
+@media (max-width: 920px) { .perfis-lp-palco { grid-template-columns: 1fr; } }
