@@ -270,8 +270,10 @@
 }
 
 .saimo-doacao-destaque-icone {
-  font-size: 18px;
+  display: inline-flex;
+  color: #d8b4fe;
   line-height: 1.2;
+  margin-top: 1px;
 }
 
 .saimo-doacao-destaque-bloco p {
@@ -300,9 +302,10 @@
 }
 
 .saimo-doacao-vantagem-icone {
-  font-size: 18px;
+  display: inline-flex;
+  justify-content: center;
   width: 24px;
-  text-align: center;
+  color: #c4b5fd;
 }
 
 .saimo-doacao-vantagem-conteudo {

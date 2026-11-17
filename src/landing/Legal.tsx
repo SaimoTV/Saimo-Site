@@ -396,7 +396,7 @@ export function Exclusao() {
         </table>
       ) },
     { id: 'terceiros', titulo: 'Dados em serviços de terceiros',
-      corpo: <p>Se você tem conta no seu provedor de lista, ou se fez uma doação por um serviço de pagamento, esses dados ficam com eles. Para apagá-los, fale diretamente com o provedor ou o serviço. Nós não temos acesso a eles.</p> },
+      corpo: <p>Se você tem conta no seu provedor de lista, ou se fez uma doação por Pix, esses dados ficam com o provedor e com o seu banco. Para apagá-los, fale diretamente com o provedor ou o banco. Nós não temos acesso a eles.</p> },
     { id: 'pedido', titulo: 'Pedido de exclusão ou dúvidas',
       corpo: <p>Se quiser confirmar que não guardamos nada sobre você, ou tiver qualquer pedido relacionado à LGPD, escreva para <Contato />.</p> },
   ];

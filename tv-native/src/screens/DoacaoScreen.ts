@@ -21,13 +21,13 @@ export class DoacaoScreen {
       <div class="tv-doacao-corpo">
         <div class="tv-doacao-texto">
           <div class="tv-doacao-tag">${icone('favorite')}<span>Comunidade Saimo TV</span></div>
-          <h1 class="tv-doacao-titulo">Ajude a manter tudo <span>100% gratuito</span></h1>
-          <p class="tv-doacao-sub">Sem anúncios, sem mensalidade e livre para todo mundo.</p>
-          <p class="tv-doacao-historia">Manter servidores rápidos, a transmissão e as atualizações de todo dia custa dinheiro todo mês. Quem puder ajudar com qualquer valor faz uma diferença enorme para o Saimo TV continuar no ar para todos.</p>
+          <h1 class="tv-doacao-titulo">Ajude a manter o Saimo TV <span>100% gratuito</span></h1>
+          <p class="tv-doacao-sub">Sem anúncios e sem mensalidade.</p>
+          <p class="tv-doacao-historia">O Saimo TV é um player: ele toca as listas e os links que você mesmo adiciona. O app e o site não trazem nenhum canal, filme ou série dentro; o que você assiste vem das suas próprias listas. O desenvolvimento, as atualizações e a hospedagem do site custam dinheiro todo mês. Quem puder ajudar com qualquer valor faz uma diferença enorme para o Saimo TV continuar gratuito, atualizado e sem anúncios.</p>
           <div class="tv-doacao-vantagens">
-            <div class="tv-doacao-vantagem">${icone('block')}<div><strong>Zero anúncios</strong><span>Nada interrompendo o que você assiste</span></div></div>
-            <div class="tv-doacao-vantagem">${icone('bolt')}<div><strong>Servidores rápidos</strong><span>Transmissão estável e em alta qualidade</span></div></div>
-            <div class="tv-doacao-vantagem">${icone('favorite')}<div><strong>Sem mensalidade</strong><span>Canais, filmes e séries para todo mundo</span></div></div>
+            <div class="tv-doacao-vantagem">${icone('block')}<div><strong>Zero anúncios</strong><span>Nada interrompendo o que você usa</span></div></div>
+            <div class="tv-doacao-vantagem">${icone('autorenew')}<div><strong>Atualizações constantes</strong><span>Melhorias e correções para o app e o site</span></div></div>
+            <div class="tv-doacao-vantagem">${icone('favorite')}<div><strong>Sem mensalidade</strong><span>O app é gratuito para todo mundo</span></div></div>
           </div>
         </div>
         <div class="tv-doacao-qr-cartao">
