@@ -55,6 +55,10 @@ import {
   destaques,
   episodios,
   generos as lerGeneros,
+  categorias as lerCategorias,
+  temCategoria,
+  type Categorias,
+  type Categoria,
   temGenero,
   filme as buscarFilme,
   indice,
@@ -92,7 +96,33 @@ import {
 import { carregarDetalhes, detalheDe, faixasDeAno, type Detalhes } from '../services/infoDosTitulos';
 import './VodCatalog.css';
 
-export type Secao = 'filmes' | 'series' | 'animes' | 'doramas' | 'extra';
+export type Secao = 'filmes' | 'series' | 'animes' | 'doramas' | 'novelas' | 'kids' | 'extra';
+
+/** Seções que vêm do categorias.txt (país de origem e idioma no TMDB). */
+type SecaoCategoria = 'animes' | 'doramas' | 'novelas' | 'kids';
+const CATEGORIA_DA_SECAO: Record<SecaoCategoria, Categoria> = {
+  animes: 'anime',
+  doramas: 'dorama',
+  novelas: 'novela',
+  kids: 'kids',
+};
+const NOME_SECAO: Record<Secao, string> = {
+  filmes: 'Filmes',
+  series: 'Séries',
+  animes: 'Animes',
+  doramas: 'Doramas',
+  novelas: 'Novelas',
+  kids: 'Kids',
+  extra: '18+ Adulto',
+};
+function ehSecaoCategoria(s: Secao | null): s is SecaoCategoria {
+  return s === 'animes' || s === 'doramas' || s === 'novelas' || s === 'kids';
+}
+/** Nome sem ano, acento e pontuação: junta "Naruto" da coleção com o do acervo. */
+function chaveNome(titulo: string): string {
+  return titulo.replace(/\s*\(\d{4}\)\s*$/, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
 
 interface VodCatalogProps {
   onSelectMovie: (movie: Movie, seriesInfo?: SeriesEpisodeInfo | null) => void;
@@ -174,6 +204,8 @@ const SOBRE_SECAO: Record<Secao, string> = {
   series: 'Temporadas completas, com o próximo episódio emendando sozinho.',
   animes: 'Os animes do momento e os que marcaram época.',
   doramas: 'Romance, drama e suspense da Coreia, do Japão e da China.',
+  novelas: 'Novelas brasileiras, mexicanas e turcas, do primeiro ao último capítulo.',
+  kids: 'Desenhos, animações e filmes para a família, com classificação livre.',
   extra: 'Catálogo adulto reservado e protegido por senha.',
 };
 
@@ -240,6 +272,7 @@ export function VodCatalog({
   const [todasSeries, setTodasSeries] = useState<Achado[]>([]);
   const [animesColecao, setAnimesColecao] = useState<SerieColecao[]>([]);
   const [doramasColecao, setDoramasColecao] = useState<SerieColecao[]>([]);
+  const [categoriasMapa, setCategoriasMapa] = useState<Categorias | null>(null);
   const [carregandoDados, setCarregandoDados] = useState(true);
 
   // Item atualmente sob o cursor do mouse para o Hero Destaque
@@ -596,6 +629,10 @@ export function VodCatalog({
       setDoramasColecao(doramas);
     });
 
+    // Categorias à parte: a coleção de animes tem 15 MB e não pode segurar
+    // Novelas e Kids até terminar de chegar.
+    lerCategorias().then((cats) => { if (ativo && cats.size) setCategoriasMapa(cats); }).catch(() => {});
+
     // 3. Carga do índice completo de busca (30k títulos) postergada para não concorrer com as capas
     const timerBusca = setTimeout(() => {
       if (!ativo) return;
@@ -609,12 +646,38 @@ export function VodCatalog({
     };
   }, [temListaFilmes, temAddons, addons]);
 
+  // Títulos do acervo em cada categoria. Animes e doramas somam-se às coleções
+  // (sem repetir o que a coleção já tem); novelas e kids vêm só do acervo.
+  const acervoDaSecao = useMemo(() => {
+    const out: Record<SecaoCategoria, Achado[]> = { animes: [], doramas: [], novelas: [], kids: [] };
+    if (!categoriasMapa) return out;
+    const naColecao = {
+      animes: new Set(animesColecao.map((s) => chaveNome(s.titulo))),
+      doramas: new Set(doramasColecao.map((s) => chaveNome(s.titulo))),
+    };
+    const vistos = new Set<string>();
+    for (const lista of [todasSeries, todosFilmes]) {
+      for (const a of lista) {
+        for (const secaoCat of ['animes', 'doramas', 'novelas', 'kids'] as SecaoCategoria[]) {
+          if (!temCategoria(categoriasMapa, a.titulo, a.serie, CATEGORIA_DA_SECAO[secaoCat])) continue;
+          const nome = chaveNome(a.titulo);
+          if ((secaoCat === 'animes' || secaoCat === 'doramas') && naColecao[secaoCat].has(nome)) continue;
+          const marca = `${secaoCat}|${a.serie ? 's' : 'f'}|${nome}`;
+          if (vistos.has(marca)) continue;
+          vistos.add(marca);
+          out[secaoCat].push(a);
+        }
+      }
+    }
+    return out;
+  }, [categoriasMapa, todasSeries, todosFilmes, animesColecao, doramasColecao]);
+
   // Totais para exibição nos cartões de categoria e Hero
   const contagens = useMemo(() => {
     const totalFilmes = gavetas.reduce((acc, g) => acc + (g.filmes || 0), 0) || todosFilmes.length || 24500;
     const totalSeries = gavetas.reduce((acc, g) => acc + (g.series || 0), 0) || todasSeries.length || 7200;
-    const totalAnimes = animesColecao.length || 1050;
-    const totalDoramas = doramasColecao.length || 580;
+    const totalAnimes = animesColecao.length + acervoDaSecao.animes.length || 1050;
+    const totalDoramas = doramasColecao.length + acervoDaSecao.doramas.length || 580;
     const totalExtras = gavetas.reduce((acc, g) => acc + (g.reservados || 0), 0);
     const totalGeral = totalFilmes + totalSeries + totalAnimes + totalDoramas;
     return {
@@ -623,9 +686,11 @@ export function VodCatalog({
       series: totalSeries,
       animes: totalAnimes,
       doramas: totalDoramas,
+      novelas: acervoDaSecao.novelas.length,
+      kids: acervoDaSecao.kids.length,
       extra: totalExtras,
     };
-  }, [gavetas, todosFilmes.length, todasSeries.length, animesColecao.length, doramasColecao.length]);
+  }, [gavetas, todosFilmes.length, todasSeries.length, animesColecao.length, doramasColecao.length, acervoDaSecao]);
 
   // Imagens para mosaico de capas das seções
   const colagens = useMemo(() => {
@@ -645,14 +710,27 @@ export function VodCatalog({
       }
       return unicos.slice(0, 4);
     };
+    // Completa com capas do acervo da categoria quando os destaques não bastam.
+    const doAcervo = (lista: Achado[], ja: string[]) => {
+      const out = [...ja];
+      if (!generos) return out;
+      for (const a of lista) {
+        if (out.length >= 4) break;
+        const c = capaDaFicha(generos, a.titulo, a.serie);
+        if (c && !out.includes(c)) out.push(c);
+      }
+      return out;
+    };
     return {
       filmes: pegarCapas('f'),
       series: pegarCapas('s'),
-      animes: pegarCapas('a'),
-      doramas: pegarCapas('d'),
-      extra: [],
+      animes: doAcervo(acervoDaSecao.animes, pegarCapas('a')),
+      doramas: doAcervo(acervoDaSecao.doramas, pegarCapas('d')),
+      novelas: doAcervo(acervoDaSecao.novelas, []),
+      kids: doAcervo(acervoDaSecao.kids, []),
+      extra: [] as string[],
     };
-  }, [filasDestaque]);
+  }, [filasDestaque, generos, acervoDaSecao]);
 
   // Fileiras de Gênero dinâmicas (100% igual ao macOS TelasDoAcervo.swift:301-325)
   const fileirasDeGenero = useMemo(() => {
@@ -666,6 +744,38 @@ export function VodCatalog({
       : ORDEM_GENEROS.filter((g) => generos.todos.includes(g));
 
     const out: { titulo: string; genero: string; itens: ItemDestaque[] }[] = [];
+
+    // Títulos do acervo (filme ou série comum) com capa, de um gênero ou de todos.
+    const doAcervo = (lista: Achado[], genero: string | null, cota: number): ItemDestaque[] => {
+      const itens: ItemDestaque[] = [];
+      for (const a of lista) {
+        if (itens.length >= cota) break;
+        if (genero && !temGenero(generos, a.titulo, a.serie, genero)) continue;
+        const capa = capaDaFicha(generos, a.titulo, a.serie);
+        if (!capa) continue;
+        itens.push({ tipo: a.serie ? 's' : 'f', titulo: a.titulo, letra: a.letra, ano: a.ano, capa });
+      }
+      return itens;
+    };
+    const popularidade = (a: Achado) => detalheDe(detalhes, a.titulo, a.serie)?.popularidade || 0;
+
+    if (secao === 'novelas' || secao === 'kids') {
+      const lista = [...acervoDaSecao[secao]].sort((a, b) => popularidade(b) - popularidade(a));
+      const topo = doAcervo(lista, null, 25);
+      if (topo.length >= 3) out.push({ titulo: 'Mais populares', genero: '', itens: topo });
+      if (secao === 'kids') {
+        const series = doAcervo(lista.filter((a) => a.serie), null, 25);
+        if (series.length >= 4) out.push({ titulo: 'Desenhos e séries', genero: '', itens: series });
+        const filmes = doAcervo(lista.filter((a) => !a.serie), null, 25);
+        if (filmes.length >= 4) out.push({ titulo: 'Filmes para a família', genero: '', itens: filmes });
+      }
+      for (const g of generosAlvo) {
+        if (secao === 'kids' && ['Animação', 'Terror', 'Suspense', 'Crime', 'Guerra'].includes(g)) continue;
+        const doGenero = doAcervo(lista, g, 25);
+        if (doGenero.length >= 4) out.push({ titulo: g, genero: g, itens: doGenero });
+      }
+      return out;
+    }
 
     if (secao === 'animes') {
       // Fileira dedicada aos animes populares e novidades
@@ -713,6 +823,7 @@ export function VodCatalog({
           }))
           .filter((s) => !!s.capa)
           .slice(0, 25);
+        if (doGenero.length < 25) doGenero.push(...doAcervo(acervoDaSecao.animes, g, 25 - doGenero.length));
         if (doGenero.length >= 3) {
           out.push({
             titulo: g,
@@ -737,6 +848,7 @@ export function VodCatalog({
           }))
           .filter((s) => !!s.capa)
           .slice(0, 25);
+        if (doGenero.length < 25) doGenero.push(...doAcervo(acervoDaSecao.doramas, g, 25 - doGenero.length));
         if (doGenero.length >= 4) {
           out.push({
             titulo: g,
@@ -799,7 +911,7 @@ export function VodCatalog({
     }
 
     return out;
-  }, [generos, secao, todasSeries, todosFilmes, animesColecao, doramasColecao]);
+  }, [generos, secao, todasSeries, todosFilmes, animesColecao, doramasColecao, acervoDaSecao, detalhes]);
 
   // Itens em andamento ("Continue assistindo")
   const itensAndamento = useMemo(() => {
@@ -810,8 +922,10 @@ export function VodCatalog({
         if (!secao) return true;
         if (secao === 'filmes') return a.origem.tipo === 'f';
         if (secao === 'series') return a.origem.tipo === 's';
-        if (secao === 'animes') return a.origem.tipo === 'a';
-        if (secao === 'doramas') return a.origem.tipo === 'd';
+        if (secao === 'animes') return a.origem.tipo === 'a' || (a.origem.tipo === 's' && temCategoria(categoriasMapa, a.origem.titulo, true, 'anime'));
+        if (secao === 'doramas') return a.origem.tipo === 'd' || (a.origem.tipo === 's' && temCategoria(categoriasMapa, a.origem.titulo, true, 'dorama'));
+        if (secao === 'novelas') return temCategoria(categoriasMapa, a.origem.titulo, a.origem.tipo !== 'f', 'novela');
+        if (secao === 'kids') return temCategoria(categoriasMapa, a.origem.titulo, a.origem.tipo !== 'f', 'kids');
         return true;
       })
       .map((a) => ({
@@ -820,7 +934,7 @@ export function VodCatalog({
         progresso: a.fracao,
         subtitulo: a.rotulo,
       }));
-  }, [secao, generos, versaoAndamento]);
+  }, [secao, generos, versaoAndamento, categoriasMapa]);
 
   // Hero Destaque: título, selos e sinopse
   const heroiAtual = useMemo(() => {
@@ -848,11 +962,11 @@ export function VodCatalog({
       return {
         titulo: 'On Demand',
         selos: [`${contagens.totalGeral.toLocaleString('pt-BR')} títulos`],
-        sinopse: 'Filmes, séries, animes e doramas. Lançamentos, clássicos e produções completas.',
+        sinopse: 'Filmes, séries, animes, doramas, novelas e kids. Lançamentos, clássicos e produções completas.',
       };
     }
 
-    const nome = secao === 'filmes' ? 'Filmes' : secao === 'series' ? 'Séries' : secao === 'animes' ? 'Animes' : secao === 'doramas' ? 'Doramas' : '18+ Adulto';
+    const nome = NOME_SECAO[secao];
     const total = contagens[secao] || 0;
     return {
       titulo: nome,
@@ -1254,6 +1368,18 @@ export function VodCatalog({
 
   // Itens para a Grade Explorar
   const itensGrade = useMemo<Item[]>(() => {
+    const doAcervoNaGrade = (secaoCat: SecaoCategoria): Item[] =>
+      acervoDaSecao[secaoCat]
+        .filter((a) => !generoFiltro || (generos && temGenero(generos, a.titulo, a.serie, generoFiltro)))
+        .map((a) => ({
+          chave: `${a.serie ? 's' : 'f'}:${a.titulo}:${a.ano}`,
+          titulo: a.titulo,
+          rotulo: a.nomeCompleto || a.titulo,
+          serie: a.serie,
+          letra: a.letra,
+          ano: a.ano,
+        }));
+
     if (buscaAtiva) {
       return buscaAchados
         .filter((a) => {
@@ -1287,7 +1413,8 @@ export function VodCatalog({
           letra: '#',
           ano: s.ano,
           colecao: s,
-        }));
+        }) as Item)
+        .concat(doAcervoNaGrade('animes'));
     }
 
     if (secao === 'doramas') {
@@ -1301,7 +1428,13 @@ export function VodCatalog({
           letra: '#',
           ano: s.ano,
           colecao: s,
-        }));
+        }) as Item)
+        .concat(doAcervoNaGrade('doramas'));
+    }
+
+    if (secao === 'novelas' || secao === 'kids') {
+      return doAcervoNaGrade(secao)
+        .sort((a, b) => a.titulo.localeCompare(b.titulo, 'pt-BR'));
     }
 
     const base = secao === 'series' ? todasSeries : todosFilmes;
@@ -1321,7 +1454,7 @@ export function VodCatalog({
       letra: a.letra,
       ano: a.ano,
     }));
-  }, [buscaAtiva, buscaAchados, secao, animesColecao, doramasColecao, todasSeries, todosFilmes, letraFiltro, generoFiltro, generos, filtrosExtras]);
+  }, [buscaAtiva, buscaAchados, secao, animesColecao, doramasColecao, todasSeries, todosFilmes, letraFiltro, generoFiltro, generos, filtrosExtras, acervoDaSecao]);
 
   // Ano, idade, nota e ordem sobre o que a seção (e o gênero) deixou.
   const itensFiltrados = useMemo(() => {
@@ -1441,6 +1574,22 @@ export function VodCatalog({
           >
             Doramas
           </button>
+          {contagens.novelas > 0 && (
+            <button
+              className={`vod-sub-pill${secao === 'novelas' ? ' ativa' : ''}`}
+              onClick={() => { setSecao('novelas'); setModo('fileiras'); }}
+            >
+              Novelas
+            </button>
+          )}
+          {contagens.kids > 0 && (
+            <button
+              className={`vod-sub-pill${secao === 'kids' ? ' ativa' : ''}`}
+              onClick={() => { setSecao('kids'); setModo('fileiras'); }}
+            >
+              Kids
+            </button>
+          )}
           {isAdultUnlocked && (
             <button
               className={`vod-sub-pill${secao === 'extra' ? ' ativa' : ''}`}
@@ -1593,6 +1742,62 @@ export function VodCatalog({
                       </div>
                     </div>
                   </button>
+
+                  {/* Novelas Card */}
+                  {contagens.novelas > 0 && (
+                    <button
+                      className="vod-card-secao secao-novelas"
+                      onClick={() => { setSecao('novelas'); setModo('fileiras'); }}
+                      onMouseEnter={() => passarItem({ tipo: 's', titulo: 'Novelas', letra: '#', ano: '', capa: colagens.novelas[0] || '' })}
+                      onMouseLeave={() => passarItem(null)}
+                    >
+                      <div className="vod-card-secao-colagem">
+                        {colagens.novelas.map((c, i) => (
+                          <img key={i} src={c} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                        ))}
+                      </div>
+                      <div className="vod-card-secao-veu" />
+                      <div className="vod-card-secao-info">
+                        <div className="vod-card-secao-icone" style={{ background: '#c792ea' }}>
+                          <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2a5 5 0 0 1 5 5c0 2.4-1.7 4.4-4 4.9V14h3v2h-3v6h-2v-6H8v-2h3v-2.1A5 5 0 0 1 12 2zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3>Novelas</h3>
+                          <p>{contagens.novelas.toLocaleString('pt-BR')} títulos</p>
+                        </div>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* Kids Card */}
+                  {contagens.kids > 0 && (
+                    <button
+                      className="vod-card-secao secao-kids"
+                      onClick={() => { setSecao('kids'); setModo('fileiras'); }}
+                      onMouseEnter={() => passarItem({ tipo: 's', titulo: 'Kids', letra: '#', ano: '', capa: colagens.kids[0] || '' })}
+                      onMouseLeave={() => passarItem(null)}
+                    >
+                      <div className="vod-card-secao-colagem">
+                        {colagens.kids.map((c, i) => (
+                          <img key={i} src={c} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                        ))}
+                      </div>
+                      <div className="vod-card-secao-veu" />
+                      <div className="vod-card-secao-info">
+                        <div className="vod-card-secao-icone" style={{ background: '#7ee787' }}>
+                          <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm-3.5 7a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm7 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM7.8 14a4.5 4.5 0 0 0 8.4 0H7.8z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3>Kids</h3>
+                          <p>{contagens.kids.toLocaleString('pt-BR')} títulos</p>
+                        </div>
+                      </div>
+                    </button>
+                  )}
                 </div>
               </div>
             </section>
@@ -1615,14 +1820,30 @@ export function VodCatalog({
           {/* Destaques do catálogo (Filtrados por seção ou todos) */}
           {filasDestaque.map((fila, idx) => {
             const itensDaFila = secao
-              ? fila.itens.filter((i) => (secao === 'filmes' ? i.tipo === 'f' : secao === 'series' ? i.tipo === 's' : secao === 'animes' ? i.tipo === 'a' : i.tipo === 'd'))
+              ? fila.itens.filter((i) => {
+                if (secao === 'filmes') return i.tipo === 'f';
+                if (secao === 'series') return i.tipo === 's';
+                if (secao === 'animes') return i.tipo === 'a' || (i.tipo === 's' && temCategoria(categoriasMapa, i.titulo, true, 'anime'));
+                if (secao === 'doramas') return i.tipo === 'd' || (i.tipo === 's' && temCategoria(categoriasMapa, i.titulo, true, 'dorama'));
+                if (secao === 'novelas') return temCategoria(categoriasMapa, i.titulo, i.tipo !== 'f', 'novela');
+                if (secao === 'kids') return temCategoria(categoriasMapa, i.titulo, i.tipo !== 'f', 'kids');
+                return false;
+              })
               : fila.itens;
-            if (itensDaFila.length < 3) return null;
+            // O destaque às vezes traz o mesmo título duas vezes (coleção e acervo).
+            const vistosNaFila = new Set<string>();
+            const itensUnicos = itensDaFila.filter((i) => {
+              const k = `${i.tipo}:${i.titulo}:${i.ano}`;
+              if (vistosNaFila.has(k)) return false;
+              vistosNaFila.add(k);
+              return true;
+            });
+            if (itensUnicos.length < 3) return null;
             const elemento = (
               <CarrosselFileira
                 key={fila.titulo}
                 titulo={fila.titulo}
-                itens={itensDaFila}
+                itens={itensUnicos}
                 aoAbrir={abrirItemDestaque}
                 aoPassar={passarItem}
               />
@@ -1632,21 +1853,18 @@ export function VodCatalog({
 
           {/* Fileiras de Gênero dinâmicas com Lazy Loading (Filmes, Séries, Animes ou Doramas) */}
           {fileirasDeGenero.map((fg) => (
-            <LazyFileira key={fg.genero}>
+            <LazyFileira key={fg.titulo}>
               <CarrosselFileira
                 titulo={fg.titulo}
                 itens={fg.itens}
                 aoAbrir={abrirItemDestaque}
                 aoPassar={passarItem}
                 verTodos={() => {
-                  if (secao === 'series') setSecao('series');
-                  else if (secao === 'animes') setSecao('animes');
-                  else if (secao === 'doramas') setSecao('doramas');
-                  else setSecao('filmes');
+                  setSecao(secao && secao !== 'extra' ? secao : 'filmes');
                   setGeneroFiltro(fg.genero);
                   setModo('explorar');
                 }}
-                rotuloVerTodos={`Todos de ${fg.genero}`}
+                rotuloVerTodos={fg.genero ? `Todos de ${fg.genero}` : 'Ver todos'}
               />
             </LazyFileira>
           ))}
@@ -1655,15 +1873,7 @@ export function VodCatalog({
           <section className="vod-fileira">
             <header className="vod-fileira-header">
               <h2>
-                {secao === 'filmes'
-                  ? 'Explorar Filmes de A a Z'
-                  : secao === 'series'
-                  ? 'Explorar Séries de A a Z'
-                  : secao === 'animes'
-                  ? 'Explorar Animes de A a Z'
-                  : secao === 'doramas'
-                  ? 'Explorar Doramas de A a Z'
-                  : 'Explorar de A a Z'}
+                {secao && secao !== 'extra' ? `Explorar ${NOME_SECAO[secao]} de A a Z` : 'Explorar de A a Z'}
               </h2>
             </header>
             <div className="vod-secoes-grid">
@@ -1734,6 +1944,40 @@ export function VodCatalog({
                   </div>
                 </button>
               )}
+
+              {(secao === null || secao === 'novelas') && contagens.novelas > 0 && (
+                <button
+                  className="vod-card-secao secao-az"
+                  onClick={() => { setSecao('novelas'); setModo('explorar'); }}
+                >
+                  <div className="vod-card-secao-info">
+                    <div className="vod-card-secao-icone" style={{ background: '#c792ea' }}>
+                      <span style={{ fontSize: '1.2rem', fontWeight: 800 }}>A-Z</span>
+                    </div>
+                    <div>
+                      <h3>Novelas de A a Z</h3>
+                      <p>{contagens.novelas.toLocaleString('pt-BR')} novelas</p>
+                    </div>
+                  </div>
+                </button>
+              )}
+
+              {(secao === null || secao === 'kids') && contagens.kids > 0 && (
+                <button
+                  className="vod-card-secao secao-az"
+                  onClick={() => { setSecao('kids'); setModo('explorar'); }}
+                >
+                  <div className="vod-card-secao-info">
+                    <div className="vod-card-secao-icone" style={{ background: '#7ee787' }}>
+                      <span style={{ fontSize: '1.2rem', fontWeight: 800 }}>A-Z</span>
+                    </div>
+                    <div>
+                      <h3>Kids de A a Z</h3>
+                      <p>{contagens.kids.toLocaleString('pt-BR')} desenhos e filmes</p>
+                    </div>
+                  </div>
+                </button>
+              )}
             </div>
           </section>
         </div>
@@ -1743,7 +1987,7 @@ export function VodCatalog({
       {modo === 'explorar' && (
         <div className="vod-conteudo-grade">
           {/* Barra de Letras A-Z (com filtros de ano, idade, nota ou ordem, a busca é na seção inteira) */}
-          {secao !== 'animes' && secao !== 'doramas' && !filtrosExtras && (
+          {!ehSecaoCategoria(secao) && !filtrosExtras && (
             <div className="vod-letras-barra" role="tablist" aria-label="Letras do alfabeto">
               {LETRAS.map((l) => (
                 <button

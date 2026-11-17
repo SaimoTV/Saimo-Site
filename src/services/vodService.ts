@@ -99,6 +99,7 @@ function sincronizar(): string {
     colecoes.clear();
     filasEmMemoria = null;
     generosEmMemoria = null;
+    categoriasEmMemoria = null;
   }
   return base;
 }
@@ -515,7 +516,7 @@ export async function destaques(): Promise<FilaDestaque[]> {
       titulo: campos[1],
       letra: campos[2],
       ano: campos[3] ?? '',
-      capa: poster ? base + poster : '',
+      capa: poster ? comBase(base, poster) : '',
     });
   }
   fechar();
@@ -573,7 +574,7 @@ export async function generos(): Promise<Generos> {
     const campos = linha.split('\t');
     if (campos.length < 5) continue;
     const chave = `${campos[0]}|${campos[1]}`;
-    if (campos[3]) capas.set(chave, base + campos[3]);
+    if (campos[3]) capas.set(chave, comBase(base, campos[3]));
     const id = Number(campos[2]);
     if (Number.isFinite(id) && id > 0) {
       ids.set(chave, id);
@@ -592,6 +593,51 @@ export async function generos(): Promise<Generos> {
     todos: [...vistos].sort((a, b) => a.localeCompare(b, 'pt-BR')),
   };
   return generosEmMemoria;
+}
+
+/**
+ * Pôster da ficha: em geral um caminho do TMDB, que vai depois da base
+ * (`capa:`); as capas tiradas de outras listas vêm com o endereço inteiro.
+ */
+export function comBase(base: string, poster: string): string {
+  return /^https?:\/\//i.test(poster) ? poster : base + poster;
+}
+
+/**
+ * Categoria de cada título do acervo: anime, dorama, novela, kids
+ * (`categorias.txt`, gerado por gerar_categorias.py a partir do país de origem
+ * e do idioma no TMDB). Título fora do arquivo é filme ou série comum.
+ */
+export type Categoria = 'anime' | 'dorama' | 'novela' | 'kids';
+export type Categorias = Map<string, Categoria[]>;
+
+let categoriasEmMemoria: Promise<Categorias> | null = null;
+
+export function categorias(): Promise<Categorias> {
+  sincronizar();
+  if (categoriasEmMemoria) return categoriasEmMemoria;
+  categoriasEmMemoria = arquivo('categorias.txt').then((texto) => {
+    const mapa: Categorias = new Map();
+    for (const linha of (texto ?? '').split('\n')) {
+      if (!linha || linha[0] === '#') continue;
+      const c = linha.split('\t');
+      if (c.length < 3) continue;
+      const lista = c[2].split(',').map((x) => x.trim()).filter(Boolean) as Categoria[];
+      if (lista.length) mapa.set(`${c[0]}|${c[1]}`, lista);
+    }
+    return mapa;
+  }).catch(() => {
+    categoriasEmMemoria = null;
+    return new Map();
+  });
+  return categoriasEmMemoria;
+}
+
+export function temCategoria(mapa: Categorias | null, titulo: string, serie: boolean, cat: Categoria): boolean {
+  if (!mapa || !mapa.size) return false;
+  const k = serie ? 's|' : 'f|';
+  const lista = mapa.get(k + titulo) || mapa.get(k + semAno(titulo));
+  return !!lista && lista.includes(cat);
 }
 
 /** O título sem o ano final, que é como a lista de gêneros o guarda. */
