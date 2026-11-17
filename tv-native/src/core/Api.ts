@@ -536,6 +536,43 @@ export class Api {
     return this.detalhesPedido;
   }
 
+  // ===== CATEGORIAS (anime, dorama, novela, kids) =====
+  // categorias.txt (gerar_categorias.py, pelo país de origem e idioma no TMDB).
+  // Só traz títulos do acervo; quem não está nele é filme ou série comum.
+  private static categoriasMap: Map<string, string[]> | null = null;
+  private static categoriasPedido: Promise<Map<string, string[]>> | null = null;
+
+  static fetchCategorias(): Promise<Map<string, string[]>> {
+    if (this.categoriasMap) return Promise.resolve(this.categoriasMap);
+    if (this.categoriasPedido) return this.categoriasPedido;
+    if (!this.enderecoSaimo('filmes')) return Promise.resolve(new Map());
+    this.categoriasPedido = fetch(`${this.getBaseUrl('filmes')}categorias.txt`, { cache: 'default' })
+      .then((r) => (r.ok ? r.text() : ''))
+      .then((texto) => {
+        const mapa = new Map<string, string[]>();
+        for (const linha of texto.split('\n')) {
+          if (!linha || linha[0] === '#') continue;
+          const c = linha.split('\t');
+          if (c.length < 3) continue;
+          const lista = c[2].split(',').map((x) => x.trim()).filter(Boolean);
+          if (lista.length) mapa.set(`${c[0]}|${c[1]}`, lista);
+        }
+        if (mapa.size) this.categoriasMap = mapa;
+        return mapa;
+      })
+      .catch(() => new Map<string, string[]>())
+      .finally(() => { this.categoriasPedido = null; });
+    return this.categoriasPedido;
+  }
+
+  static temCategoria(item: VODItem, categoria: string): boolean {
+    const m = this.categoriasMap;
+    if (!m) return false;
+    const k = item.isSeries ? 's|' : 'f|';
+    const lista = m.get(k + item.title) || m.get(k + item.title.replace(/\s*\(\d{4}\)\s*$/, ''));
+    return !!lista && lista.includes(categoria);
+  }
+
   // ===== FICHAS DO ACERVO COMPLETO =====
   static async fetchFichas(): Promise<VODItem[]> {
     if (!this.enderecoSaimo('filmes')) {

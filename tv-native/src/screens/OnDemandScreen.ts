@@ -1,6 +1,6 @@
 /**
  * Tela On Demand (OnDemandScreen) - Desempenho Instantâneo 0ms.
- * Catálogo categorizado de Filmes, Séries, Animes e Doramas com filtragem instantânea
+ * Catálogo categorizado de Filmes, Séries, Animes, Doramas, Novelas e Kids com filtragem instantânea
  * e resposta imediata ao controle remoto.
  */
 
@@ -12,7 +12,17 @@ import { SpatialNav } from '../core/SpatialNav';
 import { Escolha, OpcaoEscolha } from '../components/Escolha';
 import { icone } from '../components/Icones';
 
-export type CategoryFilter = 'todos' | 'filmes' | 'series' | 'animes' | 'doramas';
+export type CategoryFilter = 'todos' | 'filmes' | 'series' | 'animes' | 'doramas' | 'novelas' | 'kids';
+
+/** Categoria do categorias.txt de cada aba que vem dele. */
+const CATEGORIA_DA_ABA: Partial<Record<CategoryFilter, string>> = {
+  animes: 'anime',
+  doramas: 'dorama',
+  novelas: 'novela',
+  kids: 'kids',
+};
+/** Gêneros que não fazem sentido numa aba infantil. */
+const FORA_DO_KIDS = ['Animação', 'Terror', 'Suspense', 'Crime', 'Guerra'];
 
 type Ordem = 'destaques' | 'novos' | 'az' | 'melhores' | 'populares';
 
@@ -197,19 +207,14 @@ export class OnDemandScreen {
     const geracao = ++this.geracao;
     this.railsContainer.innerHTML = '<div class="tv-filtro-aviso">Procurando no acervo…</div>';
     this.dynamicRails = [];
-    const [todos] = await Promise.all([Api.fetchFichas(), Api.fetchDetalhes()]);
+    const [todos] = await Promise.all([Api.fetchFichas(), Api.fetchDetalhes(), Api.fetchCategorias()]);
     if (geracao !== this.geracao) return;
     const f = this.filtros;
     const cat = this.currentFilter;
     let base = todos.length > 0 ? todos : Api.getDestaquesFlat();
     if (cat === 'filmes') base = base.filter((v) => !v.isSeries);
     else if (cat === 'series') base = base.filter((v) => v.isSeries);
-    else if (cat === 'animes') base = base.filter((v) => v.isSeries && v.genres.includes('Animação'));
-    else if (cat === 'doramas') {
-      const nomes = new Set(Api.getCachedDestaquesSync().filter((x) => x.titulo.toLowerCase().includes('dorama'))
-        .flatMap((x) => x.itens.map((i) => i.title)));
-      base = base.filter((v) => nomes.has(v.title));
-    }
+    else if (CATEGORIA_DA_ABA[cat]) base = base.filter((v) => Api.temCategoria(v, CATEGORIA_DA_ABA[cat]!));
     const anoDe = (v: VODItem) => Api.detalheDe(v)?.ano || parseInt((v.title.match(/\((\d{4})\)\s*$/) || [])[1] || v.year || '0', 10) || 0;
     let lista = base.filter((v) => {
       if (!v.poster) return false;
@@ -264,6 +269,8 @@ export class OnDemandScreen {
       { id: 'series', label: 'Séries', color: '#7AA2FF' },
       { id: 'animes', label: 'Animes', color: '#FFB454' },
       { id: 'doramas', label: 'Doramas', color: '#FF7EB6' },
+      { id: 'novelas', label: 'Novelas', color: '#C792EA' },
+      { id: 'kids', label: 'Kids', color: '#7EE787' },
     ];
 
     chips.forEach((c) => {
@@ -294,7 +301,7 @@ export class OnDemandScreen {
     this.element.classList.remove('hidden');
     this.heroBanner.setDefault(
       'On Demand',
-      'Filmes · Séries · Animes · Doramas',
+      'Filmes · Séries · Animes · Doramas · Novelas · Kids',
       'Explore milhares de títulos sob demanda catalogados por categoria e gênero com zero delay.'
     );
 
@@ -334,6 +341,12 @@ export class OnDemandScreen {
       this.railsContainer.innerHTML =
         '<div class="tv-filtro-aviso">Nenhum catálogo disponível. Adicione uma lista de filmes ou configure Addons Stremio em Ajustes.</div>';
       this.dynamicRails = [];
+      return;
+    }
+
+    // Abas do categorias.txt: fileiras montadas do acervo da categoria.
+    if (CATEGORIA_DA_ABA[this.currentFilter]) {
+      this.mostrarCategoria(this.currentFilter, allFilas);
       return;
     }
 
@@ -386,6 +399,70 @@ export class OnDemandScreen {
       azRail.setCards(this.mapCards(sortedAZ));
       this.railsContainer.appendChild(azRail.getElement());
       this.dynamicRails.push(azRail);
+    }
+  }
+
+  /**
+   * Aba de categoria (Animes, Doramas, Novelas, Kids): as fileiras de destaque
+   * daquela categoria, depois "Mais populares" e uma fileira por gênero, tudo
+   * do acervo marcado no categorias.txt.
+   */
+  private async mostrarCategoria(aba: CategoryFilter, allFilas: DestaqueFila[]) {
+    const geracao = this.geracao;
+    const categoria = CATEGORIA_DA_ABA[aba]!;
+    this.railsContainer.innerHTML = '';
+    this.dynamicRails = [];
+    const porNome = aba === 'animes' ? 'anime' : aba === 'doramas' ? 'dorama' : '';
+    if (porNome) {
+      for (const f of allFilas) {
+        if (!f.titulo.toLowerCase().includes(porNome) || f.itens.length === 0) continue;
+        const rail = new Rail(f.titulo, false);
+        rail.setCards(this.mapCards(f.itens));
+        this.railsContainer.appendChild(rail.getElement());
+        this.dynamicRails.push(rail);
+      }
+    }
+    const [todos] = await Promise.all([Api.fetchFichas(), Api.fetchDetalhes(), Api.fetchCategorias()]);
+    if (geracao !== this.geracao || this.currentFilter !== aba) return;
+    const vistos = new Set<string>();
+    const lista = todos
+      .filter((v) => v.poster && Api.temCategoria(v, categoria))
+      .filter((v) => {
+        const chave = `${v.isSeries ? 's' : 'f'}|${v.tmdbId || v.title.replace(/\s*\(\d{4}\)\s*$/, '').toLowerCase()}`;
+        if (vistos.has(chave)) return false;
+        vistos.add(chave);
+        return true;
+      })
+      .sort((a, b) => (Api.detalheDe(b)?.popularidade || 0) - (Api.detalheDe(a)?.popularidade || 0));
+    if (lista.length === 0) {
+      if (!this.dynamicRails.length) {
+        this.railsContainer.innerHTML = '<div class="tv-filtro-aviso">Nenhum título nesta categoria ainda.</div>';
+      }
+      return;
+    }
+    const fileiras: { titulo: string; itens: VODItem[] }[] = [
+      { titulo: `Mais populares · ${lista.length.toLocaleString('pt-BR')} títulos`, itens: lista.slice(0, POR_FILEIRA) },
+    ];
+    if (aba === 'kids') {
+      fileiras.push({ titulo: 'Desenhos e séries', itens: lista.filter((v) => v.isSeries).slice(0, POR_FILEIRA) });
+      fileiras.push({ titulo: 'Filmes para a família', itens: lista.filter((v) => !v.isSeries).slice(0, POR_FILEIRA) });
+    }
+    const contagem = new Map<string, number>();
+    for (const v of lista) for (const g of v.genres) if (g && !/^\d+$/.test(g)) contagem.set(g, (contagem.get(g) || 0) + 1);
+    const generos = [...contagem.entries()]
+      .filter(([g, n]) => n >= 6 && !(aba === 'kids' && FORA_DO_KIDS.includes(g)))
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, MAX_FILEIRAS)
+      .map(([g]) => g);
+    for (const g of generos) fileiras.push({ titulo: g, itens: lista.filter((v) => v.genres.includes(g)).slice(0, POR_FILEIRA) });
+    const az = [...lista].sort((a, b) => a.title.localeCompare(b.title)).slice(0, 35);
+    fileiras.push({ titulo: 'Explorar de A a Z', itens: az });
+    for (const f of fileiras) {
+      if (f.itens.length < 4) continue;
+      const rail = new Rail(f.titulo, false);
+      rail.setCards(this.mapCards(f.itens));
+      this.railsContainer.appendChild(rail.getElement());
+      this.dynamicRails.push(rail);
     }
   }
 
