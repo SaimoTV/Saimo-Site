@@ -1,3 +1,6 @@
+/** Versão do app (package.json), posta pelo vite.config.ts no build. */
+declare const __VERSAO_APP__: string;
+
 /**
  * Tela de Configurações e Preferências (SettingsScreen).
  * Permite ajustar modo Zero Delay, normalização de volume, comportamento de reprodução,
@@ -197,6 +200,6 @@ export class SettingsScreen {
       : 'Navegador Web / Simulador';
 
     addOption('sobre-plataforma', 'Sistema Operacional', platformLabel, () => {});
-    addOption('sobre-versao', 'Versão', '2.6.3', () => {});
+    addOption('sobre-versao', 'Versão', __VERSAO_APP__, () => {});
       }
 }
