@@ -7,12 +7,19 @@
 import Hls from 'hls.js';
 import { TVPlayerInstance, PlaybackSource, PlayerEvents, AudioTrack, SubtitleTrack } from './TVPlayer';
 
+const PROXY_TV = 'https://saimo-tv.pages.dev';
+
 export class WebOSPlayer implements TVPlayerInstance {
   private video: HTMLVideoElement;
   private events: PlayerEvents;
   private hls: Hls | null = null;
   private currentSource: PlaybackSource | null = null;
   private triedHlsFallback = false;
+  private triedNativeFallback = false;
+  private hlsPrimeiro = false;
+  private triedProxy = false;
+  private token = 0;
+  private vigia: ReturnType<typeof setTimeout> | null = null;
 
   constructor(videoElement: HTMLVideoElement, events: PlayerEvents) {
     this.video = videoElement;
@@ -30,6 +37,7 @@ export class WebOSPlayer implements TVPlayerInstance {
     });
 
     this.video.addEventListener('playing', () => {
+      this.limpaVigia();
       this.events.onBuffering?.(false);
     });
 
@@ -38,6 +46,7 @@ export class WebOSPlayer implements TVPlayerInstance {
     });
 
     this.video.addEventListener('error', () => {
+      if (this.hls) return; // erros do hls.js chegam pelo evento dele
       if (!this.triedHlsFallback && this.currentSource && Hls.isSupported()) {
         const u = this.currentSource.url.toLowerCase();
         if (u.includes('.m3u8') || u.includes('master.txt') || u.includes('hls')) {
@@ -56,12 +65,16 @@ export class WebOSPlayer implements TVPlayerInstance {
     });
   }
 
-  private playWithHls(url: string) {
+  private playWithHls(url: string, urlNativa: string = url) {
     this.destroyHls();
     const extraHeaders = this.currentSource?.headers;
     const hls = new Hls({
       enableWorker: false,
       lowLatencyMode: false,
+      // Falha rápida: o caminho direto precisa desistir cedo para o proxy ter tempo.
+      // (o proxy pode demorar mais, principalmente na primeira chamada)
+      manifestLoadingTimeOut: url.indexOf(PROXY_TV) === 0 ? 20000 : 6000,
+      manifestLoadingMaxRetry: url.indexOf(PROXY_TV) === 0 ? 1 : 0,
       xhrSetup: extraHeaders
         ? (xhr) => {
             const forbidden = ['user-agent', 'referer', 'origin', 'host', 'cookie', 'content-length'];
@@ -90,7 +103,24 @@ export class WebOSPlayer implements TVPlayerInstance {
       });
     });
     hls.on(Hls.Events.ERROR, (_ev, data) => {
+      if (this.hls !== hls) return; // instância antiga (fonte já trocada)
       if (data.fatal) {
+        if (this.hlsPrimeiro && !this.triedProxy && url === this.currentSource?.url) {
+          // Direto falhou (rede da TV, DNS, bloqueio): tenta pelo proxy do site.
+          this.triedProxy = true;
+          const px = `${PROXY_TV}/api/proxy?url=${encodeURIComponent(url)}`;
+          this.playWithHls(px, url);
+          return;
+        }
+        if (this.hlsPrimeiro && !this.triedNativeFallback) {
+          // hls.js não deu conta: deixa o decodificador nativo da LG tentar.
+          this.triedNativeFallback = true;
+          this.destroyHls();
+          this.video.src = urlNativa;
+          this.video.load();
+          this.video.play().catch(() => {});
+          return;
+        }
         this.events.onError?.(`Erro HLS webOS: ${data.details || data.type}`);
       }
     });
@@ -108,7 +138,40 @@ export class WebOSPlayer implements TVPlayerInstance {
   async play(source: PlaybackSource): Promise<void> {
     this.stop();
     this.currentSource = source;
+    const meu = ++this.token;
+    this.limpaVigia();
+    // Fonte que nem erro dá (rede presa, "stalled"): sem 'playing' em 30 s, passa para a próxima.
+    this.vigia = setTimeout(() => {
+      if (meu !== this.token) return;
+      this.events.onError?.('Fonte sem resposta (30 s)');
+    }, 30000);
     this.triedHlsFallback = false;
+    this.triedNativeFallback = false;
+    this.triedProxy = false;
+    this.hlsPrimeiro = false;
+
+    // Igual ao navegador: HLS sem headers próprios vai pelo hls.js (o nativo da LG
+    // recusa fontes que o hls.js toca). Com headers, o caminho nativo segue primeiro.
+    // Fonte que exige Referer/User-Agent: o WebView não os envia (nem o hls.js, nem o nativo),
+    // então vai pelo proxy do site, que os coloca. É o mesmo contrato do site (`/api/proxy`).
+    if ((source.referer || source.userAgent) && Hls.isSupported()) {
+      let px = `${PROXY_TV}/api/proxy?url=${encodeURIComponent(source.url)}`;
+      if (source.referer) px += `&referer=${encodeURIComponent(source.referer)}`;
+      if (source.userAgent) px += `&ua=${encodeURIComponent(source.userAgent)}`;
+      this.triedHlsFallback = true;
+      this.triedProxy = true;
+      this.hlsPrimeiro = true;
+      this.playWithHls(px, source.url);
+      return;
+    }
+
+    const hlsLike = /\.m3u8|\.txt|workers\.dev/i.test(source.url);
+    if (hlsLike && !source.headers && !source.referer && Hls.isSupported()) {
+      this.triedHlsFallback = true;
+      this.hlsPrimeiro = true;
+      this.playWithHls(source.url);
+      return;
+    }
 
     this.video.src = source.url;
     this.video.load();
@@ -116,6 +179,8 @@ export class WebOSPlayer implements TVPlayerInstance {
     try {
       await this.video.play();
     } catch (e: any) {
+      // Rejeição de um play() antigo (cortado pelo pause() da troca de fonte): ignora.
+      if (meu !== this.token) return;
       if (!this.triedHlsFallback && Hls.isSupported()) {
         const u = source.url.toLowerCase();
         if (u.includes('.m3u8') || u.includes('master.txt') || u.includes('hls')) {
@@ -173,7 +238,13 @@ export class WebOSPlayer implements TVPlayerInstance {
     this.video.currentTime = Math.max(0, Math.min(seconds, this.video.duration || seconds));
   }
 
+  private limpaVigia() {
+    if (this.vigia) { clearTimeout(this.vigia); this.vigia = null; }
+  }
+
   stop() {
+    this.limpaVigia();
+    this.token++;
     this.destroyHls();
     this.video.pause();
     this.video.removeAttribute('src');
