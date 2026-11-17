@@ -6,14 +6,14 @@
  *
  * - Botão flutuante totalmente ARRASTÁVEL (Mouse e Touch) para não atrapalhar nenhuma tela.
  * - Lembra a posição escolhida pelo usuário no localStorage.
- * - Ao clicar (sem arrastar), abre modal informativo com explicação e botão direto para Deflow.
+ * - Ao clicar (sem arrastar), abre modal informativo com explicação e QR code e Pix copia e cola (Pix direto).
  * - Desaparece IMEDIATAMENTE e COMPLETAMENTE em qualquer modo de tela cheia,
  *   theater mode ou player de vídeo/filme.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { elementoEmTelaCheia, EVENTOS_TELA_CHEIA } from '../utils/telaCheia';
-import { LINK_DOACAO, EVENTO_ABRIR_DOACAO } from '../services/doacaoService';
+import { PIX_COPIA_E_COLA, PIX_FAVORECIDO, TEXTO_PIX_DIRETO, EVENTO_ABRIR_DOACAO } from '../services/doacaoService';
 import './DoacaoModal.css';
 
 interface Posicao {
@@ -166,15 +166,15 @@ export function DoacaoModal() {
     setAberto(false);
   }, []);
 
-  const aoCopiarLink = useCallback(async () => {
+  const aoCopiarPix = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(LINK_DOACAO);
+      await navigator.clipboard.writeText(PIX_COPIA_E_COLA);
       setCopiado(true);
       setTimeout(() => setCopiado(false), 2500);
     } catch {
       // Fallback simples caso a Clipboard API seja bloqueada
       const input = document.createElement('input');
-      input.value = LINK_DOACAO;
+      input.value = PIX_COPIA_E_COLA;
       document.body.appendChild(input);
       input.select();
       document.execCommand('copy');
@@ -407,33 +407,24 @@ export function DoacaoModal() {
               </div>
             </div>
 
-            <div className="saimo-doacao-acoes">
-              <a
-                href={LINK_DOACAO}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="saimo-doacao-btn-principal"
-              >
-                <span className="saimo-doacao-btn-icon">💜</span>
-                <span>Fazer Doação via Deflow (Pix / Cripto)</span>
-                <svg
-                  className="saimo-doacao-seta"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M7 17l9.2-9.2M17 17V8H8" />
-                </svg>
-              </a>
+            <div className="saimo-doacao-pix">
+              <div className="saimo-doacao-pix-selo">Pix direto</div>
+              <img
+                className="saimo-doacao-pix-qr"
+                src="/doacao-pix-qr.png"
+                alt="QR code do Pix direto para Gabriel Saimo Ferreira"
+                width={200}
+                height={200}
+              />
+              <div className="saimo-doacao-pix-nome">{PIX_FAVORECIDO}</div>
+              <p className="saimo-doacao-pix-texto">{TEXTO_PIX_DIRETO}</p>
+            </div>
 
+            <div className="saimo-doacao-acoes">
               <button
                 type="button"
-                onClick={aoCopiarLink}
-                className={`saimo-doacao-btn-copiar ${copiado ? 'copiado' : ''}`}
+                onClick={aoCopiarPix}
+                className={`saimo-doacao-btn-principal saimo-doacao-btn-pix ${copiado ? 'copiado' : ''}`}
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -442,8 +433,8 @@ export function DoacaoModal() {
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  width="16"
-                  height="16"
+                  width="18"
+                  height="18"
                   aria-hidden="true"
                 >
                   {copiado ? (
@@ -455,12 +446,12 @@ export function DoacaoModal() {
                     </>
                   )}
                 </svg>
-                <span>{copiado ? 'Link copiado com sucesso!' : 'Copiar link de doação'}</span>
+                <span>{copiado ? 'Código copiado' : 'Copiar Pix copia e cola'}</span>
               </button>
             </div>
 
             <div className="saimo-doacao-rodape">
-              <span>🔒 Pagamento seguro via Pix ou Criptomoedas através da Deflow Exchange.</span>
+              <span>Pix direto para Gabriel Saimo Ferreira, feito no app do seu banco. Nenhum dado de pagamento passa pelo Saimo TV.</span>
               <span className="saimo-doacao-agradecimento">
                 Muito obrigado a cada um que apoia o projeto! 🍿✨
               </span>

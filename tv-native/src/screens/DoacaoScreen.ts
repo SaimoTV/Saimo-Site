@@ -1,13 +1,14 @@
 /**
  * Apoie o Saimo TV: por que doar, o QR code para abrir no celular e o link
- * escrito. Mesmo texto do site, sem nada que a TV não abra (o pagamento é
- * feito no celular, pelo QR).
+ * Pix direto escrito. Mesmo texto do site, sem nada que a TV não abra (o
+ * pagamento é feito no celular, pelo QR).
  */
 
 import { icone } from '../components/Icones';
 
-export const LINK_DOACAO = 'https://deflow.exchange/pt/qr/saimo-tv';
-const LINK_VISIVEL = 'deflow.exchange/pt/qr/saimo-tv';
+const FAVORECIDO = 'Gabriel Saimo Ferreira';
+const TEXTO_PIX_DIRETO =
+  'Agora o Pix é direto: o valor vai direto para o desenvolvedor, Gabriel Saimo Ferreira, sem intermediário. Aponte a câmera do celular para o QR code ou copie o código Pix e cole no app do seu banco.';
 
 export class DoacaoScreen {
   private element: HTMLElement;
@@ -31,9 +32,10 @@ export class DoacaoScreen {
         </div>
         <div class="tv-doacao-qr-cartao">
           <div class="tv-doacao-qr-titulo">Aponte a câmera do celular</div>
-          <img class="tv-doacao-qr" src="img/doacao-qr.png" alt="QR code para doar" />
-          <div class="tv-doacao-link">${LINK_VISIVEL}</div>
-          <div class="tv-doacao-pix">Pix ou cripto, pagamento seguro pela Deflow</div>
+          <img class="tv-doacao-qr" src="img/doacao-qr.png" alt="QR code do Pix direto" />
+          <div class="tv-doacao-link">${FAVORECIDO}</div>
+          <div class="tv-doacao-pix">Pix direto</div>
+          <div class="tv-doacao-explica">${TEXTO_PIX_DIRETO}</div>
         </div>
       </div>
     `;

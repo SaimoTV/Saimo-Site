@@ -118,7 +118,7 @@ export function Privacidade() {
             <li><strong>Serviços públicos de placar e agenda esportiva</strong>, para a tela de Jogos;</li>
             <li><strong>GitHub</strong>, para avisar sobre versões novas e baixar a atualização, nos aplicativos instalados fora das lojas;</li>
             <li><strong>Cloudflare</strong>, que hospeda este site e funções de apoio do site, e cujo serviço de DNS seguro (1.1.1.1) pode ser usado pelo aplicativo Android para resolver nomes de servidores. O DNS vê os nomes de domínio consultados, não o conteúdo;</li>
-            <li><strong>Página de doação (Deflow)</strong>, se você decidir apoiar o projeto. A doação acontece fora do aplicativo, numa página de terceiros, com política própria. O Saimo não recebe os seus dados de pagamento.</li>
+            <li><strong>Doação por Pix direto</strong>, se você decidir apoiar o projeto. Não há página de terceiros nem intermediário: o Pix é feito no aplicativo do seu próprio banco, direto para o desenvolvedor. Nenhum dado seu ou de pagamento passa pelo aplicativo do Saimo.</li>
           </ul>
           <p>No <strong>site</strong>, alguns pedidos de vídeo ou de lista podem passar por uma função de repasse (proxy) do próprio site, apenas para contornar restrições do navegador. Ela repassa o conteúdo e <strong>não armazena</strong> o que você assiste nem o endereço da sua lista.</p>
         </>

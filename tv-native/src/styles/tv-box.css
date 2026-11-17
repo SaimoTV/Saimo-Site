@@ -213,9 +213,10 @@ html.tizen.video-ativo, html.tizen.video-ativo body { background: transparent !i
 .tv-doacao-vantagem span { font-size: 21px; color: #9aa4b8; }
 .tv-doacao-qr-cartao { width: 520px; flex: none; padding: 40px; border-radius: 32px; background: #fff; color: #0b0f1a; text-align: center; box-shadow: 0 30px 80px rgba(0,0,0,.45), 0 0 0 6px rgba(79,227,208,.35); }
 .tv-doacao-qr-titulo { font-size: 30px; font-weight: 800; margin-bottom: 20px; }
-.tv-doacao-qr { width: 420px; height: 420px; display: block; margin: 0 auto; image-rendering: pixelated; }
+.tv-doacao-qr { width: 380px; height: 380px; display: block; margin: 0 auto; image-rendering: pixelated; }
 .tv-doacao-link { margin-top: 20px; font-size: 26px; font-weight: 700; color: #0e7490; word-break: break-all; }
-.tv-doacao-pix { margin-top: 10px; font-size: 20px; color: #5b6475; }
+.tv-doacao-pix { margin-top: 10px; font-size: 22px; font-weight: 700; color: #15803d; }
+.tv-doacao-explica { margin-top: 14px; font-size: 20px; line-height: 1.35; color: #5b6475; }
 
 /* ===== Filtros do On Demand ===== */
 .tv-filtros { display: flex; flex-wrap: wrap; gap: 12px; padding: 0 70px 26px; }
