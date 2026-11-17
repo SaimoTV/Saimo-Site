@@ -61,7 +61,7 @@ body, html {
 .tv-rail-items { display: flex; gap: 32px; overflow: hidden; padding: 0; }
 
 .tv-card {
-  flex: 0 0 272px; width: 272px; padding: 8px; border-radius: 26px; background: none;
+  flex: 0 0 272px; width: 172px; padding: 8px; border-radius: 26px; background: none;
   border: 4px solid transparent;
 }
 .tv-card-poster-wrap { position: relative; width: 248px; height: 380px; border-radius: 16px; overflow: hidden; background: rgba(255,255,255,.08); }
@@ -69,15 +69,15 @@ body, html {
 .tv-card > .tv-card-title { font-size: 24px; font-weight: 500; line-height: 30px; color: #fff; margin: 10px 6px 0; max-height: 60px; overflow: hidden; white-space: normal; display: block; }
 .tv-card-subtitle { font-size: 24px; color: #A8B4C0; margin: 2px 6px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.tv-card.wide { flex: 0 0 528px; width: 528px; }
-.tv-card-wide-inner { display: flex; align-items: center; justify-content: center; width: 504px; height: 280px; padding: 30px; border-radius: 22px; background: rgba(255,255,255,.08); }
-.tv-card-wide-inner .tv-card-img { width: 264px; height: 220px; object-fit: contain; border-radius: 0; }
+.tv-card.wide { flex: 0 0 428px; width: 428px; }
+.tv-card-wide-inner { display: flex; align-items: center; justify-content: center; width: 404px; height: 180px; padding: 30px; border-radius: 22px; background: rgba(255,255,255,.08); }
+.tv-card-wide-inner .tv-card-img { width: 164px; height: 120px; object-fit: contain; border-radius: 0; }
 .tv-card.wide > .tv-card-title { font-size: 30px; line-height: 36px; margin-top: 14px; white-space: nowrap; }
 .tv-card-progress-bar { height: 8px; background: #334155; }
 .tv-card-progress-fill { height: 8px; background: #4FE3D0; }
 
 /* Botões e fichas */
-.tv-btn { height: 84px; padding: 0 44px; border-radius: 16px; font-size: 30px; font-weight: 500; background: rgba(255,255,255,.14); color: #fff; border: 0 !important; display: inline-flex; align-items: center; }
+.tv-btn { height: 60px; padding: 0 44px; border-radius: 16px; font-size: 30px; font-weight: 500; background: rgba(255,255,255,.14); color: #fff; border: 0 !important; display: inline-flex; align-items: center; }
 .tv-btn.primary { background: rgba(255,255,255,.14); color: #fff; }
 .tv-btn.nav-focused { background: #fff !important; color: #0b0e14 !important; }
 .tv-ficha-screen { padding-top: 116px; }
