@@ -5,7 +5,7 @@
 </p>
 
 Player para as listas e os links que você mesmo adiciona (M3U ou servidor + usuário + senha), direto no navegador:
-**<https://saimo-tv.pages.dev>**. Versão atual: **2.5.1**.
+**<https://saimo-tv.com.br>** (o endereço antigo saimo-tv.pages.dev leva para lá com os dados do aparelho). Versão atual: **3.1.3**.
 
 O site não embute lista nenhuma (nem de canais, nem de filmes, nem tabelas do guia)
 nem endereço de lista. Na primeira visita a tela mostra "Bem-vindo ao Saimo!" com
