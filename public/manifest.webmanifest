@@ -1,7 +1,7 @@
 {
   "name": "Saimo TV",
   "short_name": "Saimo TV",
-  "description": "Canais ao vivo, filmes e séries.",
+  "description": "Player para as listas e os links que você adiciona.",
   "start_url": "/home",
   "scope": "/",
   "display": "standalone",

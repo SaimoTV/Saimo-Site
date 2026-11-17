@@ -4,7 +4,7 @@
   Saimo TV: <a href="https://github.com/SaimoTV/SaimoTV-Android">TV Box</a> · <a href="https://github.com/SaimoTV/Saimo-Cell-V2">Celular</a> · <a href="https://github.com/SaimoTV/SaimoWin">Windows</a> · <a href="https://github.com/SaimoTV/SaimoPlayer">Mac</a> · <a href="https://github.com/SaimoTV/SaimoCatalogos">Catálogo</a> · <b>Site</b> · <a href="https://github.com/SaimoTV/saimo-downloads">Downloads</a>
 </p>
 
-Canais ao vivo, guia de programação, filmes e séries direto no navegador:
+Player para as listas e os links que você mesmo adiciona (M3U ou servidor + usuário + senha), direto no navegador:
 **<https://saimo-tv.pages.dev>**. Versão atual: **2.5.1**.
 
 O site não embute lista nenhuma (nem de canais, nem de filmes, nem tabelas do guia)
@@ -35,15 +35,15 @@ lidos na hora; o [`versao.json`](https://github.com/SaimoTV/saimo-downloads/rele
 
 ## O que tem
 
-- **TV ao vivo com Zero Delay (Normal e Ultra):** Sincronização em tempo real na borda da transmissão sem congelamentos, suporte nativo a HLS (`hls.js`), MPEG-TS (`mpegts.js`) e DASH, com chaveamento automático de fontes reservas se uma oscilar.
+- **Ao vivo com Zero Delay (Normal e Ultra), para os itens ao vivo da sua lista:** Sincronização em tempo real na borda da transmissão sem congelamentos, suporte nativo a HLS (`hls.js`), MPEG-TS (`mpegts.js`) e DASH, com chaveamento automático de fontes reservas se uma oscilar.
 - **Áudio Inteligente:** Normalização dinâmica de volume para equalizar canais baixos e altos sem estourar o som.
 - **Saimo Connect:** Controle do player via celular pela rede local.
 - **Guia de programação (EPG):** Grade completa com linha do "agora", sinopse do programa e botão para assistir (tecla **G** abre e fecha).
-- **Filmes e séries On Demand:** Catálogo com capas, sinopse, temporadas, episódios e favoritos.
+- **On Demand:** Os filmes e séries da lista que você adicionou, organizados com capas, sinopse, temporadas, episódios e favoritos.
 - **Troca de fonte nas TVs Samsung/LG** (2.7.1): o vigia do Ao vivo mede o andamento do fluxo novo a partir do primeiro tempo que ele informa (o player do Tizen guardava o tempo do canal anterior e trocava de fonte com o canal tocando); erro do `<video>` com o hls.js no comando é ignorado (ele mesmo se recupera); fonte que já tocou e cai é reaberta uma vez antes de trocar.
 - **Filtros do On Demand** (site e TVs Samsung/LG): ano, idade (classificação indicativa), nota mínima e ordem (mais populares, mais bem avaliados, mais novos, A–Z) junto do gênero, sobre a seção inteira. No site, o botão "Filtrar" abre a grade com os filtros; na TV, a barra de filtros abre um seletor navegável pelo controle. Dados do `detalhes.txt` do catálogo.
 - **Continuidade inteligente:** O episódio seguinte lembra a fonte preferida anterior (mesmo servidor, mesma faixa de áudio dublado/legendado).
-- **Busca universal:** Pesquisa rápida em todo o acervo (filmes, séries, animes e novelas).
+- **Busca universal:** Pesquisa rápida em tudo o que está nas suas listas (filmes, séries, animes e novelas).
 - **Pular abertura e créditos:** Integração automática com tempos do TheIntroDB.
 - **Legendas sincronizadas:** Suporte a legendas integradas e OpenSubtitles com ajuste de delay em tempo real.
 - **Chromecast:** Transmissão direta para aparelhos Google TV e Chromecast na rede.

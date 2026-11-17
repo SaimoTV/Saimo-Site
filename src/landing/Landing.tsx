@@ -194,16 +194,16 @@ function Heroi() {
       <div className="heroi-grade" aria-hidden="true" />
       <div className="heroi-conteudo">
         <div className="heroi-texto">
-          <span className="eyebrow rv"><i /> Ecossistema de streaming pessoal</span>
+          <span className="eyebrow rv"><i /> Player para as suas listas</span>
           <h1 className="rv d1">
             Sua lista.<br />
             <span className="grad">Suas telas.</span><br />
             Um só lugar.
           </h1>
           <p className="rv d2">
-            O Saimo é um <strong>player</strong>, não um catálogo. Você traz a sua lista de IPTV
-            (M3U, usuário e senha) e ele vira uma TV completa: ao vivo com guia, <strong>dois canais na mesma tela</strong>,
-            o <strong>som da TV no fone do celular</strong>, filmes e séries com pular abertura e legendas, rádios e os
+            O Saimo é um <strong>player</strong>, não um catálogo. Você traz a sua lista
+            (M3U, usuário e senha) e ele a organiza e reproduz: ao vivo com guia, <strong>dois canais na mesma tela</strong>,
+            o <strong>som da TV no fone do celular</strong>, pular abertura e legendas nos vídeos da sua lista, rádios e os
             jogos do dia, em 10 tipos de tela.
           </p>
           <div className="heroi-botoes rv d3">
@@ -264,8 +264,8 @@ function Manifesto() {
           o que é seu, do seu jeito.
         </h2>
         <p className="lead rv d2">
-          Muita gente já tem acesso a canais, filmes e séries por assinaturas, provedores ou listas próprias, e acaba
-          espalhada em um monte de aplicativos diferentes, cada um com um jeito de usar. O Saimo reúne tudo numa
+          Muita gente já tem as próprias listas e links, de assinaturas, provedores ou arquivos seus, e acaba
+          espalhada em um monte de aplicativos diferentes, cada um com um jeito de usar. O Saimo abre essas listas numa
           experiência só, bonita e igual em todas as telas. <strong>Nós não vendemos, não hospedamos e não distribuímos
           nenhum conteúdo.</strong> O aplicativo vem vazio: quem coloca a lista é você.
         </p>
@@ -361,7 +361,7 @@ function Demo() {
                   <strong>{e}</strong>
                   <p>{[
                     'Cole o link da sua lista M3U. Se o seu provedor usa usuário e senha, é só preencher também.',
-                    'Canais, filmes, séries e rádios aparecem separados em seções, com capa, busca e favoritos.',
+                    'Os itens da sua lista aparecem separados em seções (ao vivo, vídeos, rádios), com capa, busca e favoritos.',
                     'Toque ou aperte OK. O vídeo abre na hora, com guia, legenda e áudio à sua escolha.',
                   ][i]}</p>
                 </div>
@@ -743,7 +743,7 @@ const APARELHOS: Aparelho[] = [
   { id: 'tvbox', nome: 'TV Box e Android TV', icone: 'box', detalhe: 'Android TV, Fire TV Stick, Mi Box, Chromecast com Google TV e TV Box Android. Feito para o controle remoto, com multi tela, busca por voz e leve até em aparelho de 1 GB.', estado: 'disponivel', para: '/app' },
   { id: 'samsung', nome: 'Samsung e LG', icone: 'tv', detalhe: 'Smart TVs Samsung (Tizen) e LG (webOS), com navegação pelo controle, multi tela e a mesma tela inicial.', estado: 'disponivel', para: '/app' },
   { id: 'roku', nome: 'Roku', icone: 'tv', detalhe: 'Canal nativo para TVs e aparelhos Roku, leve e com suporte total ao controle.', estado: 'disponivel', para: '/app' },
-  { id: 'cell', nome: 'Android (celular e tablet)', icone: 'phone', detalhe: 'No bolso: ao vivo, filmes, séries, downloads para ver sem internet, janelinha, Chromecast, e o controle remoto e o fone da sua TV.', estado: 'disponivel', para: '/app' },
+  { id: 'cell', nome: 'Android (celular e tablet)', icone: 'phone', detalhe: 'No bolso: as suas listas, downloads para ver sem internet, janelinha, Chromecast, e o controle remoto e o fone da sua TV.', estado: 'disponivel', para: '/app' },
   { id: 'mac', nome: 'Mac', icone: 'laptop', detalhe: 'App nativo para Mac com chip Apple: multi tela, picture-in-picture, AirPlay, Chromecast, atalhos de teclado e o som no celular.', estado: 'disponivel', para: '/app' },
   { id: 'win', nome: 'Windows', icone: 'laptop', detalhe: 'App de verdade para Windows 10 e 11, não é o site numa janela: o vídeo roda no próprio PC, com multi tela, janelinha e o som no celular.', estado: 'disponivel', para: '/app' },
   { id: 'linux', nome: 'Linux', icone: 'laptop', detalhe: 'O mesmo app do Windows, com a mesma tela: AppImage para qualquer distribuição recente ou .deb para Ubuntu, Debian e Mint, no PC comum e no ARM.', estado: 'disponivel', para: '/app' },
@@ -1000,12 +1000,12 @@ export function Landing() {
   useReveal(raiz);
   useEffect(() => {
     const tituloAnterior = document.title;
-    document.title = `${SITE.nomeCompleto} — seu IPTV, suas telas, um só lugar`;
+    document.title = `${SITE.nomeCompleto} — o player das suas listas, em todas as telas`;
     const meta = document.querySelector('meta[name="description"]');
     const anterior = meta?.getAttribute('content') ?? null;
-    meta?.setAttribute('content', 'O Saimo TV é um player e ecossistema para a sua lista de IPTV (M3U ou usuário e senha): ao vivo com guia, multi tela, som da TV no celular, filmes e séries com pular abertura e legendas, rádios e jogos do dia, em TV Box, Samsung, LG, Roku, celular, Mac, Windows, Linux e navegador. Sem anúncios, sem cadastro e sem conteúdo embutido.');
+    meta?.setAttribute('content', 'O Saimo TV é um player para as listas e os links que você mesmo adiciona (M3U ou usuário e senha): guia de programação, multi tela, som da TV no celular, pular abertura e legendas, rádios e jogos do dia, em TV Box, Samsung, LG, Roku, celular, Mac, Windows, Linux e navegador. Sem anúncios, sem cadastro e sem conteúdo embutido.');
     return () => {
-      document.title = tituloAnterior.includes('um só lugar') ? SITE.nomeCompleto : tituloAnterior;
+      document.title = tituloAnterior.includes('em todas as telas') ? SITE.nomeCompleto : tituloAnterior;
       if (anterior !== null) meta?.setAttribute('content', anterior);
     };
   }, []);

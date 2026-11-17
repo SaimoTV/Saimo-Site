@@ -66,7 +66,7 @@ export function Rodape() {
         <div>
           <Marca />
           <p className="rodape-texto">
-            Ecossistema de streaming pessoal para a sua lista de IPTV. O Saimo é só o reprodutor:
+            Player para as listas e os links que você adiciona. O Saimo é só o reprodutor:
             não fornece, não hospeda e não distribui canais, filmes ou séries.
           </p>
           <p className="rodape-selo">Feito no Brasil · v{SITE.versaoDoTexto} dos textos legais</p>
