@@ -16,7 +16,8 @@ import { useCanais } from './hooks/useCanais';
 import { useListas } from './services/listas';
 import { useTemAddons } from './services/addons';
 import { useTemMinhasListas } from './hooks/useTemMinhasListas';
-import { RaizDoSite } from './landing/RaizDoSite';
+import { RaizDoSite, raizAbreOApp } from './landing/RaizDoSite';
+import { EscolhaPerfil } from './perfis/EscolhaPerfil';
 import { Landing } from './landing/Landing';
 import { Privacidade, Termos, Conteudo, Exclusao, Suporte } from './landing/Legal';
 import Formato from './landing/Formato';
@@ -625,6 +626,12 @@ function MoviesPage() {
   );
 }
 
+const TELAS_DO_APP = ['/home', '/tv', '/movies', '/busca', '/eventos', '/favoritos', '/radios', '/ajustes'];
+function ehTelaDoApp(caminho: string): boolean {
+  if (caminho === '/') return raizAbreOApp();
+  return TELAS_DO_APP.some((t) => caminho === t || caminho.startsWith(`${t}/`));
+}
+
 // Layout principal que gerencia scroll
 function AppLayout() {
   const location = useLocation();
@@ -686,6 +693,8 @@ function AppLayout() {
         } />
       )}
     </Routes>
+    {/* Perfis: só nas telas do app, nunca na apresentação nem nas páginas legais. */}
+    {ehTelaDoApp(location.pathname) && <EscolhaPerfil />}
     {/* A página /apoie é só o conteúdo: sem a barra do celular e sem o botão flutuante. */}
     {location.pathname !== '/apoie' && <NavegacaoMobile />}
     {location.pathname !== '/apoie' && <DoacaoModal />}

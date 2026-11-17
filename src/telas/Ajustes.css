@@ -34,3 +34,7 @@
 .ajustes-atalhos kbd {
   background: rgba(255, 255, 255, 0.12); border-radius: 6px; padding: 2px 8px; font-family: inherit; font-size: 0.78rem;
 }
+
+.ajustes-perfil { display: flex; align-items: center; gap: 16px; margin: 14px 0 16px; }
+.ajustes-perfil strong { display: block; font-size: 18px; }
+.ajustes-perfil span { display: block; margin-top: 3px; color: rgba(255, 255, 255, 0.6); font-size: 14px; }

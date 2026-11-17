@@ -1,3 +1,5 @@
+// Antes de tudo: os dados de perfil (favoritos, progresso) leem do perfil ativo.
+import './perfis/instalar'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'

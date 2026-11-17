@@ -2,7 +2,7 @@
  * Ajustes: o que abrir ao iniciar, importar/exportar canais,
  * atalhos, limpezas e links.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { BarraTopo } from '../components/BarraTopo';
 import { FormListas } from '../components/FormListas';
@@ -27,6 +27,8 @@ import { IconeMaterial } from '../components/IconeMaterial';
 import { MinhasListas } from './MinhasListas';
 import { ChuvaApoiadores } from '../components/ChuvaApoiadores';
 import { abrirModalDoacao } from '../services/doacaoService';
+import { abrirEscolha, assinar as assinarPerfis, ativo as perfilAtivo, definirPerguntar, perfis as listaPerfis, perguntarAoAbrir, versaoAtual as versaoPerfis } from '../perfis/perfis';
+import { Avatar } from '../perfis/EscolhaPerfil';
 
 export type AoIniciar = 'inicio' | 'ultimo';
 export const CHAVE_AO_INICIAR = 'saimo-ao-iniciar';
@@ -56,6 +58,8 @@ export function Ajustes() {
   const [audioInteligente, setAudioInteligente] = useLocalStorage<boolean>(CHAVE_AUDIO_INTELIGENTE, true);
   const [zeroDelay, setZeroDelay] = useLocalStorage<ModoZeroDelay>(CHAVE_ZERO_DELAY, 'off');
   const [aviso, setAviso] = useState('');
+  useSyncExternalStore(assinarPerfis, versaoPerfis);
+  const perfil = perfilAtivo();
   const [personalizados, setPersonalizados] = useState<Channel[]>(canaisLocais);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -169,6 +173,30 @@ export function Ajustes() {
 
         <AddonsModal aberta={addonsAberto} aoFechar={() => setAddonsAberto(false)} />
 
+        <section className="ajustes-bloco" id="perfis">
+          <h2>Perfis</h2>
+          <p>
+            Cada perfil tem os seus favoritos, o que está assistindo e os recentes. As listas, as fontes e estes
+            ajustes valem para todos. Até 10 perfis.
+          </p>
+          <div className="ajustes-perfil">
+            <Avatar perfil={perfil} tamanho={56} />
+            <div>
+              <strong>{perfil.nome}</strong>
+              <span>{listaPerfis().length === 1 ? 'Único perfil' : `Perfil em uso, de ${listaPerfis().length}`}</span>
+            </div>
+          </div>
+          <div className="ajustes-botoes">
+            <button className="ajustes-botao" onClick={() => abrirEscolha()}>Trocar de perfil</button>
+            <button className="ajustes-botao" onClick={() => abrirEscolha('gerenciar')}>Gerenciar perfis</button>
+          </div>
+          <p>Ao abrir, com mais de um perfil:</p>
+          <div className="pilulas">
+            <button className={perguntarAoAbrir() ? 'on' : ''} onClick={() => definirPerguntar(true)}>Perguntar quem está assistindo</button>
+            <button className={!perguntarAoAbrir() ? 'on' : ''} onClick={() => definirPerguntar(false)}>Entrar no último perfil</button>
+          </div>
+        </section>
+
         <section className="ajustes-bloco">
           <h2>Ao iniciar</h2>
           <p>O que o site abre quando você entra.</p>
@@ -254,7 +282,7 @@ export function Ajustes() {
         </section>
 
         <section className="ajustes-bloco">
-          <h2>Dados deste navegador</h2>
+          <h2>Dados deste perfil</h2>
           <div className="ajustes-botoes">
             {LIMPAR.map((l) => (
               <button key={l.rotulo} className="ajustes-botao" onClick={() => limparDados(l.chaves, l.aviso)}>{l.rotulo}</button>

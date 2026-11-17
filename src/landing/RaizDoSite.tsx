@@ -3,7 +3,7 @@ import { ehAppDaTv, ehTv } from '../plataforma/tv';
 import { Landing } from './Landing';
 
 /** Aberto como app instalado (PWA, tela cheia própria)? */
-function comoAppInstalado(): boolean {
+export function comoAppInstalado(): boolean {
   try {
     return window.matchMedia?.('(display-mode: standalone)').matches
       || (navigator as Navigator & { standalone?: boolean }).standalone === true;
@@ -16,7 +16,12 @@ function comoAppInstalado(): boolean {
  * instalado (PWA) abrem direto no app, porque lá não há apresentação a ver.
  * A apresentação também responde em /sobre (links antigos).
  */
+/** A raiz abre o app (e não a apresentação)? */
+export function raizAbreOApp(): boolean {
+  return ehTv() || ehAppDaTv() || comoAppInstalado() || !!import.meta.env.VITE_TV;
+}
+
 export function RaizDoSite({ app }: { app: ReactNode }) {
-  if (ehTv() || ehAppDaTv() || comoAppInstalado() || import.meta.env.VITE_TV) return <>{app}</>;
+  if (raizAbreOApp()) return <>{app}</>;
   return <Landing />;
 }
