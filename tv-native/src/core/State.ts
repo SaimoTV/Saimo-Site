@@ -2,7 +2,7 @@
  * Gerenciador de Estado Reativo Global do Saimo TV.
  */
 
-import { Channel, VODItem } from './Api';
+import { Channel, VODItem, Novelinha } from './Api';
 import { Storage } from './Storage';
 
 export type ScreenType =
@@ -19,7 +19,8 @@ export type ScreenType =
   | 'radios'
   | 'search'
   | 'settings'
-  | 'doacao';
+  | 'doacao'
+  | 'novelinha';
 
 export type MenuTab =
   | 'buscar'
@@ -37,6 +38,8 @@ export class State {
   static currentScreen: ScreenType = 'home';
   static previousScreen: ScreenType = 'home';
   static activeTab: MenuTab = 'inicio';
+  /** A novelinha aberta no player vertical. */
+  static currentNovelinha: Novelinha | null = null;
   private static iniciado = false;
 
   static channels: Channel[] = [];
@@ -92,7 +95,7 @@ export class State {
     // Sincroniza a aba correspondente no menu
     if (screen === 'home') this.activeTab = 'inicio';
     else if (screen === 'live' || screen === 'guide') this.activeTab = 'ao_vivo';
-    else if (screen === 'ondemand') this.activeTab = 'on_demand';
+    else if (screen === 'ondemand' || screen === 'novelinha') this.activeTab = 'on_demand';
     else if (screen === 'events') this.activeTab = 'eventos';
     else if (screen === 'radios') this.activeTab = 'radios';
     else if (screen === 'search') this.activeTab = 'buscar';

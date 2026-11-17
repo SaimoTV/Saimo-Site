@@ -5,14 +5,15 @@
  */
 
 import { State } from '../core/State';
-import { Api, VODItem, DestaqueFila } from '../core/Api';
+import { Api, VODItem, DestaqueFila, Novelinha } from '../core/Api';
+import { paradaDaNovelinha } from './NovelinhaScreen';
 import { HeroBanner } from '../components/HeroBanner';
 import { Rail, CardModel } from '../components/Rail';
 import { SpatialNav } from '../core/SpatialNav';
 import { Escolha, OpcaoEscolha } from '../components/Escolha';
 import { icone } from '../components/Icones';
 
-export type CategoryFilter = 'todos' | 'filmes' | 'series' | 'animes' | 'doramas' | 'novelas' | 'kids';
+export type CategoryFilter = 'todos' | 'filmes' | 'series' | 'animes' | 'doramas' | 'novelas' | 'kids' | 'novelinhas';
 
 /** Categoria do categorias.txt de cada aba que vem dele. */
 const CATEGORIA_DA_ABA: Partial<Record<CategoryFilter, string>> = {
@@ -270,6 +271,7 @@ export class OnDemandScreen {
       { id: 'animes', label: 'Animes', color: '#FFB454' },
       { id: 'doramas', label: 'Doramas', color: '#FF7EB6' },
       { id: 'novelas', label: 'Novelas', color: '#C792EA' },
+      { id: 'novelinhas', label: 'Novelinhas', color: '#FF7EB6' },
       { id: 'kids', label: 'Kids', color: '#7EE787' },
     ];
 
@@ -341,6 +343,11 @@ export class OnDemandScreen {
       this.railsContainer.innerHTML =
         '<div class="tv-filtro-aviso">Nenhum catálogo disponível. Adicione uma lista de filmes ou configure Addons Stremio em Ajustes.</div>';
       this.dynamicRails = [];
+      return;
+    }
+
+    if (this.currentFilter === 'novelinhas') {
+      this.mostrarNovelinhas();
       return;
     }
 
@@ -461,6 +468,54 @@ export class OnDemandScreen {
       if (f.itens.length < 4) continue;
       const rail = new Rail(f.titulo, false);
       rail.setCards(this.mapCards(f.itens));
+      this.railsContainer.appendChild(rail.getElement());
+      this.dynamicRails.push(rail);
+    }
+  }
+
+  /** Novelinhas: continuar, dubladas, uma fileira por tema e legendadas. */
+  private async mostrarNovelinhas() {
+    const geracao = this.geracao;
+    this.railsContainer.innerHTML = '<div class="tv-filtro-aviso">Carregando novelinhas…</div>';
+    this.dynamicRails = [];
+    const { lista } = await Api.fetchNovelinhas();
+    if (geracao !== this.geracao || this.currentFilter !== 'novelinhas') return;
+    this.railsContainer.innerHTML = '';
+    if (!lista.length) {
+      this.railsContainer.innerHTML = '<div class="tv-filtro-aviso">Nenhuma novelinha disponível agora.</div>';
+      return;
+    }
+    const fileiras: { titulo: string; itens: Novelinha[] }[] = [];
+    const continuar = lista.filter((n) => paradaDaNovelinha(n.id) > 0).slice(0, 20);
+    if (continuar.length) fileiras.push({ titulo: 'Continue assistindo', itens: continuar });
+    fileiras.push({ titulo: 'Dubladas', itens: lista.filter((n) => n.dublada).slice(0, 40) });
+    const conta: Record<string, number> = {};
+    for (const n of lista) for (const g of n.generos) conta[g] = (conta[g] || 0) + 1;
+    Object.keys(conta).filter((g) => conta[g] >= 6).sort((a, b) => conta[b] - conta[a]).slice(0, 10)
+      .forEach((g) => fileiras.push({ titulo: g, itens: lista.filter((n) => n.generos.indexOf(g) >= 0).slice(0, 40) }));
+    fileiras.push({ titulo: 'Legendadas', itens: lista.filter((n) => !n.dublada).slice(0, 60) });
+    for (const f of fileiras) {
+      if (!f.itens.length) continue;
+      const rail = new Rail(f.titulo, false);
+      rail.setCards(f.itens.map((n) => {
+        const parou = paradaDaNovelinha(n.id);
+        const sub = parou ? `Ep. ${parou} de ${n.episodios}` : `${n.episodios} episódios`;
+        return {
+          id: `novelinha_${n.id}`,
+          title: n.titulo,
+          subtitle: sub,
+          image: n.capa,
+          badge: n.dublada ? 'DUB' : 'LEG',
+          badgeColor: n.dublada ? '#7EE787' : '#FFB454',
+          onClick: () => {
+            State.currentNovelinha = n;
+            State.setScreen('novelinha');
+          },
+          onFocus: () => {
+            this.heroBanner.setDefault(n.titulo, `${sub} · ${n.dublada ? 'Dublado' : 'Legendado'}`, n.sinopse);
+          },
+        } as CardModel;
+      }));
       this.railsContainer.appendChild(rail.getElement());
       this.dynamicRails.push(rail);
     }

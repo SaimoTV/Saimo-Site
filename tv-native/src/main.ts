@@ -29,6 +29,7 @@ import { FavoritesScreen } from './screens/FavoritesScreen';
 import { MinhasListasScreen } from './screens/MinhasListasScreen';
 import { AddonsScreen } from './screens/AddonsScreen';
 import { DoacaoScreen } from './screens/DoacaoScreen';
+import { NovelinhaScreen } from './screens/NovelinhaScreen';
 
 class SaimoTVApp {
   private videoEl: HTMLVideoElement;
@@ -75,6 +76,7 @@ class SaimoTVApp {
     this.screens.set('minhas', new MinhasListasScreen());
     this.screens.set('addons', new AddonsScreen());
     this.screens.set('doacao', new DoacaoScreen());
+    this.screens.set('novelinha', new NovelinhaScreen());
 
     Addons.initBridge();
 
@@ -121,7 +123,7 @@ class SaimoTVApp {
 
     // Mostra/esconde o menu do topo
     const menuEl = this.menuGlobal.getElement();
-    menuEl.style.display = nextScreen === 'player' ? 'none' : 'flex';
+    menuEl.style.display = nextScreen === 'player' || nextScreen === 'novelinha' ? 'none' : 'flex';
     // Na Samsung o vídeo fica atrás da página: o fundo tem de sumir.
     const comVideo = nextScreen === 'live' || nextScreen === 'player';
     document.documentElement.classList.toggle('video-ativo', comVideo);
@@ -144,6 +146,8 @@ class SaimoTVApp {
         State.setScreen(State.previousScreen === 'player' ? 'home' : State.previousScreen);
       } else if (current === 'player') {
         State.setScreen('ficha');
+      } else if (current === 'novelinha') {
+        State.setScreen('ondemand');
       } else if (current === 'minhas' || current === 'addons') {
         State.setScreen('settings');
       } else if (current === 'live') {

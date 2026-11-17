@@ -44,6 +44,17 @@ export interface Detalhe {
   popularidade: number;
 }
 
+export interface Novelinha {
+  id: string;
+  titulo: string;
+  pasta: string;
+  episodios: number;
+  dublada: boolean;
+  capa: string;
+  generos: string[];
+  sinopse: string;
+}
+
 export interface VODItem {
   id: string;
   title: string;
@@ -534,6 +545,42 @@ export class Api {
       .catch(() => new Map<string, Detalhe>())
       .finally(() => { this.detalhesPedido = null; });
     return this.detalhesPedido;
+  }
+
+  // ===== NOVELINHAS (minisséries em pé da RedeFlix) =====
+  // novelinhas.txt: base e, por novelinha, id, título, pasta, episódios,
+  // áudio, capa, gêneros e sinopse. Episódio N = base + pasta + /episode-NNN.mp4.
+  private static novelinhasCache: { base: string; lista: Novelinha[] } | null = null;
+
+  static async fetchNovelinhas(): Promise<{ base: string; lista: Novelinha[] }> {
+    if (this.novelinhasCache) return this.novelinhasCache;
+    if (!this.enderecoSaimo('filmes')) return { base: '', lista: [] };
+    try {
+      const r = await fetch(`${this.getBaseUrl('filmes')}novelinhas.txt`, { cache: 'default' });
+      const texto = r.ok ? await r.text() : '';
+      let base = '';
+      const lista: Novelinha[] = [];
+      for (const linha of texto.split('\n')) {
+        if (!linha || linha[0] === '#') continue;
+        if (linha.indexOf('base:') === 0) { base = linha.slice(5).trim(); continue; }
+        const c = linha.split('\t');
+        const episodios = parseInt(c[3], 10) || 0;
+        if (c.length < 6 || !episodios) continue;
+        lista.push({
+          id: c[0], titulo: c[1], pasta: c[2], episodios, dublada: c[4] === 'dub', capa: c[5],
+          generos: (c[6] || '').split(',').map((g) => g.trim()).filter(Boolean), sinopse: c[7] || '',
+        });
+      }
+      if (base && lista.length) this.novelinhasCache = { base, lista };
+      return { base, lista };
+    } catch {
+      return { base: '', lista: [] };
+    }
+  }
+
+  static urlNovelinha(n: Novelinha, ep: number): string {
+    const num = String(ep);
+    return `${this.novelinhasCache?.base || ''}${n.pasta}/episode-${'000'.slice(num.length) + num}.mp4`;
   }
 
   // ===== CATEGORIAS (anime, dorama, novela, kids) =====
