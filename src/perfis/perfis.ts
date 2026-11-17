@@ -34,6 +34,9 @@ export const AVATARES = [
 const DO_PERFIL = new Set([
   'tv-favorites', 'tv-last-channel', 'saimo-vod-favoritos', 'saimo-continuar', 'saimo-buscas-recentes',
   'saimo-radios-recentes', 'saimo-novelinhas-progresso', 'current-movie-id',
+  // App da Samsung e da LG (tv-native), que usa este mesmo módulo.
+  'saimo_tv_fav_channels', 'saimo_tv_fav_vod', 'saimo_tv_vod_progress', 'saimo_tv_ultimo_canal',
+  'saimo_novelinhas_parada',
 ]);
 const PREFIXOS_DO_PERFIL = ['movie-progress-'];
 
@@ -108,7 +111,8 @@ export function ativo(): Perfil {
 function novoId(): string {
   const letras = 'abcdefghijklmnopqrstuvwxyz0123456789';
   const bytes = new Uint8Array(9);
-  crypto.getRandomValues(bytes);
+  try { crypto.getRandomValues(bytes); }
+  catch { for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256); }
   return 'p' + Array.from(bytes, (b) => letras[b % letras.length]).join('');
 }
 
@@ -182,12 +186,17 @@ export function entrar(id: string): void {
   marcarEscolhido();
   if (id === idAtivo()) { avisar(); return; }
   cru.set(CHAVE_ATIVO, id);
+  if (location.protocol === 'file:' || location.protocol === 'app:') { location.reload(); return; }
   const destino = location.pathname.startsWith('/tv') || location.pathname === '/' ? '/home' : location.pathname;
   location.replace(destino);
 }
 
+/** Onde ficam as imagens: o site serve os SVG em /avatares; o app da TV leva PNG em img/avatares. */
+let caminhoAvatar = (id: string) => `/avatares/${id}.svg`;
+export function definirCaminhoAvatar(f: (id: string) => string): void { caminhoAvatar = f; }
+
 export function avatarUrl(avatar: string): string {
-  return (AVATARES as readonly string[]).includes(avatar) ? `/avatares/${avatar}.svg` : '';
+  return (AVATARES as readonly string[]).includes(avatar) ? caminhoAvatar(avatar) : '';
 }
 
 /* ───────────── avisos para a interface ───────────── */

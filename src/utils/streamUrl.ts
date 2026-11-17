@@ -37,6 +37,8 @@ export function needsProxy(source: ChannelSource | { url: string }): boolean {
   // Na TV o app é instalado: não existe conteúdo misto nem CORS de página. O vídeo
   // abre direto, inclusive http, e o proxy só entra como última tentativa (buildAttempts).
   if (ehAppDaTv()) return false;
+  // Streams do provedor cloudfront-net.lat (EmbedTV) têm CORS (*) liberado e abrem direto sem proxy.
+  if (source.url.includes('cloudfront-net.lat')) return false;
   // Masters `.txt` costumam vir como text/plain e sem CORS. Começar pelo proxy evita uma tentativa direta que o browser
   // obrigatoriamente bloquearia e garante que os filhos também sejam reescritos.
   return source.url.startsWith('http://') ||
