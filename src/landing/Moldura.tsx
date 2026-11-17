@@ -40,6 +40,7 @@ export function Cabecalho({ ancoras = false }: { ancoras?: boolean }) {
               <a href="#sobre" onClick={fechar}>Sobre</a>
               <a href="#multitela" onClick={fechar}>Multi tela</a>
               <a href="#tudo" onClick={fechar}>Recursos</a>
+              <a href="#cada-app" onClick={fechar}>Cada app</a>
               <a href="#connect" onClick={fechar}>Saimo Connect</a>
               <a href="#aparelhos" onClick={fechar}>Aparelhos</a>
             </>

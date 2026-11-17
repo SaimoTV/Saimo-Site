@@ -669,6 +669,9 @@ const TUDO: { g: Grupo; ic: string; t: string; d: string }[] = [
   { g: 'aovivo', ic: 'bola', t: 'Jogos do dia', d: 'Agenda com escudos e placar ao vivo, ligada ao canal da sua lista que passa o jogo.' },
   { g: 'aovivo', ic: 'radio', t: 'Rádios', d: 'Por estilo, com logo e equalizador, tocando com a tela apagada.' },
   { g: 'aovivo', ic: 'lista', t: 'Seções e favoritos', d: 'TV Aberta, Esportes, Notícias, Infantil e os seus favoritos, com número fixo por canal.' },
+  { g: 'aovivo', ic: 'tv', t: 'Abre no último canal', d: 'Ligou a TV, o canal de antes já está tocando. LAST volta ao anterior.' },
+  { g: 'aovivo', ic: 'play', t: 'Ao vivo não pausa por engano', d: 'O PLAY/PAUSE do controle e do assistente de voz não congelam o canal no ar.' },
+  { g: 'aovivo', ic: 'controle', t: 'Atalhos de controle remoto', d: 'CH+ e CH− pulam de seção na lista, e quem não tem botão de menu segura o OK.' },
   { g: 'acervo', ic: 'film', t: 'Ficha completa', d: 'Sinopse, elenco, nota, classificação, temporadas e "Mais como este".' },
   { g: 'acervo', ic: 'busca', t: 'Filtros dos grandes serviços', d: 'Gênero, ano, idade, nota mínima e ordem: mais novos, mais populares, de A a Z.' },
   { g: 'acervo', ic: 'play', t: 'Continue de onde parou', d: 'Em qualquer aparelho seu, e com um × para tirar da fileira o que não quer mais.' },
@@ -679,12 +682,17 @@ const TUDO: { g: Grupo; ic: string; t: string; d: string }[] = [
   { g: 'acervo', ic: 'voz', t: 'Busca por voz', d: 'Canais, filmes, séries e atores numa busca só, que entende erro de digitação.' },
   { g: 'acervo', ic: 'baixar', t: 'Baixar para ver sem internet', d: 'No celular, filmes e episódios ficam guardados para a viagem.' },
   { g: 'acervo', ic: 'peca', t: 'Addons', d: 'Conecte os addons e as contas que você já usa. O Saimo vem sem nenhum.' },
+  { g: 'acervo', ic: 'series', t: 'Episódios sem sair do vídeo', d: 'Temporadas em pílulas e episódios com imagem e progresso, com o vídeo tocando por trás.' },
+  { g: 'acervo', ic: 'sync', t: 'Troca de fonte sem perder o ponto', d: 'Escolha outra versão ou servidor e o vídeo continua do mesmo minuto.' },
+  { g: 'acervo', ic: 'voz', t: 'Mantém dublado ou legendado', d: 'O próximo episódio segue na mesma fonte e no mesmo idioma que você escolheu.' },
   { g: 'imagem', ic: 'eq', t: 'Áudio Inteligente', d: 'Iguala o volume entre canais: nada de comercial estourando nem canal baixinho.' },
   { g: 'imagem', ic: 'brilho', t: 'Super Resolução', d: 'Deixa mais nítido o vídeo de resolução baixa na tela grande.' },
   { g: 'imagem', ic: 'raio', t: 'Zero Delay', d: 'O ao vivo mais perto do tempo real, para não ouvir o gol do vizinho antes.' },
   { g: 'imagem', ic: 'pip', t: 'Janelinha', d: 'O vídeo flutuando por cima de tudo no celular e no computador.' },
   { g: 'imagem', ic: 'fone', t: 'Som no celular', d: 'O áudio da TV no seu fone, sincronizado, para não acordar ninguém.' },
   { g: 'imagem', ic: 'legenda', t: 'Áudio e legenda à sua escolha', d: 'Dublado ou original, faixa de áudio, legenda e qualidade no mesmo painel.' },
+  { g: 'imagem', ic: 'film', t: 'Abre formatos difíceis', d: 'No Mac, um conversor embutido abre DASH e HEVC, que o player da Apple recusa.' },
+  { g: 'imagem', ic: 'tv', t: 'Decodificador da própria TV', d: 'Na Samsung e na LG, se o player comum não abre, o app tenta o da TV.' },
   { g: 'conectado', ic: 'controle', t: 'Celular vira controle', d: 'Setas, OK, voltar e volume da TV direto do celular, pelo Saimo Connect.' },
   { g: 'conectado', ic: 'link', t: 'Digite no celular', d: 'Links de lista e buscas sem sofrer com o teclado da TV.' },
   { g: 'conectado', ic: 'sync', t: 'Tudo sincronizado', d: 'Favoritos, onde você parou e suas listas passam de um aparelho para o outro.' },
@@ -692,12 +700,18 @@ const TUDO: { g: Grupo; ic: string; t: string; d: string }[] = [
   { g: 'conectado', ic: 'box', t: 'Google TV integrado', d: 'Continuar assistindo e busca do próprio sistema, e links que abrem direto no canal.' },
   { g: 'conectado', ic: 'oculos', t: 'Óculos de realidade virtual', d: 'O app da TV roda em óculos Android, como o Meta Quest, com olhar e pinça.' },
   { g: 'conectado', ic: 'baixar', t: 'Avisa quando há versão nova', d: 'O app mostra a novidade e abre o download, sem loja nenhuma no meio.' },
+  { g: 'conectado', ic: 'eq', t: 'Tocando agora do sistema', d: 'Na Central de Controle do Mac e no quadro de mídia do Windows, com logo e programa.' },
+  { g: 'conectado', ic: 'link', t: 'Links que abrem o canal', d: 'Atalhos saimo:// levam direto a um canal ou título, mesmo com o app fechado.' },
   { g: 'casa', ic: 'link', t: 'M3U ou usuário e senha', d: 'Cole o link da lista ou o servidor do provedor. Usuário e senha só se a lista pedir.' },
   { g: 'casa', ic: 'lista', t: 'Até 10 listas', d: 'Por link ou arquivo, cada uma liga e desliga, e as de link se atualizam sozinhas.' },
   { g: 'casa', ic: 'lock', t: 'Controle parental', d: 'O que é só para adultos fica atrás de um código. As crianças usam sem esbarrar.' },
   { g: 'casa', ic: 'shield', t: 'Endereços escondidos', d: 'A tela mostra Fonte 1, Fonte 2 e a qualidade. O endereço da sua lista não aparece.' },
   { g: 'casa', ic: 'usuario', t: 'Sem conta e sem anúncio', d: 'Nada de cadastro, e-mail ou rastreio. Abriu, usou.' },
   { g: 'casa', ic: 'box', t: 'Leve até em aparelho simples', d: 'Pensado para TV Box de 1 GB de memória e para controle remoto sem botão de menu.' },
+  { g: 'casa', ic: 'baixar', t: 'Lista de arquivo', d: 'Além do link, escolha um arquivo .m3u guardado no aparelho ou no computador.' },
+  { g: 'casa', ic: 'usuario', t: 'Conta completa por usuário e senha', d: 'Cole o link com usuário e senha e o app lê os canais com as categorias do provedor.' },
+  { g: 'casa', ic: 'shield', t: 'Respeita o que a lista pede', d: 'Nos apps, cada canal abre com o referer e o agente que a própria lista informa.' },
+  { g: 'casa', ic: 'sync', t: 'Listas que se atualizam', d: 'A lista de link é baixada de novo sozinha a cada 12 horas, e abre mesmo sem internet.' },
 ];
 
 function TudoQueFaz() {
@@ -731,6 +745,259 @@ function TudoQueFaz() {
             </article>
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+/* ───────────────────────────── app por app ───────────────────────────── */
+
+interface AppDetalhe {
+  id: string; nome: string; icone: string; requisitos: string; resumo: string;
+  destaques: string[]; instalar: string;
+}
+
+const APPS: AppDetalhe[] = [
+  {
+    id: 'tvbox', nome: 'TV Box e Android TV', icone: 'box',
+    requisitos: 'Android 6 ou mais novo · Fire TV, Mi Box, Chromecast com Google TV, TV Box, óculos VR',
+    resumo: 'O app mais completo, feito do zero para o controle remoto e para aparelhos de pouca memória.',
+    destaques: [
+      'Segure a seta para pular 1, 3 ou 10 canais; CH+ e CH− pulam de seção',
+      'Abre no último canal, e LAST volta ao anterior',
+      'Multi tela com dois canais, cada metade com fonte reserva própria',
+      'O vídeo encolhe para dar espaço à lista e aos painéis, sem escurecer',
+      'Episódios dentro do player, com temporadas e o que já foi visto',
+      'Fonte que não abre em 15 segundos passa para a próxima sozinha',
+      'Legendas em português, inglês e espanhol, com ajuste de sincronia',
+      'Continuar assistindo e busca do Google TV, e links saimo://',
+      'Lista por link ou arquivo do aparelho, até 10 listas',
+      'Manda o som da TV para o celular pelo Saimo Connect',
+    ],
+    instalar: 'No app Downloader, digite saimo-tv.com.br/tvbox e instale.',
+  },
+  {
+    id: 'tvs', nome: 'Samsung e LG', icone: 'tv',
+    requisitos: 'Smart TVs Samsung (Tizen) e LG (webOS)',
+    resumo: 'Instalado na própria TV, sem aparelho extra: a mesma tela inicial, navegada pelo controle.',
+    destaques: [
+      'Navegação inteira pelo controle remoto da TV',
+      'Toca também endereços http, que o navegador recusa',
+      'Usa o decodificador da própria TV quando o player comum não abre',
+      'Multi tela com dois canais lado a lado',
+      'Guia de programação, jogos do dia e rádios',
+      'Lista por link ou por usuário e senha, digitada com o controle',
+      'Avisa quando há versão nova',
+    ],
+    instalar: 'O pacote de cada marca está na página de downloads, com o passo a passo.',
+  },
+  {
+    id: 'roku', nome: 'Roku', icone: 'tv',
+    requisitos: 'TVs e aparelhos Roku · pensado para sticks de 512 MB',
+    resumo: 'Canal nativo, leve e rápido, com tudo no controle do Roku.',
+    destaques: [
+      'Troca rápida de canal, números diretos e mini guia na tela',
+      'Segure OK: canais, guia, anterior, favorito, áudio e legenda, fontes e timer',
+      'Fonte que não abre em 8 segundos é trocada sozinha',
+      'Guia baixado em segundo plano e guardado por 6 horas',
+      'Jogos do dia com placar e atalho para o canal',
+      'Rádios, busca com teclado e Zero Delay',
+      'Lista digitada no teclado da TV ou enviada pelo celular',
+    ],
+    instalar: 'Instruções na página de downloads.',
+  },
+  {
+    id: 'cel', nome: 'Celular e tablet Android', icone: 'phone',
+    requisitos: 'Celulares e tablets Android',
+    resumo: 'As suas listas no bolso, e o controle remoto e o fone da sua TV.',
+    destaques: [
+      'Janela flutuante: o vídeo por cima de outros apps',
+      'Downloads para ver sem internet, com aviso de andamento',
+      'Chromecast, ou mande para a TV pelo Saimo Connect',
+      'Controle remoto da TV e teclado para digitar nela',
+      'Som da TV no fone, com a tela apagada e ajuste do Bluetooth',
+      'Onde parou, favoritos e listas sincronizados entre aparelhos',
+      'Jogos do dia com placar atualizado a cada minuto',
+      'Filtros por ano, idade, nota e ordem nos vídeos da sua lista',
+    ],
+    instalar: 'Baixe o APK na página de downloads e abra no celular.',
+  },
+  {
+    id: 'mac', nome: 'Mac', icone: 'laptop',
+    requisitos: 'macOS 15 ou mais novo · visual Liquid Glass no macOS 26',
+    resumo: 'App nativo, feito para mouse, teclado e janela de qualquer tamanho.',
+    destaques: [
+      'Conversor embutido abre DASH e HEVC, que o player da Apple recusa',
+      'Multi tela, picture-in-picture, AirPlay e Chromecast',
+      'Atalhos: ⌘1 a ⌘8 trocam de aba, ⇧⌘L mostra a lista, E abre os episódios',
+      'Painel de episódios ao lado, com o vídeo tocando por trás',
+      'O que toca aparece na Central de Controle, com logo e programa',
+      'Atualização baixada por trás, retomada se a rede cair e conferida',
+      'Manda o som para o celular pelo Saimo Connect',
+    ],
+    instalar: 'Baixe o DMG e arraste o Saimo TV para Aplicativos.',
+  },
+  {
+    id: 'pc', nome: 'Windows e Linux', icone: 'laptop',
+    requisitos: 'Windows 10 e 11 · Linux por AppImage ou .deb, em PC comum e ARM',
+    resumo: 'App de verdade, não o site numa janela: tela desenhada pela placa de vídeo e vídeo pelo mpv.',
+    destaques: [
+      'Reconhece link com usuário e senha e lê as categorias do provedor',
+      'Até 10 listas de até 20 mil canais cada, por link ou arquivo',
+      'O que toca aparece no quadro de mídia do Windows e na tela de bloqueio',
+      'Multi tela e janelinha',
+      'Controle pelo celular e som no fone pelo Saimo Connect',
+      'A mesma tela no Windows e no Linux',
+    ],
+    instalar: 'Instalador para Windows; no Linux, AppImage para qualquer distribuição recente ou .deb.',
+  },
+  {
+    id: 'web', nome: 'Navegador', icone: 'globo',
+    requisitos: 'Computador, celular ou TV com navegador atual',
+    resumo: 'Sem instalar nada. Bom para conhecer o Saimo e para usar em qualquer lugar.',
+    destaques: [
+      'Funciona no computador, no celular e no navegador da TV',
+      'Vira app na tela de início: no Safari, Compartilhar e Adicionar à Tela de Início',
+      'Multi tela, guia de programação, jogos do dia e rádios',
+      'Endereço http abre numa página separada',
+      'Canal que exige um acesso especial do servidor abre só nos apps',
+    ],
+    instalar: 'Toque em "Abrir no navegador", no alto da página.',
+  },
+];
+
+function AppPorApp() {
+  const [i, setI] = useState(0);
+  const a = APPS[i];
+  return (
+    <section className="secao porapp" id="cada-app">
+      <div className="miolo">
+        <span className="eyebrow rv"><i /> App por app</span>
+        <h2 className="titulo-grande rv d1">Um app para cada tela,<br /><span className="grad">cada um com o seu forte.</span></h2>
+        <p className="lead rv d2">
+          A base é a mesma em todos: as suas listas, guia, fonte reserva, favoritos e o Saimo Connect. Mas cada
+          aparelho ganhou o que faz sentido nele. Veja o que cada um faz e do que precisa.
+        </p>
+        <div className="porapp-grade rv d3">
+          <div className="porapp-abas" role="tablist" aria-label="Apps do Saimo">
+            {APPS.map((x, n) => (
+              <button key={x.id} type="button" role="tab" aria-selected={n === i} className={n === i ? 'ativa' : ''} onClick={() => setI(n)}>
+                <Icone nome={x.icone} tamanho={20} /><span>{x.nome}</span>
+              </button>
+            ))}
+          </div>
+          <div className="porapp-painel" role="tabpanel" key={a.id}>
+            <div className="porapp-topo">
+              <span className="porapp-ic"><Icone nome={a.icone} tamanho={30} /></span>
+              <div>
+                <h3>{a.nome}</h3>
+                <span className="porapp-req">{a.requisitos}</span>
+              </div>
+            </div>
+            <p className="porapp-resumo">{a.resumo}</p>
+            <ul className="porapp-lista">
+              {a.destaques.map((d) => <li key={d}><Icone nome="check" tamanho={16} /><span>{d}</span></li>)}
+            </ul>
+            <div className="porapp-pe">
+              <span><Icone nome="baixar" tamanho={16} /> {a.instalar}</span>
+              {a.id !== 'web' && <Link className="botao botao-principal" to="/app">Baixar <Icone nome="seta" tamanho={16} /></Link>}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ───────────────────────────── controle remoto ───────────────────────────── */
+
+const TECLAS_AO_VIVO: [string, string][] = [
+  ['OK', 'Mostra a programação do canal'],
+  ['Segurar OK ou MENU', 'Opções: áudio, fontes, favorito, multi tela e timer'],
+  ['Cima e baixo, CH+ e CH−', 'Canal anterior e seguinte (segurar acelera)'],
+  ['Esquerda', 'Lista de canais e, dentro dela, as seções'],
+  ['Direita ou GUIA', 'Programação; na lista, as fontes do canal'],
+  ['LAST', 'Volta ao canal anterior'],
+  ['0 a 9', 'Vai direto ao número do canal'],
+  ['PLAY/PAUSE', 'Nada: o ao vivo não para por engano'],
+];
+const TECLAS_MULTI: [string, string][] = [
+  ['Esquerda e direita', 'Escolhe a metade que tem som'],
+  ['Cima, baixo e números', 'Trocam o canal da metade escolhida'],
+  ['OK', 'Programação e lista da metade escolhida'],
+  ['VOLTAR', 'Sai: a metade escolhida fica em tela cheia'],
+];
+
+function Controle() {
+  const [modo, setModo] = useState<'aovivo' | 'multi'>('aovivo');
+  const teclas = modo === 'aovivo' ? TECLAS_AO_VIVO : TECLAS_MULTI;
+  return (
+    <section className="secao controle" id="controle">
+      <div className="miolo">
+        <span className="eyebrow rv"><i /> Feito para o controle remoto</span>
+        <h2 className="titulo-grande rv d1">Cada botão <span className="grad">faz alguma coisa.</span></h2>
+        <p className="lead rv d2">
+          Na TV Box não existe mouse nem tela de toque, então nada depende deles. Tudo tem um caminho pelas setas e pelo
+          OK, até no controle simples, sem botão de menu e sem números: segurar o OK abre as opções, e um teclado na tela
+          faz o resto.
+        </p>
+        <div className="controle-grade rv d3">
+          <div className="controle-tabela">
+            <div className="controle-modos" role="tablist" aria-label="Situação">
+              <button type="button" role="tab" aria-selected={modo === 'aovivo'} className={modo === 'aovivo' ? 'on' : ''} onClick={() => setModo('aovivo')}>Ao vivo</button>
+              <button type="button" role="tab" aria-selected={modo === 'multi'} className={modo === 'multi' ? 'on' : ''} onClick={() => setModo('multi')}>Multi tela</button>
+            </div>
+            <dl key={modo}>
+              {teclas.map(([k, v], n) => (
+                <div key={k} style={{ animationDelay: `${n * 40}ms` }}><dt><kbd>{k}</kbd></dt><dd>{v}</dd></div>
+              ))}
+            </dl>
+          </div>
+          <ul className="controle-notas">
+            <li><Icone nome="play" tamanho={20} /><div><strong>Filmes e séries</strong><span>Esquerda e direita avançam e voltam (segurar acelera), OK mostra os controles, VOLTAR sai guardando o ponto.</span></div></li>
+            <li><Icone nome="voz" tamanho={20} /><div><strong>Busca por voz</strong><span>Canais e vídeos da sua lista numa busca só, que entende erro de digitação.</span></div></li>
+            <li><Icone nome="phone" tamanho={20} /><div><strong>Ou use o celular</strong><span>Pelo Saimo Connect, o celular vira controle e teclado da TV.</span></div></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ───────────────────────────── leve ───────────────────────────── */
+
+const MEDIDAS: { o: string; antes: number; depois: number; un: string; menor: string }[] = [
+  { o: 'Abrir o ao vivo', antes: 5.3, depois: 0.8, un: 's', menor: 'mais rápido' },
+  { o: 'Abrir a programação', antes: 1.8, depois: 0.2, un: 's', menor: 'mais rápido' },
+  { o: 'Memória tocando um vídeo', antes: 150, depois: 75, un: 'MB', menor: 'menos memória' },
+  { o: 'Processador com a rádio', antes: 33, depois: 18, un: '%', menor: 'menos processador' },
+  { o: 'Processador na multi tela', antes: 32, depois: 20, un: '%', menor: 'menos processador' },
+];
+
+function Leve() {
+  return (
+    <section className="secao leve" id="leve">
+      <div className="miolo">
+        <span className="eyebrow rv"><i /> Leve de verdade</span>
+        <h2 className="titulo-grande rv d1">Roda bem até no <span className="grad">TV Box mais simples.</span></h2>
+        <p className="lead rv d2">
+          Muito TV Box tem só 1 GB de memória e fecha o app sem aviso quando ela aperta. O Saimo foi medido e ajustado
+          num aparelho assim: o guia é lido aos poucos, o vídeo tem limite de memória e, fora da tela, o app solta o que
+          não está usando.
+        </p>
+        <div className="leve-grade">
+          {MEDIDAS.map((m, k) => (
+            <div key={m.o} className={`leve-item rv d${(k % 4) + 1}`}>
+              <span className="leve-rotulo">{m.o}</span>
+              <div className="leve-barras">
+                <div className="leve-barra antes"><i style={{ width: '100%' }} /><b>{String(m.antes).replace('.', ',')} {m.un}</b></div>
+                <div className="leve-barra depois"><i style={{ width: `${Math.max(6, (m.depois / m.antes) * 100)}%` }} /><b>{String(m.depois).replace('.', ',')} {m.un}</b></div>
+              </div>
+              <span className="leve-ganho">{Math.round((1 - m.depois / m.antes) * 100)}% {m.menor}</span>
+            </div>
+          ))}
+        </div>
+        <p className="baixar-nota rv">Antes e depois das melhorias, medido num aparelho Android de 1 GB. O app de Roku foi pensado para sticks de 512 MB.</p>
       </div>
     </section>
   );
@@ -963,6 +1230,12 @@ const PERGUNTAS: [string, string][] = [
   ['Posso ouvir o som da TV no celular?', 'Pode. Com o Saimo Connect, o celular toca o som da TV acertado com a imagem, no fone ou no alto-falante, até com a tela apagada. Na multi tela, você escolhe ouvir a tela 1, a tela 2 ou as duas, e um ajuste compensa o atraso do fone Bluetooth.'],
   ['Funciona no Linux e em óculos VR?', 'Sim. No Linux há o AppImage, que roda em qualquer distribuição recente, e o .deb para Ubuntu, Debian e Mint. O app da TV Box também roda em óculos Android, como o Meta Quest.'],
   ['Tem app para iPhone?', 'Está a caminho da App Store. Enquanto isso, o Saimo funciona no navegador do iPhone: no Safari, toque em Compartilhar › Adicionar à Tela de Início.'],
+  ['Como instalo na TV Box ou no Fire TV?', 'Instale o app Downloader pela loja do aparelho, abra e digite saimo-tv.com.br/tvbox. O download começa e é só confirmar a instalação.'],
+  ['Quantas listas posso adicionar?', 'Até 10 na TV Box, no celular e no computador, cada uma podendo ser ligada e desligada. As de link se atualizam sozinhas a cada 12 horas e abrem mesmo sem internet.'],
+  ['Por que um canal abre no app e não no navegador?', 'Alguns servidores só entregam o vídeo com um acesso que o navegador não consegue fazer, ou usam endereço http, que uma página segura não toca. Os apps falam direto com o servidor e abrem esses canais normalmente.'],
+  ['Funciona em aparelho fraco?', 'Sim. O app da TV Box foi ajustado num aparelho de 1 GB de memória, e o de Roku foi pensado para sticks de 512 MB.'],
+  ['Como fico sabendo de versão nova?', 'O próprio app avisa e abre o download, sem loja no meio. No Mac, a atualização é baixada por trás e conferida antes de instalar.'],
+  ['Tem legenda?', 'Para filmes e séries da sua lista, o app busca legendas em português, inglês e espanhol, com ajuste de sincronia, sem cadastro.'],
   ['É grátis?', 'Sim, sem anúncios. O projeto é mantido por apoio voluntário de quem quer ajudar, e isso nunca é obrigatório.'],
 ];
 
@@ -1020,6 +1293,9 @@ export function Landing() {
         <MultiTelaSom />
         <Recursos />
         <TudoQueFaz />
+        <AppPorApp />
+        <Controle />
+        <Leve />
         <Aparelhos />
         <Connect />
         <Privacidade />

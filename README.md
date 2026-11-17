@@ -21,7 +21,9 @@ projeto, e o app no navegador fica em **`/home`** ("Abrir no navegador"; o PWA a
 **Multi tela e som no celular** (`MultiTelaSom` em `Landing.tsx`: clicar numa metade passa o som da TV para
 ela; o celular escolhe ouvir a tela 1, a 2 ou as duas, com o ajuste do fone Bluetooth) e, depois dos
 recursos, **Tudo o que ele faz** (`TudoQueFaz`: a lista completa de recursos, com filtro por tema). Ao
-acrescentar um recurso nos apps, acrescente o cartão em `TUDO`. O topo dela é uma réplica da
+acrescentar um recurso nos apps, acrescente o cartão em `TUDO`. Depois dela vêm **App por app** (`APPS`: o forte e os requisitos de cada app),
+**Feito para o controle remoto** (`TECLAS_AO_VIVO`/`TECLAS_MULTI`) e **Leve de verdade** (`MEDIDAS`, as medições
+do aparelho de 1 GB). Recurso novo num app específico entra também nos destaques dele em `APPS`. O topo dela é uma réplica da
 interface real (`TelaDoApp.tsx`: Início, Ao vivo e On Demand, com lista de
 demonstração), mais `/formato` (formato de lista do Saimo), `/privacidade`, `/termos`, `/conteudo`, `/exclusao-de-dados` e `/suporte`. O e-mail de
 contato e o responsável legal ficam em `src/landing/config.ts`. A aba iPhone de `/app`

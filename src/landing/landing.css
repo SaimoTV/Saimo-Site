@@ -530,3 +530,65 @@ body:has(.landing) nav.navegacao-mobile, body:has(.legal) nav.navegacao-mobile {
   .lp-heroi h1 { font-size: clamp(44px, 5.4vw, 80px); }
 }
 @media (max-width: 980px) { .devs { padding-right: 14%; } }
+
+/* ── app por app ── */
+.porapp { background: radial-gradient(900px 520px at 8% 20%, rgba(124, 92, 255, 0.14), transparent 60%), var(--bg); }
+.porapp-grade { display: grid; grid-template-columns: 290px 1fr; gap: 28px; margin-top: 56px; }
+.porapp-abas { display: grid; gap: 8px; align-content: start; }
+.porapp-abas button { display: flex; align-items: center; gap: 14px; padding: 15px 18px; border-radius: 16px; border: 1px solid var(--borda); background: rgba(255, 255, 255, 0.03); color: var(--suave); font: 600 15.5px/1.2 inherit; font-family: inherit; cursor: pointer; text-align: left; transition: all 0.25s; }
+.porapp-abas button:hover { color: var(--texto); background: rgba(255, 255, 255, 0.06); }
+.porapp-abas button.ativa { color: #fff; background: linear-gradient(120deg, rgba(79, 227, 208, 0.18), rgba(124, 92, 255, 0.2)); border-color: rgba(79, 227, 208, 0.4); transform: translateX(6px); }
+.porapp-abas button.ativa svg { color: var(--acc); }
+.porapp-painel { padding: 34px; border-radius: 28px; border: 1px solid var(--borda); background: linear-gradient(160deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.015)); animation: entra 0.45s; display: grid; gap: 22px; align-content: start; }
+.porapp-topo { display: flex; align-items: center; gap: 18px; }
+.porapp-ic { display: grid; place-items: center; width: 62px; height: 62px; flex: none; border-radius: 18px; background: linear-gradient(135deg, rgba(79, 227, 208, 0.22), rgba(124, 92, 255, 0.28)); color: var(--acc); }
+.porapp-topo h3 { font-size: clamp(24px, 2.6vw, 32px); letter-spacing: -0.03em; line-height: 1.1; }
+.porapp-req { display: block; margin-top: 6px; font-size: 14px; color: var(--suave); }
+.porapp-resumo { font-size: 18px; color: var(--texto); }
+.porapp-lista { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 12px 22px; }
+.porapp-lista li { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; color: var(--suave); line-height: 1.45; }
+.porapp-lista li svg { color: var(--acc); flex: none; margin-top: 2px; }
+.porapp-pe { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; padding-top: 20px; border-top: 1px solid var(--borda); }
+.porapp-pe > span { display: inline-flex; align-items: center; gap: 10px; color: var(--suave); font-size: 14.5px; }
+.porapp-pe > span svg { color: var(--acc); flex: none; }
+
+/* ── controle remoto ── */
+.controle { background: linear-gradient(180deg, var(--bg), var(--bg2) 50%, var(--bg)); }
+.controle-grade { display: grid; grid-template-columns: 1.3fr 1fr; gap: 28px; margin-top: 52px; align-items: start; }
+.controle-tabela { padding: 26px; border-radius: 26px; border: 1px solid var(--borda); background: linear-gradient(160deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)); }
+.controle-modos { display: inline-flex; gap: 6px; padding: 5px; border-radius: 999px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--borda); margin-bottom: 18px; }
+.controle-modos button { height: 38px; padding: 0 18px; border-radius: 999px; border: 0; background: transparent; color: var(--suave); font: 600 14px/1 inherit; font-family: inherit; cursor: pointer; transition: all 0.25s; }
+.controle-modos button.on { color: #04141a; background: linear-gradient(120deg, var(--acc), #67a8ff 60%, var(--acc2)); }
+.controle-tabela dl { margin: 0; display: grid; gap: 4px; }
+.controle-tabela dl > div { display: grid; grid-template-columns: 210px 1fr; gap: 16px; align-items: center; padding: 11px 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); opacity: 0; animation: tilePop 0.45s cubic-bezier(.2,1.2,.4,1) forwards; }
+.controle-tabela dl > div:last-child { border-bottom: 0; }
+.controle-tabela dd { margin: 0; color: var(--suave); font-size: 15px; }
+.controle-tabela kbd { display: inline-block; padding: 6px 11px; border-radius: 10px; border: 1px solid rgba(79, 227, 208, 0.35); background: rgba(79, 227, 208, 0.08); color: var(--texto); font: 600 13.5px/1.2 inherit; font-family: inherit; }
+.controle-notas { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+.controle-notas li { display: flex; gap: 14px; padding: 20px; border-radius: 20px; border: 1px solid var(--borda); background: rgba(255, 255, 255, 0.03); }
+.controle-notas li > svg { color: var(--acc); flex: none; margin-top: 2px; }
+.controle-notas strong { display: block; font-size: 16px; }
+.controle-notas span { display: block; margin-top: 5px; color: var(--suave); font-size: 14.5px; line-height: 1.5; }
+
+/* ── leve ── */
+.leve { background: radial-gradient(800px 480px at 85% 40%, rgba(79, 227, 208, 0.1), transparent 60%), var(--bg); }
+.leve-grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-top: 48px; }
+.leve-item { padding: 22px 20px; border-radius: 20px; border: 1px solid var(--borda); background: linear-gradient(160deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)); display: grid; gap: 14px; }
+.leve-rotulo { font-weight: 700; font-size: 15.5px; }
+.leve-barras { display: grid; gap: 8px; }
+.leve-barra { position: relative; height: 30px; border-radius: 10px; background: rgba(255, 255, 255, 0.05); overflow: hidden; }
+.leve-barra i { position: absolute; inset: 0 auto 0 0; border-radius: 10px; }
+.leve-barra.antes i { background: rgba(255, 255, 255, 0.14); }
+.leve-barra.depois i { background: linear-gradient(90deg, var(--acc), var(--acc2)); }
+.leve-barra b { position: relative; z-index: 1; display: flex; align-items: center; height: 100%; padding: 0 10px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.leve-barra.depois b { color: #fff; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45); }
+.leve-ganho { font-size: 13.5px; color: var(--acc); font-weight: 700; }
+
+@media (max-width: 920px) {
+  .porapp-grade, .controle-grade { grid-template-columns: 1fr; }
+  .porapp-abas { grid-auto-flow: column; grid-auto-columns: max-content; overflow-x: auto; padding-bottom: 6px; }
+  .porapp-abas button.ativa { transform: none; }
+  .porapp-lista { grid-template-columns: 1fr; }
+  .porapp-painel { padding: 24px; }
+  .controle-tabela dl > div { grid-template-columns: 1fr; gap: 6px; }
+}
