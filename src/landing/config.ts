@@ -12,7 +12,7 @@ export const SITE = {
   responsavel: 'Saimo',
   /** E-mail de suporte e privacidade. Vazio = a página manda usar o canal de suporte do app. */
   email: 'saimo.tv.gs@gmail.com',
-  endereco: 'https://saimo-tv.pages.dev',
+  endereco: 'https://saimo-tv.com.br',
   /** Última revisão dos textos legais. */
   atualizadoEm: '10 de novembro de 2026',
   versaoDoTexto: '1.0',
