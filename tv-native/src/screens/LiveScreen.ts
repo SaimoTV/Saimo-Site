@@ -233,8 +233,16 @@ export class LiveScreen {
     this.openChannelSources(State.currentChannel, State.currentVariantIndex);
   }
 
-  openChannelSources(channel: Channel, defaultVariant = 0) {
+  openChannelSources(channel: Channel, defaultVariant?: number) {
     const variants = channel.variants || [];
+    // "Em uso" é a fonte que está tocando neste canal; em outro canal, a lembrada para ele
+    // (a que tocará ao sintonizar). Antes caía sempre em 0 quando abria pelo painel de canais.
+    if (defaultVariant === undefined) {
+      defaultVariant = State.currentChannel?.id === channel.id
+        ? State.currentVariantIndex
+        : Storage.getFonteCanal(channel.name);
+    }
+    if (defaultVariant >= variants.length || defaultVariant < 0) defaultVariant = 0;
     this.sourceModal.open(
       channel.name,
       variants,

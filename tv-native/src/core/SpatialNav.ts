@@ -120,11 +120,12 @@ export class SpatialNav {
       }
     } else if (key === 13) {
       // ENTER / OK
-      if (this.currentElement) {
+      const atual = this.currentElement;
+      if (atual) {
         e.preventDefault();
         e.stopPropagation();
-        this.currentElement.click();
-        this.currentElement.dispatchEvent(new CustomEvent('nav-select'));
+        atual.click();
+        atual.dispatchEvent(new CustomEvent('nav-select'));
         return true;
       }
     }
