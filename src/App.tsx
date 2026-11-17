@@ -48,6 +48,7 @@ const ProgramGuide = lazy(() => import('./components/ProgramGuide').then(m => ({
 const VodCatalog = lazy(() => import('./components/VodCatalog').then(m => ({ default: m.VodCatalog })));
 const StreamTester = lazy(() => import('./components/StreamTester').then(m => ({ default: m.StreamTester })));
 const AppDownload = lazy(() => import('./components/AppDownload').then(m => ({ default: m.AppDownload })));
+const ApoiePagina = lazy(() => import('./components/ApoiePagina').then(m => ({ default: m.ApoiePagina })));
 const Novidades = lazy(() => import('./components/Novidades').then(m => ({ default: m.Novidades })));
 
 // Loading fallback
@@ -664,6 +665,12 @@ function AppLayout() {
           <AppDownload />
         </Suspense>
       } />
+      {/* Doação por Pix direto, em página própria para mandar o endereço. Sem link em lugar nenhum. */}
+      <Route path="/apoie" element={
+        <Suspense fallback={<LoadingFallback />}>
+          <ApoiePagina />
+        </Suspense>
+      } />
       {/* O que cada rodada da atualização trouxe. Sem link em lugar nenhum. */}
       <Route path="/novidades" element={
         <Suspense fallback={<LoadingFallback />}>
@@ -679,8 +686,9 @@ function AppLayout() {
         } />
       )}
     </Routes>
-    <NavegacaoMobile />
-    <DoacaoModal />
+    {/* A página /apoie é só o conteúdo: sem a barra do celular e sem o botão flutuante. */}
+    {location.pathname !== '/apoie' && <NavegacaoMobile />}
+    {location.pathname !== '/apoie' && <DoacaoModal />}
     </>
   );
 }
