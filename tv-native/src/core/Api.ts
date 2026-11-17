@@ -1,3 +1,4 @@
+import { ehKids, IDADE_MAXIMA_KIDS } from '../../../src/perfis/kids';
 /**
  * Conector de Dados e Parsers de Alto Desempenho.
  * Lê catalogo.txt, fichas.txt, destaques.txt, indice.txt, fatias por letra, EPG e eventos esportivos.
@@ -410,6 +411,10 @@ export class Api {
   }
 
   static getCachedDestaquesSync(): DestaqueFila[] {
+    return this.filasDoKids(this.getCachedDestaquesSyncBruto());
+  }
+
+  private static getCachedDestaquesSyncBruto(): DestaqueFila[] {
     if (!this.enderecoSaimo('filmes')) {
       return Addons.hasEnabled() ? this.destaquesCache : [];
     }
@@ -422,7 +427,28 @@ export class Api {
     return [];
   }
 
+  // ===== PERFIL KIDS =====
+  // Só títulos com classificação conhecida de Livre a 12 anos (detalhes.txt);
+  // sem classificação, escondido. O filtro mora aqui, na leitura do acervo.
+  static liberadoNoKids(item: VODItem): boolean {
+    if (!ehKids()) return true;
+    const d = this.detalheDe(item);
+    return !!d && d.idade >= 0 && d.idade <= IDADE_MAXIMA_KIDS;
+  }
+
+  private static filasDoKids(filas: DestaqueFila[]): DestaqueFila[] {
+    if (!ehKids()) return filas;
+    return filas.map((f) => ({ ...f, itens: f.itens.filter((i) => this.liberadoNoKids(i)) })).filter((f) => f.itens.length > 0);
+  }
+
   static async fetchDestaques(forceRefresh = false): Promise<DestaqueFila[]> {
+    const filas = await this.fetchDestaquesBruto(forceRefresh);
+    if (!ehKids()) return filas;
+    await this.fetchDetalhes();
+    return this.filasDoKids(filas);
+  }
+
+  private static async fetchDestaquesBruto(forceRefresh = false): Promise<DestaqueFila[]> {
     if (!this.enderecoSaimo('filmes')) {
       if (!Addons.hasEnabled()) {
         this.destaquesCache = [];
@@ -622,6 +648,13 @@ export class Api {
 
   // ===== FICHAS DO ACERVO COMPLETO =====
   static async fetchFichas(): Promise<VODItem[]> {
+    const itens = await this.fetchFichasBruto();
+    if (!ehKids()) return itens;
+    await this.fetchDetalhes();
+    return itens.filter((i) => this.liberadoNoKids(i));
+  }
+
+  private static async fetchFichasBruto(): Promise<VODItem[]> {
     if (!this.enderecoSaimo('filmes')) {
       if (Addons.hasEnabled()) {
         if (this.destaquesCache.length === 0) {
@@ -691,7 +724,7 @@ export class Api {
   }
 
   static getSearchPool(): VODItem[] {
-    if (this.vodCache.length > 0) return this.vodCache;
+    if (this.vodCache.length > 0) return this.vodCache.filter((i) => this.liberadoNoKids(i));
     return this.getDestaquesFlat();
   }
 

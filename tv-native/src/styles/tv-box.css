@@ -297,3 +297,13 @@ html.tizen.video-ativo, html.tizen.video-ativo body { background: transparent !i
 .tv-perfil-opcao.nav-focused { transform: scale(1.1); box-shadow: 0 0 0 6px #fff; }
 .tv-perfis-aviso { margin-top: 16px; font-size: 26px; color: #ffb3b3; min-height: 30px; }
 .tv-menu-perfil .tv-perfil-avatar.menu { width: 52px; height: 52px; border-radius: 14px; }
+.tv-codigo { padding: 120px 0 40px; text-align: center; }
+.tv-codigo .tv-codigo-campo { width: 360px; margin: 30px auto 0; text-align: center; letter-spacing: 16px; font-size: 40px; }
+.tv-perfil-kids { position: absolute; right: -10px; bottom: -10px; padding: 6px 14px; border-radius: 30px; background: #ffb43d; color: #2a1400; font-size: 20px; font-weight: 700; }
+.tv-perfis-kids { display: inline-block; margin-top: 26px; padding: 20px 30px; border-radius: 18px; background: rgba(255,255,255,.08); color: #fff; font-size: 26px; border: 0 !important; }
+.tv-perfis-kids.nav-focused { background: #fff !important; color: #0b0e14 !important; }
+.tv-perfis-kids-codigos { margin-top: 18px; }
+.tv-perfis-kids-codigos .tv-campo { display: inline-block; width: 340px; margin: 0 10px; text-align: center; letter-spacing: 12px; }
+.tv-settings-section-title.discreto { margin-top: 70px; opacity: .55; font-size: 22px; }
+.tv-settings-item.discreto { opacity: .6; }
+.tv-settings-item.discreto.nav-focused { opacity: 1; }

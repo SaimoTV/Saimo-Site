@@ -1,3 +1,4 @@
+import { ehKids } from '../../../src/perfis/kids';
 /**
  * Gerenciador de Addons (protocolo Stremio) e Debrid client-side no motor Smart TV nativo.
  * Reutiliza os módulos puros compartilhados de protocol/client (zero código copiado GPL).
@@ -166,6 +167,8 @@ export class Addons {
   }
 
   static enabledList(): AddonRecord[] {
+    // Perfil Kids: addons não têm classificação indicativa, então ficam desligados lá.
+    if (ehKids()) return [];
     return loadAddonsFromStorage().filter((a) => a.enabled);
   }
 

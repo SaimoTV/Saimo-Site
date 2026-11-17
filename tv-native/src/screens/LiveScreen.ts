@@ -452,9 +452,8 @@ export class LiveScreen {
     this.numericBuffer += digit;
     clearTimeout(this.numericTimer);
 
-    // PIN Parental "1010"
-    if (this.numericBuffer === '1010') {
-      State.unlockParental('1010');
+    // Atalho do controle parental: a senha (padrão 0000) digitada no ao vivo.
+    if (this.numericBuffer.length === 4 && State.unlockParental(this.numericBuffer)) {
       this.numericBuffer = '';
       return;
     }

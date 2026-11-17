@@ -12,6 +12,10 @@ import { Storage, TVPreferences } from '../core/Storage';
 import { Addons } from '../core/Addons';
 import { Platform } from '../core/Platform';
 import { SpatialNav } from '../core/SpatialNav';
+import { caixaDeCodigo } from './PerfisScreen';
+import { ativo as perfilAtivo, conferirCodigo, pedeCodigo, perfis } from '../../../src/perfis/perfis';
+import { conferirSenha, senhaEhPadrao, trocarSenha, SENHA_PADRAO } from '../../../src/perfis/parental';
+import { ehKids } from '../../../src/perfis/kids';
 
 export class SettingsScreen {
   private element: HTMLElement;
@@ -37,8 +41,36 @@ export class SettingsScreen {
     return this.element;
   }
 
+  /** No perfil Kids os Ajustes pedem o código (a criança não mexe nas listas nem nos ajustes). */
+  private liberado = false;
+  private caixa: HTMLElement | null = null;
+
+  private mostrarCaixa(c: HTMLElement | null) {
+    this.caixa?.remove();
+    this.caixa = c;
+    this.listContainer.style.display = c ? 'none' : '';
+    if (c) this.element.appendChild(c);
+  }
+
   enter() {
     this.element.classList.remove('hidden');
+    const p = perfilAtivo();
+    if (pedeCodigo(p) && !this.liberado) {
+      this.mostrarCaixa(caixaDeCodigo({
+        titulo: `Código do perfil ${p.nome}`,
+        motivo: 'Os Ajustes ficam trancados no perfil Kids. Digite o código para abrir.',
+        campos: ['••••'],
+        aoConfirmar: (v) => {
+          if (!conferirCodigo(p, v[0])) return 'Código errado. Tente de novo.';
+          this.liberado = true;
+          this.mostrarCaixa(null);
+          this.enter();
+          return null;
+        },
+        aoCancelar: () => { this.mostrarCaixa(null); State.setScreen('home'); },
+      }));
+      return;
+    }
     this.renderSettings();
 
     setTimeout(() => {
@@ -49,6 +81,8 @@ export class SettingsScreen {
 
   leave() {
     this.element.classList.add('hidden');
+    this.liberado = false;
+    this.mostrarCaixa(null);
   }
 
   private renderSettings() {
@@ -85,6 +119,12 @@ export class SettingsScreen {
 
       this.listContainer.appendChild(item);
     };
+
+    // PERFIS
+    addSection('Perfis');
+    const n = perfis().length;
+    addOption('perfis', 'Perfis', n === 1 ? 'Só um perfil. Criar, editar, Kids e avatares' : `${perfilAtivo().nome} · ${n} perfis`,
+      () => State.emit('abrir-perfis', 'gerenciar'));
 
     // 1. LISTAS E FONTES
     addSection('Listas e Fontes');
@@ -201,5 +241,29 @@ export class SettingsScreen {
 
     addOption('sobre-plataforma', 'Sistema Operacional', platformLabel, () => {});
     addOption('sobre-versao', 'Versão', __VERSAO_APP__, () => {});
+
+    // CONTROLE PARENTAL: no fim, separado e discreto. No Kids não aparece.
+    if (!ehKids()) {
+      addSection('Controle parental');
+      const titulo = this.listContainer.lastElementChild as HTMLElement | null;
+      titulo?.classList.add('discreto');
+      const pedirSenha = (motivo: string, campos: string[], acao: (v: string[]) => string | null) => {
+        this.mostrarCaixa(caixaDeCodigo({ titulo: 'Controle parental', motivo, campos,
+          aoConfirmar: (v) => { const erro = acao(v); if (!erro) { this.mostrarCaixa(null); this.renderSettings(); } return erro; },
+          aoCancelar: () => { this.mostrarCaixa(null); this.renderSettings(); } }));
+      };
+      addOption('parental', 'Conteúdo adulto', State.unlockedExtras ? 'Liberado (OK bloqueia)' : 'Bloqueado', () => {
+        if (State.unlockedExtras) { State.unlockedExtras = false; State.emit('extras-unlocked'); return; }
+        pedirSenha(senhaEhPadrao() ? `Digite a senha. A senha inicial é ${SENHA_PADRAO}.` : 'Digite a senha.', ['Senha'],
+          (v) => (State.unlockParental(v[0]) ? null : 'Senha errada.'));
+      });
+      addOption('parental-senha', 'Trocar a senha', senhaEhPadrao() ? `Senha inicial: ${SENHA_PADRAO}` : 'Senha própria', () => {
+        pedirSenha('Digite a senha atual e a nova (4 números).', ['Senha atual', 'Senha nova'], (v) => {
+          if (!conferirSenha(v[0])) return 'Senha atual errada.';
+          return trocarSenha(v[0], v[1]) ? null : 'A senha nova tem 4 números.';
+        });
+      });
+      this.listContainer.querySelectorAll('#setting-parental, #setting-parental-senha').forEach((e) => e.classList.add('discreto'));
+    }
       }
 }

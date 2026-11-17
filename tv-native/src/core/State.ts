@@ -1,3 +1,4 @@
+import { conferirSenha } from '../../../src/perfis/parental';
 /**
  * Gerenciador de Estado Reativo Global do Saimo TV.
  */
@@ -110,8 +111,9 @@ export class State {
     this.emit('screen-changed', { screen, previous: this.previousScreen, params });
   }
 
+  /** Senha do controle parental (padrão 0000, trocável nos Ajustes). No Kids nunca destranca. */
   static unlockParental(pin: string): boolean {
-    if (pin === '1010') {
+    if (conferirSenha(pin)) {
       this.unlockedExtras = true;
       this.emit('extras-unlocked');
       return true;
