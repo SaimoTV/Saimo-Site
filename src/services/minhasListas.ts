@@ -12,7 +12,6 @@
  */
 
 import type { Channel, ChannelSource } from '../types/channel';
-import { proxyBase } from '../utils/streamUrl';
 
 import { chaveDoNome, ehRestrito, lerM3u } from '../utils/leitorM3u';
 import type { CanalLido } from '../utils/leitorM3u';
@@ -26,7 +25,6 @@ export type { CanalLido, FonteLida } from '../utils/leitorM3u';
 
 export class ErroDeLista extends Error {}
 
-const PRAZO_MS = 30_000;
 const LIMITE_BYTES = 30 * 1024 * 1024;
 
 async function lerComLimite(r: Response): Promise<string> {
@@ -87,12 +85,11 @@ async function buscarTexto(url: string): Promise<string> {
       if (e instanceof ErroDeLista) throw e;
     }
   }
-  try {
-    return await pedir(`${proxyBase()}/api/proxy?raw=1&url=${encodeURIComponent(url)}`, PRAZO_MS);
-  } catch (e) {
-    if (e instanceof ErroDeLista) throw e;
-    throw new ErroDeLista('Não consegui baixar essa lista');
-  }
+  // Sem proxy no site (3.3): lista http numa página https, ou servidor que não
+  // libera o navegador (CORS), só abre nos aplicativos.
+  throw new ErroDeLista(direto
+    ? 'Essa lista não abre no navegador (o servidor dela bloqueia). Use o app do Saimo no celular, TV ou computador.'
+    : 'Lista http não abre no site (só https). Use o app do Saimo no celular, TV ou computador.');
 }
 
 export async function baixarLista(link: string): Promise<CanalLido[]> {

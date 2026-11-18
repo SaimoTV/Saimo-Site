@@ -433,7 +433,9 @@ async function parseFeed(
   /** Nome do canal -> nome no feed (linhas `alias` do `guia.txt`). */
   aliases: Record<string, string> = {},
 ): Promise<Map<string, WorkerProgramme[]>> {
-  const resposta = await fetch(ids ? url : `${origin}/api/proxy?url=${encodeURIComponent(url)}`);
+  // Sem proxy no site (3.3): direto; feed que bloqueia o navegador fica sem guia.
+  void origin;
+  const resposta = await fetch(url);
   if (!resposta.ok || !resposta.body) throw new Error(`HTTP ${resposta.status} em ${url}`);
 
   const nomeParaIds = new Map<string, string[]>();
@@ -623,7 +625,7 @@ async function montar({ names: todos, origin, tabelas, pluto = {}, central: urlC
     if (central?.g[slug]) return [slug, doCentral(central.g[slug], true).filter((p) => p.stop > de && p.start < ate)];
     try {
       const alvo = httpOuHttps(slug) ? slug : `https://www.guiadetv.com/canal/${slug}`;
-      const r = await fetch(`${origin}/api/proxy?url=${encodeURIComponent(alvo)}`);
+      const r = await fetch(alvo);
       if (!r.ok) return [slug, []];
       const lista = parseGuiaDeTv(await r.text()).filter((p) => p.stop > de && p.start < ate);
       return [slug, lista];
@@ -662,7 +664,7 @@ async function montar({ names: todos, origin, tabelas, pluto = {}, central: urlC
     if (central?.m[code]) return [name, doCentral(central.m[code], false).filter((p) => p.stop > de && p.start < ate)];
     try {
       const alvo = httpOuHttps(code) ? code : `https://meuguia.tv/programacao/canal/${code}`;
-      const r = await fetch(`${origin}/api/proxy?url=${encodeURIComponent(alvo)}`);
+      const r = await fetch(alvo);
       if (r.ok) {
         const lista = parseMeuGuia(await r.text()).filter((p) => p.stop > de && p.start < ate);
         if (lista.length || tentativa > 0) return [name, lista];

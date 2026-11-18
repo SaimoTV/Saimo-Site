@@ -291,13 +291,6 @@ async function baixar(url: string): Promise<string> {
   } catch {
     // Se falhar direto (bloqueio CORS, rede ou firewall), tenta via proxy do site
   }
-  try {
-    const proxyUrl = `/api/proxy?url=${encodeURIComponent(targetUrl)}`;
-    const proxied = await fetch(proxyUrl, { cache: 'no-store' });
-    if (proxied.ok) return await proxied.text();
-  } catch {
-    // Falha em ambos
-  }
   throw new Error(`Falha ao baixar ${url}`);
 }
 

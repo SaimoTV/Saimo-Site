@@ -98,7 +98,7 @@ export function lerRelease(dados: unknown): Versao | null {
 }
 
 /**
- * Busca um JSON direto e, se o CORS atrapalhar, pelo proxy do próprio site.
+ * Busca um JSON direto (o proxy do site saiu na 3.3).
  *
  * O github.com redireciona o download para outro host sem liberar CORS ao
  * navegador; a API do GitHub libera, mas tem limite de pedidos por IP, então o
@@ -107,7 +107,8 @@ export function lerRelease(dados: unknown): Versao | null {
 function buscarJson(url: string): Promise<unknown> {
   const buscar = (alvo: string) =>
     fetch(alvo, { cache: 'no-cache' }).then(r => (r.ok ? r.json() : Promise.reject(r.status)));
-  return buscar(url).catch(() => buscar(`/api/proxy?url=${encodeURIComponent(url)}`));
+  // Sem proxy no site (3.3): o versao.json fica no pages.dev, que libera o navegador.
+  return buscar(url);
 }
 
 let pendente: Promise<Versao | null> | null = null;

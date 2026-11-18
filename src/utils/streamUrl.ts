@@ -84,16 +84,7 @@ let proxyPrincipalCaido = false;
  * tempos: custa um pedido.
  */
 export async function sondarProxy(): Promise<void> {
-  if (typeof window === 'undefined' || typeof fetch !== 'function') return;
-  const base = ehAppDaTv() ? PROXY_PRINCIPAL : window.location.origin;
-  if (!/^https?:/.test(base) || base === PROXY_RESERVA) { proxyPrincipalCaido = false; return; }
-  try {
-    const r = await fetch(`${base}/api/proxy`, { cache: 'no-store' });
-    const tipo = r.headers.get('content-type') || '';
-    proxyPrincipalCaido = tipo.includes('text/html');
-  } catch {
-    // Sem rede ou bloqueio: não dá para dizer que o proxy caiu.
-  }
+  // O proxy do site saiu (3.3): nada a sondar. Fica para quem ainda importa.
 }
 
 /**
@@ -106,7 +97,8 @@ export async function sondarProxy(): Promise<void> {
  * caminho, e o app de janela, cujo proxy é local e não custa nada.
  */
 export function proxyDeVideoLiberado(): boolean {
-  if (ehAppDaTv()) return true;
+  // Desde a 3.3 o proxy do site (/api/proxy) não existe mais: o custo era dele.
+  // Só o app de janela, que tem proxy próprio no computador, continua usando.
   return !!(globalThis as { __SAIMO_PROXY__?: string }).__SAIMO_PROXY__;
 }
 
@@ -191,7 +183,7 @@ export function buildAttempts(sources: ChannelSource[]): Attempt[] {
     const direta = tv && !source.referer && !source.userAgent;
     if (direta) out.push({ source, url: source.url, viaProxy: false });
     if (direta && isHls(source.url) && hlsNativo()) out.push({ source, url: source.url, viaProxy: false, nativo: true });
-    if (!tv && !proxyDeVideoLiberado()) {
+    if (!proxyDeVideoLiberado()) {
       // Site: só a tentativa direta. Fonte http entra na lista (o aviso de página
       // separada depende dela) mas nunca é tentada; fonte com cabeçalho obrigatório
       // não abre no navegador e fica de fora: o canal aparece como "só no aplicativo".
