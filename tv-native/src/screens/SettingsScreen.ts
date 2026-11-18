@@ -49,6 +49,8 @@ export class SettingsScreen {
 
   private mostrarCaixa(c: HTMLElement | null) {
     this.caixa?.remove();
+    // A caixa da conta troca a si mesma (QR por e-mail e senha): sai também.
+    this.element.querySelectorAll('.tv-conta').forEach((e) => e.remove());
     this.caixa = c;
     this.listContainer.style.display = c ? 'none' : '';
     if (c) this.element.appendChild(c);

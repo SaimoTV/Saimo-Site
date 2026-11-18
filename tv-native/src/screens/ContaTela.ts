@@ -6,7 +6,7 @@
  */
 import { SpatialNav } from '../core/SpatialNav';
 import { buildQrSvg } from '../../../src/utils/qrCode';
-import { conferirAprovacao, estadoConta, pedirCodigoDaTv, sair, sincronizar } from '../../../src/conta/conta';
+import { conferirAprovacao, entrarComSenha, estadoConta, pedirCodigoDaTv, sair, sincronizar } from '../../../src/conta/conta';
 
 function esc(t: string): string {
   return t.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
@@ -65,13 +65,20 @@ export function caixaDaConta(fechar: () => void): HTMLElement {
       <div class="tv-perfis-sub">No celular com o Saimo e a sua conta, leia o QR com a câmera. Ou abra Ajustes &gt; Conta Saimo &gt; Entrar numa TV e digite o código:</div>
       <div class="tv-conta-codigo">…</div>
       <div class="tv-perfis-sub tv-conta-situacao">Pedindo um código…</div>
-      <div class="tv-perfis-acoes"><div class="tv-btn nav-focusable" data-nav="true" data-acao="voltar">Voltar</div></div>
+      <div class="tv-perfis-acoes">
+        <div class="tv-btn nav-focusable" data-nav="true" data-acao="senha">Entrar com e-mail e senha</div>
+        <div class="tv-btn nav-focusable" data-nav="true" data-acao="voltar">Voltar</div>
+      </div>
       <div class="tv-perfis-sub tv-conta-dica">Sem conta, tudo continua só nesta TV.</div>
     </div>`;
   const qr = caixa.querySelector<HTMLElement>('.tv-conta-qr')!;
   const codigo = caixa.querySelector<HTMLElement>('.tv-conta-codigo')!;
   const situacao = caixa.querySelector<HTMLElement>('.tv-conta-situacao')!;
   caixa.querySelector('[data-acao="voltar"]')!.addEventListener('click', fechar);
+  caixa.querySelector('[data-acao="senha"]')!.addEventListener('click', () => {
+    // Troca a caixa do QR pela do e-mail e senha (a do QR para de perguntar sozinha ao sair da tela).
+    caixa.replaceWith(caixaDeSenha(fechar));
+  });
   setTimeout(() => { const b = caixa.querySelector<HTMLElement>('.tv-btn'); if (b) SpatialNav.focus(b); }, 50);
 
   // Pergunta enquanto a caixa estiver na tela; fechou, para sozinho.
@@ -106,5 +113,46 @@ export function caixaDaConta(fechar: () => void): HTMLElement {
       }
     }
   })();
+  return caixa;
+}
+
+/**
+ * Entrar com e-mail e senha pelo controle. Criar ou trocar a senha fica no
+ * celular ou no site, onde chega o código do e-mail.
+ */
+function caixaDeSenha(fechar: () => void): HTMLElement {
+  const caixa = document.createElement('div');
+  caixa.className = 'tv-conta logada';
+  caixa.innerHTML = `
+    <div class="tv-perfis-titulo">Entrar na Conta Saimo</div>
+    <div class="tv-perfis-sub">Quem criou uma senha no celular ou no site entra aqui. Esqueceu ou ainda não tem? Crie no celular (Ajustes &gt; Conta Saimo) ou no site.</div>
+    <input class="tv-campo tv-conta-campo nav-focusable" data-nav="true" type="email" autocomplete="username" placeholder="Seu e-mail" />
+    <input class="tv-campo tv-conta-campo nav-focusable" data-nav="true" type="password" autocomplete="current-password" placeholder="Senha" />
+    <div class="tv-perfis-aviso"></div>
+    <div class="tv-perfis-acoes">
+      <div class="tv-btn nav-focusable" data-nav="true" data-acao="entrar">Entrar</div>
+      <div class="tv-btn nav-focusable" data-nav="true" data-acao="voltar">Voltar</div>
+    </div>`;
+  const [email, senha] = Array.from(caixa.querySelectorAll<HTMLInputElement>('input'));
+  const aviso = caixa.querySelector<HTMLElement>('.tv-perfis-aviso')!;
+  let ocupado = false;
+  const entrar = () => {
+    if (ocupado) return;
+    const e = email.value.trim();
+    if (!e.includes('@') || !senha.value) { aviso.textContent = 'Digite o e-mail e a senha'; return; }
+    ocupado = true;
+    aviso.textContent = 'Entrando…';
+    entrarComSenha(e, senha.value)
+      .then(() => fechar())
+      .catch((err) => { aviso.textContent = err instanceof Error ? err.message : 'Não deu certo'; senha.value = ''; })
+      .finally(() => { ocupado = false; });
+  };
+  [email, senha].forEach((c) => {
+    c.addEventListener('click', () => window.setTimeout(() => c.focus(), 30));
+    c.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && c === senha) entrar(); });
+  });
+  caixa.querySelector('[data-acao="entrar"]')!.addEventListener('click', entrar);
+  caixa.querySelector('[data-acao="voltar"]')!.addEventListener('click', fechar);
+  setTimeout(() => SpatialNav.focus(email), 50);
   return caixa;
 }

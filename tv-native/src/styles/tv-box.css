@@ -330,3 +330,4 @@ html.tizen.video-ativo, html.tizen.video-ativo body { background: transparent !i
 .tv-conta .tv-btn { margin-right: 16px; }
 .tv-conta-dica { margin-top: 26px; opacity: .6; font-size: 22px; }
 .tv-conta.logada { flex-direction: column; text-align: center; }
+.tv-conta-campo { display: block; width: 760px; margin: 22px auto 0; }
