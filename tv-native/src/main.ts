@@ -6,6 +6,7 @@
 import './core/polyfills';
 // Logo depois dos polyfills: favoritos, progresso e recentes leem do perfil ativo.
 import '../../src/perfis/instalar';
+import { iniciarBrilho } from '../../src/plataforma/brilho';
 import { definirCaminhoAvatar, deveEscolherAoAbrir } from '../../src/perfis/perfis';
 import './styles/tv.css';
 import './styles/tv-box.css';
@@ -49,6 +50,7 @@ class SaimoTVApp {
   constructor() {
     Platform.init();
     SpatialNav.init();
+    iniciarBrilho();
     if (Platform.isTizen) document.documentElement.classList.add('tizen');
 
     this.videoEl = document.getElementById('tv-video') as HTMLVideoElement;

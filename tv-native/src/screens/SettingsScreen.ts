@@ -15,6 +15,7 @@ import { SpatialNav } from '../core/SpatialNav';
 import { caixaDeCodigo } from './PerfisScreen';
 import { ativo as perfilAtivo, conferirCodigo, pedeCodigo, perfis } from '../../../src/perfis/perfis';
 import { conferirSenha, senhaEhPadrao, trocarSenha } from '../../../src/perfis/parental';
+import { brilho, definirBrilho } from '../../../src/plataforma/brilho';
 import { ehKids } from '../../../src/perfis/kids';
 
 export class SettingsScreen {
@@ -238,6 +239,17 @@ export class SettingsScreen {
       : Platform.isWebOS
       ? 'LG Smart TV (webOS Native)'
       : 'Navegador Web / Simulador';
+
+    // Brilho do app (não o da TV): 100 -> 75 -> 50 -> 25 -> 0 -> 100. Em 0 qualquer botão volta.
+    const textoBrilho = (v: number) => (v >= 100 ? '100% (normal) · OK diminui 25%' : `${v}% · OK muda · em 0% qualquer botão volta`);
+    addSection('Tela');
+    addOption('brilho', 'Brilho do app', textoBrilho(brilho()), () => {
+      const atual = brilho();
+      const novo = atual <= 0 ? 100 : Math.max(0, atual - 25);
+      definirBrilho(novo);
+      const valor = document.querySelector('#setting-brilho .tv-settings-item-value');
+      if (valor) valor.textContent = textoBrilho(novo);
+    });
 
     addOption('sobre-plataforma', 'Sistema Operacional', platformLabel, () => {});
     addOption('sobre-versao', 'Versão', __VERSAO_APP__, () => {});

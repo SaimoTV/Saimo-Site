@@ -11,12 +11,14 @@ import { migrarUmaVez } from './services/listas'
 import { iniciarTv } from './plataforma/tv'
 import { sondarProxy } from './utils/streamUrl'
 import { vigiarExtensoes } from './plataforma/bloqueioExtensoes'
+import { iniciarBrilho } from './plataforma/brilho'
 
 // Antes de qualquer tela: esquece o que as versões anteriores guardaram de listas.
 migrarUmaVez()
 // Antes de tudo: extensão que captura os endereços (FlowPick) bloqueia o site.
 vigiarExtensoes()
 iniciarTv()
+iniciarBrilho()
 // O proxy do site pode estar cortado pela cota do dia: confere ao abrir e a cada 10 minutos.
 window.setInterval(() => { void sondarProxy() }, 10 * 60 * 1000)
 iniciarTelemetria()

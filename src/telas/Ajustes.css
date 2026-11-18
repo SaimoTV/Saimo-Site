@@ -47,3 +47,8 @@
 .ajustes-parental-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .ajustes-parental-form input { width: 130px; height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.06); color: #fff; font-weight: 600; font-size: 16px; line-height: 1; font-family: inherit; letter-spacing: 0.3em; }
 .ajustes-parental-aviso { margin-top: 10px; font-size: 13px; color: #ffb3b3; }
+
+/* Brilho do app */
+.ajustes-brilho { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; max-width: 520px; }
+.ajustes-brilho input[type='range'] { width: 100%; accent-color: #2dd4bf; height: 28px; }
+.ajustes-dica { color: rgba(255, 255, 255, 0.55); font-size: 13px; margin-top: 6px; }

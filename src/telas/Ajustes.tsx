@@ -31,6 +31,7 @@ import { Avatar } from '../perfis/EscolhaPerfil';
 import { ControleParental } from '../perfis/ControleParental';
 import { PedirCodigo } from '../perfis/PedirCodigo';
 import { pedeCodigo } from '../perfis/perfis';
+import { brilho as brilhoGuardado, definirBrilho, aoMudarBrilho } from '../plataforma/brilho';
 
 export type AoIniciar = 'inicio' | 'ultimo';
 export const CHAVE_AO_INICIAR = 'saimo-ao-iniciar';
@@ -61,6 +62,8 @@ const LIMPAR: { rotulo: string; chaves: string[]; aviso: string }[] = [
 ];
 
 function AjustesConteudo() {
+  const [brilhoApp, setBrilhoApp] = useState(brilhoGuardado());
+  useEffect(() => aoMudarBrilho(setBrilhoApp), []);
   const navigate = useNavigate();
   const location = useLocation();
   const canais = useCanais();
@@ -294,6 +297,17 @@ function AjustesConteudo() {
               </button>
             )}
           </div>
+        </section>
+
+        <section className="ajustes-bloco">
+          <h2>Tela</h2>
+          <label className="ajustes-brilho">
+            <span>Brilho do app: <strong>{brilhoApp}%</strong></span>
+            <input type="range" min={0} max={100} step={5} value={brilhoApp}
+              onChange={(e) => setBrilhoApp(Number(e.target.value))}
+              onPointerUp={() => definirBrilho(brilhoApp)} onKeyUp={() => definirBrilho(brilhoApp)} />
+          </label>
+          <p className="ajustes-dica">Em 0% a tela fica preta: qualquer tecla ou clique volta ao normal.</p>
         </section>
 
         <section className="ajustes-bloco">
