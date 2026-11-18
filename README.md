@@ -149,3 +149,7 @@ No site e no app da Samsung/LG (`tv-native`): `src/perfis/` (as chaves de perfil
 `src/plataforma/brilho.ts` (site: Ajustes > Tela; Samsung/LG: Ajustes > Tela): véu preto por cima
 da página, 0 a 100. Em até 5% qualquer tecla, botão do controle ou clique traz o brilho de volta,
 devagar. Os campos de texto das TVs são sempre escuros com letra branca.
+
+## Conta Saimo (opcional)
+
+Site: Ajustes > Conta Saimo entra com o código do e-mail ou com e-mail e senha, cria e troca a senha, aprova TVs pelo código e apaga a conta; `/conectar?c=ABCD2345` é aonde leva o QR das TVs. App da Samsung e da LG: Ajustes > Conta Saimo mostra o QR e tem e-mail e senha. Núcleo comum em `src/conta/conta.ts`; o que cada um lê e grava em `src/conta/site.ts` e `tv-native/src/core/ContaTv.ts`. Teste: `VITE_CONTA_API=http://127.0.0.1:8787 npx vite`. Contrato: SaimoPlayer/docs/conta.md. Sem conta, nada muda.
