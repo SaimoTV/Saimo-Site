@@ -214,7 +214,7 @@ const SOBRE_SECAO: Record<Secao, string> = {
 };
 
 function normalizar(texto: string): string {
-  return texto.normalize('NFD').replace(/\p{Mn}+/gu, '').toLowerCase();
+  return texto.normalize('NFD').replace(/[̀-ͯ]+/g, '').toLowerCase();
 }
 
 function agruparEpisodios(lista: Episodio[]): EpisodioAgrupado[] {

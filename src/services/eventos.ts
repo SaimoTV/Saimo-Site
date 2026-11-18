@@ -205,7 +205,7 @@ function lerEspn(bruto: unknown): Placar[] {
 
 /** Só palavras inteiras de sigla saem: "Palmeiras" e "SE Palmeiras" casam. */
 function chaveTime(nome: string): string {
-    return nome.normalize('NFD').replace(/\p{M}+/gu, '').toLowerCase()
+    return nome.normalize('NFD').replace(/[̀-ͯ]+/g, '').toLowerCase()
         .split(/[^a-z0-9]+/).filter(p => p && !SIGLAS.has(p)).join('');
 }
 

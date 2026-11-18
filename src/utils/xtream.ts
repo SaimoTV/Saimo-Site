@@ -14,7 +14,7 @@
 import type { CanalLido as CanalM3U } from './leitorM3u';
 
 /** Chave de comparação do nome (a mesma de leitorM3u: sem acentos, só a-z e 0-9). */
-const chave = (nome: string) => nome.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const chave = (nome: string) => nome.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
 export interface ContaXtream {
   base: string;

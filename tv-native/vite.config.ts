@@ -15,7 +15,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
-    target: ['chrome68', 'es2018'],
+    target: ['chrome53', 'es2016'],
     minify: 'esbuild',
     rollupOptions: {
       input: resolve(__dirname, 'index.html'),

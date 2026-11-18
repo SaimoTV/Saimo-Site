@@ -57,7 +57,7 @@ export function iniciarBrilho() {
   veu = document.createElement('div')
   veu.setAttribute('aria-hidden', 'true')
   Object.assign(veu.style, {
-    position: 'fixed', inset: '0', background: '#000', zIndex: '2147483647',
+    position: 'fixed', top: '0', left: '0', right: '0', bottom: '0', background: '#000', zIndex: '2147483647',
     pointerEvents: 'none', opacity: '0', visibility: 'hidden',
   })
   document.body.appendChild(veu)

@@ -30,7 +30,7 @@ const RESOLUCAO = /(\d{3,4}[pi])/i;
 
 /** Chave de comparação do nome: minúsculas, sem acentos, só letras e números. */
 export function chaveDoNome(nome: string): string {
-  return nome.normalize('NFD').replace(/\p{Mn}/gu, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  return nome.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
 function atributo(linha: string, nome: string): string | null {
@@ -189,7 +189,7 @@ const ADULTO = /(?:^|[^a-z0-9])(?:adult|adulto|adultos|xxx|porn|porno|sexo|sex|e
 /** Grupo ou nome de conteúdo adulto: só aparece depois do desbloqueio do controle parental. */
 export function ehRestrito(canal: Pick<CanalLido, 'nome' | 'grupo'>): boolean {
   const texto = `${canal.grupo ?? ''} ${canal.nome}`
-    .normalize('NFD').replace(/\p{Mn}/gu, '').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
     .replace(/adult swim/g, ' '); // "Adult Swim" é desenho animado
   return ADULTO.test(texto);
 }

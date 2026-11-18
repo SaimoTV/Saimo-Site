@@ -18,7 +18,7 @@ const RECENTES = 'saimo-radios-recentes';
 
 /** Nome sem acento e em minúsculas, para a busca. */
 export const chave = (nome: string) =>
-  nome.normalize('NFD').replace(/\p{M}+/gu, '').toLowerCase();
+  nome.normalize('NFD').replace(/[̀-ͯ]+/g, '').toLowerCase();
 
 function ler(texto: string): Radio[] {
   const vistas = new Set<string>();

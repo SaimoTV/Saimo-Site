@@ -86,6 +86,67 @@
     }
   }
 
+  // webOS 4 (Chromium 53) e Tizen antigos: sem estes, a primeira lista ou o
+  // primeiro canal lido dava erro e o app ficava parado na abertura.
+  if (!String.prototype.padStart) {
+    String.prototype.padStart = function (alvo: number, preencher?: string): string {
+      var s = String(this);
+      var p = preencher === undefined ? ' ' : String(preencher);
+      if (s.length >= alvo || !p) return s;
+      var falta = alvo - s.length;
+      while (p.length < falta) p += p;
+      return p.slice(0, falta) + s;
+    };
+  }
+  if (!String.prototype.padEnd) {
+    String.prototype.padEnd = function (alvo: number, preencher?: string): string {
+      var s = String(this);
+      var p = preencher === undefined ? ' ' : String(preencher);
+      if (s.length >= alvo || !p) return s;
+      var falta = alvo - s.length;
+      while (p.length < falta) p += p;
+      return s + p.slice(0, falta);
+    };
+  }
+  if (!(String.prototype as any).trimStart) {
+    (String.prototype as any).trimStart = function (this: string) { return this.replace(/^[\s\uFEFF\xA0]+/, ''); };
+  }
+  if (!(String.prototype as any).trimEnd) {
+    (String.prototype as any).trimEnd = function (this: string) { return this.replace(/[\s\uFEFF\xA0]+$/, ''); };
+  }
+  if (typeof Promise !== 'undefined' && !(Promise.prototype as any).finally) {
+    (Promise.prototype as any).finally = function (this: Promise<any>, fn: () => void) {
+      return this.then(
+        function (v) { return Promise.resolve(fn()).then(function () { return v; }); },
+        function (e) { return Promise.resolve(fn()).then(function () { throw e; }); },
+      );
+    };
+  }
+  if (!(Array.prototype as any).flat) {
+    (Array.prototype as any).flat = function (this: any[], prof?: number): any[] {
+      var d = prof === undefined ? 1 : prof;
+      var saida: any[] = [];
+      (function achatar(lista: any[], n: number) {
+        for (var i = 0; i < lista.length; i++) {
+          if (Array.isArray(lista[i]) && n > 0) achatar(lista[i], n - 1); else saida.push(lista[i]);
+        }
+      })(this, d);
+      return saida;
+    };
+  }
+  if (!(Array.prototype as any).flatMap) {
+    (Array.prototype as any).flatMap = function (this: any[], fn: (v: any, i: number, a: any[]) => any, este?: any): any[] {
+      return (this.map(fn, este) as any).flat(1);
+    };
+  }
+  if (!(Object as any).fromEntries) {
+    (Object as any).fromEntries = function (pares: Iterable<[string, any]>): any {
+      var o: any = {};
+      Array.from(pares as any).forEach(function (p: any) { o[p[0]] = p[1]; });
+      return o;
+    };
+  }
+
   if (typeof g.CustomEvent !== 'function') {
     var CustomEventPoly = function (event: string, params?: CustomEventInit) {
       params = params || { bubbles: false, cancelable: false, detail: null };
