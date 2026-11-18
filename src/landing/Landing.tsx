@@ -1165,8 +1165,8 @@ function Connect() {
         <h2 className="titulo-grande rv d1">Seu celular vira o <span className="grad">controle remoto.</span></h2>
         <p className="lead rv d2">
           O Saimo Connect liga os seus aparelhos pela própria rede da sua casa. Sem conta, sem nuvem e sem servidor nosso no meio.
-          Use o celular para navegar na TV, digitar links sem sofrer com o controle, ouvir o som da TV no seu fone e levar o que você assistia
-          de um aparelho para outro. Funciona com a TV Box, o Mac, o Windows e o Linux.
+          Use o celular para navegar na TV, digitar links sem sofrer com o controle, escolher a fonte, o áudio e a legenda numa lista, ligar o timer,
+          ouvir o som da TV no seu fone e levar o que você assistia de um aparelho para outro. Funciona com a TV Box, o Mac, o Windows e o Linux.
         </p>
         <div className="connect-cena rv d3">
           <div className="connect-tv">
@@ -1215,6 +1215,11 @@ function Connect() {
           <li><Icone nome="fone" tamanho={20} /><div><strong>Som da TV no fone</strong><span>Ouça a TV no celular, sincronizado, sem incomodar ninguém.</span></div></li>
           <li><Icone nome="multi" tamanho={20} /><div><strong>Comanda a multi tela</strong><span>Liga, escolhe a metade e troca o canal de cada uma.</span></div></li>
           <li><Icone nome="controle" tamanho={20} /><div><strong>Controle remoto</strong><span>Setas, OK, voltar e volume, direto do celular.</span></div></li>
+          <li><Icone nome="lista" tamanho={20} /><div><strong>Escolha a fonte numa lista</strong><span>Veja qual fonte está tocando e troque por outra com um toque.</span></div></li>
+          <li><Icone nome="legenda" tamanho={20} /><div><strong>Áudio e legenda</strong><span>Escolha o idioma do áudio e a legenda, ou desligue a legenda.</span></div></li>
+          <li><Icone nome="heart" tamanho={20} /><div><strong>Favorito e canal anterior</strong><span>Favorite o canal no ar e volte ao anterior sem procurar.</span></div></li>
+          <li><Icone nome="relogio" tamanho={20} /><div><strong>Timer para desligar</strong><span>De 15 minutos a 2 horas: a TV desliga sozinha.</span></div></li>
+          <li><Icone nome="tv" tamanho={20} /><div><strong>Atalhos de tela</strong><span>Abra na TV o Início, Ao vivo, Filmes e séries, Rádios, Perfis ou Ajustes.</span></div></li>
           <li><Icone nome="link" tamanho={20} /><div><strong>Digite no celular</strong><span>Mande links de lista e buscas sem teclado de TV.</span></div></li>
           <li><Icone nome="heart" tamanho={20} /><div><strong>Tudo sincronizado</strong><span>Favoritos, progresso e listas entre os seus aparelhos.</span></div></li>
           <li><Icone nome="film" tamanho={20} /><div><strong>Abre filmes na TV</strong><span>Escolha no celular e o filme ou episódio começa na tela grande.</span></div></li>
