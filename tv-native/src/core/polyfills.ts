@@ -243,4 +243,89 @@
       });
     };
   }
+
+  // ---- Chromium 53 (LG webOS 4.x, TVs de 2018-2019) não tem estes ----
+
+  // Promise.prototype.finally (Chrome 63).
+  if (typeof Promise !== 'undefined' && !(Promise.prototype as any).finally) {
+    (Promise.prototype as any).finally = function (this: Promise<any>, fn: () => any) {
+      var P: any = this.constructor || Promise;
+      return this.then(
+        function (v: any) { return P.resolve(fn && fn()).then(function () { return v; }); },
+        function (e: any) { return P.resolve(fn && fn()).then(function () { throw e; }); },
+      );
+    };
+  }
+  if (typeof Promise !== 'undefined' && !(Promise as any).allSettled) {
+    (Promise as any).allSettled = function (lista: any[]) {
+      return Promise.all(Array.prototype.map.call(lista, function (p: any) {
+        return Promise.resolve(p).then(
+          function (value: any) { return { status: 'fulfilled', value: value }; },
+          function (reason: any) { return { status: 'rejected', reason: reason }; },
+        );
+      }));
+    };
+  }
+
+  // append, prepend, before, after, replaceWith (Chrome 54): aceitam nós e textos.
+  var paraNo = function (itens: any[]): Node {
+    if (itens.length === 1 && itens[0] instanceof Node) return itens[0];
+    var frag = document.createDocumentFragment();
+    for (var i = 0; i < itens.length; i++) {
+      var it = itens[i];
+      frag.appendChild(it instanceof Node ? it : document.createTextNode(String(it)));
+    }
+    return frag;
+  };
+  var definir = function (alvo: any, nome: string, fn: Function) {
+    if (alvo && !alvo[nome]) Object.defineProperty(alvo, nome, { value: fn, configurable: true, writable: true });
+  };
+  [typeof Element !== 'undefined' ? Element.prototype : null, typeof Document !== 'undefined' ? Document.prototype : null,
+    typeof DocumentFragment !== 'undefined' ? DocumentFragment.prototype : null].forEach(function (proto: any) {
+    definir(proto, 'append', function (this: Node) { this.appendChild(paraNo(Array.prototype.slice.call(arguments))); });
+    definir(proto, 'prepend', function (this: Node) { this.insertBefore(paraNo(Array.prototype.slice.call(arguments)), this.firstChild); });
+  });
+  [typeof Element !== 'undefined' ? Element.prototype : null, typeof CharacterData !== 'undefined' ? CharacterData.prototype : null].forEach(function (proto: any) {
+    definir(proto, 'before', function (this: ChildNode & Node) { if (this.parentNode) this.parentNode.insertBefore(paraNo(Array.prototype.slice.call(arguments)), this); });
+    definir(proto, 'after', function (this: ChildNode & Node) { if (this.parentNode) this.parentNode.insertBefore(paraNo(Array.prototype.slice.call(arguments)), this.nextSibling); });
+    definir(proto, 'replaceWith', function (this: ChildNode & Node) { if (this.parentNode) this.parentNode.replaceChild(paraNo(Array.prototype.slice.call(arguments)), this); });
+    definir(proto, 'remove', function (this: ChildNode & Node) { if (this.parentNode) this.parentNode.removeChild(this); });
+  });
+
+  // Node.isConnected (Chrome 54).
+  if (typeof Node !== 'undefined' && !('isConnected' in Node.prototype)) {
+    Object.defineProperty(Node.prototype, 'isConnected', {
+      configurable: true,
+      get: function (this: Node) { return !!(this.ownerDocument && this.ownerDocument.documentElement && this.ownerDocument.documentElement.contains(this)); },
+    });
+  }
+
+  // String.prototype.replaceAll (Chrome 85): só com texto (expressão regular já tem /g).
+  if (!(String.prototype as any).replaceAll) {
+    (String.prototype as any).replaceAll = function (this: string, de: any, para: any) {
+      if (de instanceof RegExp) return this.replace(de, para);
+      return this.split(String(de)).join(typeof para === 'function' ? para(String(de)) : String(para));
+    };
+  }
+
+  // queueMicrotask (Chrome 71).
+  if (typeof g.queueMicrotask !== 'function') {
+    g.queueMicrotask = function (fn: () => void) { Promise.resolve().then(fn); };
+  }
+
+  // Flex `gap` (Chrome 84): sem ele, o sem-gap.css põe margens no lugar.
+  try {
+    var caixa = document.createElement('div');
+    caixa.style.display = 'flex';
+    caixa.style.flexDirection = 'column';
+    caixa.style.position = 'absolute';
+    caixa.style.visibility = 'hidden';
+    (caixa.style as any).rowGap = '1px';
+    caixa.appendChild(document.createElement('div'));
+    caixa.appendChild(document.createElement('div'));
+    (document.body || document.documentElement).appendChild(caixa);
+    var temGap = caixa.scrollHeight === 1;
+    caixa.parentNode && caixa.parentNode.removeChild(caixa);
+    if (!temGap) document.documentElement.className += ' sem-gap';
+  } catch (e) { /* sem DOM: nada a fazer */ }
 })();

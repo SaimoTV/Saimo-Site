@@ -10,6 +10,8 @@ import { iniciarBrilho } from '../../src/plataforma/brilho';
 import { definirCaminhoAvatar, deveEscolherAoAbrir } from '../../src/perfis/perfis';
 import './styles/tv.css';
 import './styles/tv-box.css';
+// TVs que não entendem `gap` nos flex (LG webOS 4.x): margens no lugar (só com .sem-gap no <html>).
+import './styles/sem-gap.css';
 import { Platform } from './core/Platform';
 import { SpatialNav } from './core/SpatialNav';
 import { State, ScreenType } from './core/State';
