@@ -19,6 +19,12 @@ export { normalizarEndereco };
 const CHAVE_CANAIS = 'saimo-link-canais';
 const CHAVE_FILMES = 'saimo-link-filmes';
 const CHAVE_MIGRADO = 'saimo-sem-listas-v1';
+/** Quando a pessoa escolheu os endereços por último (ms), para a sincronia saber qual vale. */
+const CHAVE_EM = 'saimo-links-em';
+
+export function linksEm(): number {
+  try { return Number(localStorage.getItem(CHAVE_EM)) || 0; } catch { return 0; }
+}
 const EVENTO = 'saimo-listas-mudaram';
 
 export type Lista = 'canais' | 'filmes';
@@ -46,8 +52,9 @@ export function linkCanais(): string { carregar(); return memoria.canais; }
 /** Endereço-base da lista de filmes e séries, com barra no fim; `''` se não houver. */
 export function linkFilmes(): string { carregar(); return memoria.filmes; }
 
-export function definirLink(lista: Lista, endereco: string): void {
+export function definirLink(lista: Lista, endereco: string, em = Date.now()): void {
   carregar();
+  try { localStorage.setItem(CHAVE_EM, String(em)); } catch { /* segue */ }
   const chave = lista === 'canais' ? CHAVE_CANAIS : CHAVE_FILMES;
   memoria[lista] = endereco;
   // Vazio é guardado como vazio: a lista fica desligada, não volta ao padrão.

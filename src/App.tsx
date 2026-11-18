@@ -49,6 +49,7 @@ const MoviePlayer = lazy(() => import('./components/MoviePlayer').then(m => ({ d
 const ProgramGuide = lazy(() => import('./components/ProgramGuide').then(m => ({ default: m.ProgramGuide })));
 const VodCatalog = lazy(() => import('./components/VodCatalog').then(m => ({ default: m.VodCatalog })));
 const StreamTester = lazy(() => import('./components/StreamTester').then(m => ({ default: m.StreamTester })));
+const Conectar = lazy(() => import('./conta/Conectar'));
 const AppDownload = lazy(() => import('./components/AppDownload').then(m => ({ default: m.AppDownload })));
 const ApoiePagina = lazy(() => import('./components/ApoiePagina').then(m => ({ default: m.ApoiePagina })));
 const Novidades = lazy(() => import('./components/Novidades').then(m => ({ default: m.Novidades })));
@@ -665,6 +666,7 @@ function AppLayout() {
       <Route path="/favoritos" element={<Favoritos key={chave} />} />
       <Route path="/radios" element={<Radios key={chave} />} />
       <Route path="/ajustes" element={<Ajustes />} />
+      <Route path="/conectar" element={<Suspense fallback={null}><Conectar /></Suspense>} />
       <Route path="/tv" element={<TVPage key={chave} />} />
       <Route path="/tv/:slug" element={<TVPage key={chave} />} />
             <Route path="/movies" element={<MoviesPage key={chave} />} />

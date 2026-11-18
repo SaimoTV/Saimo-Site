@@ -2,7 +2,7 @@ import { ehAppDaTv } from '../plataforma/tv';
 import { useRef, useEffect, useState, useCallback, memo, useMemo } from 'react';
 import { rota } from '../utils/rotas';
 import { useMediaSession } from '../hooks/useMediaSession';
-import { registrar as registrarAndamento } from '../services/continuar';
+import { registrar as registrarAndamento, posicao as posicaoDoAndamento } from '../services/continuar';
 import { buscarPulos, trechoEm, inicioDosCreditos, rotuloTrecho, type Trecho } from '../services/pulos';
 import { buscarLegendas, carregarLegenda, idiomaGuardado, guardarIdioma, mesclarLegendasComStream, type LegendaOpcao, type Fala } from '../services/legendas';
 import { isDebridPendingUrl } from '../services/addons';
@@ -327,12 +327,14 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
       const progresso = (tempo / duracao) * 100;
       if (progresso < 95) localStorage.setItem(`movie-progress-${movie.id}`, String(tempo));
       else localStorage.removeItem(`movie-progress-${movie.id}`);
-      if (movie.origem) registrarAndamento(movie.origem, movie.name, tempo, duracao);
+      if (movie.origem) registrarAndamento(movie.origem, movie.name, tempo, duracao, movie.seasonNumber, movie.episodeNumber);
     };
 
     const carregarProgresso = () => {
       if (!atual()) return;
-      const salvo = Number(localStorage.getItem(`movie-progress-${movie.id}`));
+      // Sem o ponto deste vídeo: o que veio de outro aparelho (Conta Saimo), pelo título.
+      const salvo = Number(localStorage.getItem(`movie-progress-${movie.id}`))
+        || posicaoDoAndamento(movie.origem, movie.seasonNumber, movie.episodeNumber);
       if (Number.isFinite(salvo) && salvo > 0 && Number.isFinite(video.duration) && salvo < video.duration - 5) {
         posicionar(video, salvo);
       }

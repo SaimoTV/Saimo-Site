@@ -281,3 +281,52 @@ export function instalarChavesPorPerfil(): void {
 export function lerDoPerfil(chave: string, id: string): string | null {
   return cru.get(chaveDoPerfil(chave, id));
 }
+
+/** Grava um dado de qualquer perfil, sem depender do ativo (para a sincronia). */
+export function gravarNoPerfil(chave: string, id: string, valor: string): void {
+  cru.set(chaveDoPerfil(chave, id), valor);
+}
+
+/**
+ * Junta os perfis que vieram de outro aparelho (Saimo Connect ou Conta Saimo),
+ * com as regras de SaimoPlayer/docs/perfis.md: remoção mais nova que o perfil
+ * apaga; perfil novo entra se houver vaga; nome, avatar e Kids ficam com o `em`
+ * maior. Devolve os ids que existem aqui depois de juntar.
+ */
+export function mesclarPerfis(remotos: Perfil[], remocoes: Remocao[]): Set<string> {
+  let lista = perfis();
+  const minhasRemocoes = removidos();
+  let mudou = false;
+  for (const r of remocoes) {
+    if (!r || typeof r.id !== 'string' || r.id === PRINCIPAL) continue;
+    const local = lista.find((p) => p.id === r.id);
+    if (local && local.em < Number(r.em)) {
+      apagarDados(r.id);
+      lista = lista.filter((p) => p.id !== r.id);
+      if (cru.get(CHAVE_ATIVO) === r.id) cru.set(CHAVE_ATIVO, PRINCIPAL);
+      mudou = true;
+    }
+    if (!minhasRemocoes.some((x) => x.id === r.id && x.em >= Number(r.em))) guardarRemocao({ id: r.id, em: Number(r.em) || 0 });
+  }
+  const todasRemocoes = removidos();
+  for (const p of remotos) {
+    if (!p || typeof p.id !== 'string' || !p.id) continue;
+    const em = Number(p.em) || 0;
+    if (todasRemocoes.some((r) => r.id === p.id && r.em >= em)) continue;
+    const limpo = limparNome(String(p.nome ?? '')) || 'Perfil';
+    const avatar = (AVATARES as readonly string[]).includes(p.avatar) ? p.avatar : 'gato';
+    const novo: Perfil = { id: p.id, nome: limpo, avatar, em };
+    if (p.kids && p.id !== PRINCIPAL) { novo.kids = true; if (p.codigo) novo.codigo = String(p.codigo); }
+    const i = lista.findIndex((x) => x.id === p.id);
+    if (i < 0) {
+      if (lista.length >= MAX_PERFIS) continue;
+      lista = [...lista, novo];
+      mudou = true;
+    } else if (em > lista[i].em) {
+      lista = lista.map((x, j) => (j === i ? novo : x));
+      mudou = true;
+    }
+  }
+  if (mudou) gravar(lista);
+  return new Set(perfis().map((p) => p.id));
+}

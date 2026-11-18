@@ -1,0 +1,17 @@
+.conta-caixa p { margin: 6px 0 10px; }
+.conta-caixa h3 { margin: 18px 0 4px; font-size: 1rem; }
+.conta-linha { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
+.conta-campo {
+  min-width: 240px; height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06); color: #fff; font-size: 16px; font-family: inherit;
+}
+.conta-campo.conta-codigo { min-width: 0; width: 170px; text-align: center; letter-spacing: 0.25em; font-weight: 700; font-size: 18px; }
+.conta-quem { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; }
+.conta-quem span { color: #a8b4c0; font-size: 0.9rem; }
+.conta-erro { color: #f87171; }
+.conta-ok { color: #4ade80; }
+.conta-fim { margin-top: 18px; }
+.conectar { max-width: 640px; margin: 0 auto; padding: 48px 20px; color: #fff; }
+.conectar h1 { font-size: 1.6rem; margin-bottom: 10px; }
+.conectar-codigo { font-size: 2.4rem; font-weight: 800; letter-spacing: 0.15em; color: #2dd4bf; margin: 10px 0 18px; }
+.conectar-rodape { margin-top: 28px; color: #a8b4c0; }

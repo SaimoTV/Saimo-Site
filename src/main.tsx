@@ -12,6 +12,8 @@ import { iniciarTv } from './plataforma/tv'
 import { sondarProxy } from './utils/streamUrl'
 import { vigiarExtensoes } from './plataforma/bloqueioExtensoes'
 import { iniciarBrilho } from './plataforma/brilho'
+import { iniciarConta } from './conta/conta'
+import { adaptadorDoSite } from './conta/site'
 
 // Antes de qualquer tela: esquece o que as versões anteriores guardaram de listas.
 migrarUmaVez()
@@ -22,6 +24,8 @@ iniciarBrilho()
 // O proxy do site pode estar cortado pela cota do dia: confere ao abrir e a cada 10 minutos.
 window.setInterval(() => { void sondarProxy() }, 10 * 60 * 1000)
 iniciarTelemetria()
+// Conta Saimo (opcional): sem login, não faz nada.
+iniciarConta(adaptadorDoSite)
 
 // A tela só abre depois da sondagem do proxy (no máximo 1,5 s): o player monta as tentativas de cada
 // canal ao abrir, e precisa saber se o proxy do site está de pé ou cortado pela cota do dia.

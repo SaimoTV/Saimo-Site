@@ -204,6 +204,13 @@ function slugify(name: string): string {
   return base || 'canal';
 }
 
+/** Id de favorito de um canal pelo nome (o pacote do Connect leva nomes). */
+export const idDoCanal = slugify;
+
+/** Nome de cada id de canal já carregado, para mandar os favoritos por nome. */
+const nomesDosCanais = new Map<string, string>();
+export function nomeDoCanal(id: string): string | undefined { return nomesDosCanais.get(id); }
+
 /** Converte a lista lida em canais do site, com id estável, categoria e número. */
 export function toChannels(parsed: ParsedChannel[]): Channel[] {
   const usados = new Map<string, number>();
@@ -231,6 +238,7 @@ export function toChannels(parsed: ParsedChannel[]): Channel[] {
     const repetido = usados.get(raiz) ?? 0;
     usados.set(raiz, repetido + 1);
     const id = repetido === 0 ? raiz : `${raiz}-${repetido + 1}`;
+    nomesDosCanais.set(id, c.name);
     const sources = httpsFirst(c.sources);
     return {
       id,
