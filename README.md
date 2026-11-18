@@ -143,3 +143,9 @@ gerenciar perfis e abrir os Ajustes pedem um código de 4 dígitos (guardado com
 parental visível no fim dos Ajustes, discreto: senha padrão 0000, trocável; no Kids nunca libera.
 
 No site e no app da Samsung/LG (`tv-native`): `src/perfis/` (as chaves de perfil ganham `@<id>` na entrada do localStorage, antes de qualquer módulo ler; SHA-256 em JS puro porque a TV roda em `file://`), filtro do Kids em `vodService`/`tv-native/src/core/Api.ts`, `ControleParental.tsx` no fim dos Ajustes. Os catálogos publicados pelo Saimo não têm conteúdo adulto (`SaimoCatalogos/scripts/sem_adulto.py`).
+
+## Brilho do app
+
+`src/plataforma/brilho.ts` (site: Ajustes > Tela; Samsung/LG: Ajustes > Tela): véu preto por cima
+da página, 0 a 100. Em até 5% qualquer tecla, botão do controle ou clique traz o brilho de volta,
+devagar. Os campos de texto das TVs são sempre escuros com letra branca.
