@@ -1,7 +1,10 @@
 {
   "version": 1,
   "include": [
-    "/api/*",
+    "/api/stream",
+    "/api/stream/*",
+    "/api/resolve-vod",
+    "/api/events",
     "/tvbox",
     "/celular",
     "/mac",
