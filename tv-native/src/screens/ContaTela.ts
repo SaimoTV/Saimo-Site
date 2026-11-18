@@ -6,7 +6,7 @@
  */
 import { SpatialNav } from '../core/SpatialNav';
 import { buildQrSvg } from '../../../src/utils/qrCode';
-import { conferirAprovacao, entrarComSenha, estadoConta, pedirCodigoDaTv, sair, sincronizar } from '../../../src/conta/conta';
+import { cadastrar, conferirAprovacao, entrarComSenha, estadoConta, pedirCodigoDaTv, sair, sincronizar } from '../../../src/conta/conta';
 
 function esc(t: string): string {
   return t.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
@@ -66,7 +66,7 @@ export function caixaDaConta(fechar: () => void): HTMLElement {
       <div class="tv-conta-codigo">…</div>
       <div class="tv-perfis-sub tv-conta-situacao">Pedindo um código…</div>
       <div class="tv-perfis-acoes">
-        <div class="tv-btn nav-focusable" data-nav="true" data-acao="senha">Entrar com e-mail e senha</div>
+        <div class="tv-btn nav-focusable" data-nav="true" data-acao="senha">E-mail e senha</div>
         <div class="tv-btn nav-focusable" data-nav="true" data-acao="voltar">Voltar</div>
       </div>
       <div class="tv-perfis-sub tv-conta-dica">Sem conta, tudo continua só nesta TV.</div>
@@ -125,24 +125,26 @@ function caixaDeSenha(fechar: () => void): HTMLElement {
   caixa.className = 'tv-conta logada';
   caixa.innerHTML = `
     <div class="tv-perfis-titulo">Entrar na Conta Saimo</div>
-    <div class="tv-perfis-sub">Quem criou uma senha no celular ou no site entra aqui. Esqueceu ou ainda não tem? Crie no celular (Ajustes &gt; Conta Saimo) ou no site.</div>
+    <div class="tv-perfis-sub">Entre com o e-mail e a senha da sua conta, ou crie uma conta agora (senha com 8 ou mais).</div>
     <input class="tv-campo tv-conta-campo nav-focusable" data-nav="true" type="email" autocomplete="username" placeholder="Seu e-mail" />
     <input class="tv-campo tv-conta-campo nav-focusable" data-nav="true" type="password" autocomplete="current-password" placeholder="Senha" />
     <div class="tv-perfis-aviso"></div>
     <div class="tv-perfis-acoes">
       <div class="tv-btn nav-focusable" data-nav="true" data-acao="entrar">Entrar</div>
+      <div class="tv-btn nav-focusable" data-nav="true" data-acao="criar">Criar conta</div>
       <div class="tv-btn nav-focusable" data-nav="true" data-acao="voltar">Voltar</div>
     </div>`;
   const [email, senha] = Array.from(caixa.querySelectorAll<HTMLInputElement>('input'));
   const aviso = caixa.querySelector<HTMLElement>('.tv-perfis-aviso')!;
   let ocupado = false;
-  const entrar = () => {
+  const entrar = (criar = false) => {
     if (ocupado) return;
     const e = email.value.trim();
     if (!e.includes('@') || !senha.value) { aviso.textContent = 'Digite o e-mail e a senha'; return; }
+    if (criar && senha.value.length < 8) { aviso.textContent = 'A senha precisa ter 8 ou mais caracteres'; return; }
     ocupado = true;
-    aviso.textContent = 'Entrando…';
-    entrarComSenha(e, senha.value)
+    aviso.textContent = criar ? 'Criando a conta…' : 'Entrando…';
+    (criar ? cadastrar(e, senha.value) : entrarComSenha(e, senha.value))
       .then(() => fechar())
       .catch((err) => { aviso.textContent = err instanceof Error ? err.message : 'Não deu certo'; senha.value = ''; })
       .finally(() => { ocupado = false; });
@@ -151,7 +153,8 @@ function caixaDeSenha(fechar: () => void): HTMLElement {
     c.addEventListener('click', () => window.setTimeout(() => c.focus(), 30));
     c.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && c === senha) entrar(); });
   });
-  caixa.querySelector('[data-acao="entrar"]')!.addEventListener('click', entrar);
+  caixa.querySelector('[data-acao="entrar"]')!.addEventListener('click', () => entrar());
+  caixa.querySelector('[data-acao="criar"]')!.addEventListener('click', () => entrar(true));
   caixa.querySelector('[data-acao="voltar"]')!.addEventListener('click', fechar);
   setTimeout(() => SpatialNav.focus(email), 50);
   return caixa;
