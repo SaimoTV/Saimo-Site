@@ -17,6 +17,7 @@ import { ativo as perfilAtivo, conferirCodigo, pedeCodigo, perfis } from '../../
 import { conferirSenha, senhaEhPadrao, trocarSenha } from '../../../src/perfis/parental';
 import { brilho, definirBrilho } from '../../../src/plataforma/brilho';
 import { ehKids } from '../../../src/perfis/kids';
+import { caixaDaConta, resumoDaConta } from './ContaTela';
 
 export class SettingsScreen {
   private element: HTMLElement;
@@ -48,6 +49,8 @@ export class SettingsScreen {
 
   private mostrarCaixa(c: HTMLElement | null) {
     this.caixa?.remove();
+    // A caixa da conta troca a si mesma (QR por e-mail e senha): sai também.
+    this.element.querySelectorAll('.tv-conta').forEach((e) => e.remove());
     this.caixa = c;
     this.listContainer.style.display = c ? 'none' : '';
     if (c) this.element.appendChild(c);
@@ -120,6 +123,18 @@ export class SettingsScreen {
 
       this.listContainer.appendChild(item);
     };
+
+    // CONTA SAIMO (fora do Kids)
+    if (!perfilAtivo().kids) {
+      addSection('Conta Saimo');
+      addOption('conta', 'Conta Saimo', resumoDaConta(), () => {
+        this.mostrarCaixa(caixaDaConta(() => {
+          this.mostrarCaixa(null);
+          this.renderSettings();
+          setTimeout(() => { const i = document.getElementById('setting-conta'); if (i) SpatialNav.focus(i); }, 50);
+        }));
+      });
+    }
 
     // PERFIS
     addSection('Perfis');

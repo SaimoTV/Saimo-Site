@@ -10,6 +10,8 @@ import { iniciarBrilho } from '../../src/plataforma/brilho';
 import { definirCaminhoAvatar, deveEscolherAoAbrir } from '../../src/perfis/perfis';
 import './styles/tv.css';
 import './styles/tv-box.css';
+// TVs que não entendem `gap` nos flex (LG webOS 4.x): margens no lugar (só com .sem-gap no <html>).
+import './styles/sem-gap.css';
 import { Platform } from './core/Platform';
 import { SpatialNav } from './core/SpatialNav';
 import { State, ScreenType } from './core/State';
@@ -35,6 +37,8 @@ import { AddonsScreen } from './screens/AddonsScreen';
 import { DoacaoScreen } from './screens/DoacaoScreen';
 import { NovelinhaScreen } from './screens/NovelinhaScreen';
 import { PerfisScreen } from './screens/PerfisScreen';
+import { iniciarConta } from '../../src/conta/conta';
+import { adaptadorDaTv } from './core/ContaTv';
 
 // O pacote da TV leva os avatares em PNG, ao lado do index.html.
 definirCaminhoAvatar((id) => `img/avatares/${id}.png`);
@@ -51,6 +55,8 @@ class SaimoTVApp {
     Platform.init();
     SpatialNav.init();
     iniciarBrilho();
+    // Conta Saimo (opcional): sem login, não faz nada.
+    iniciarConta(adaptadorDaTv);
     if (Platform.isTizen) document.documentElement.classList.add('tizen');
 
     this.videoEl = document.getElementById('tv-video') as HTMLVideoElement;
@@ -169,6 +175,9 @@ class SaimoTVApp {
         State.setScreen('ficha');
       } else if (current === 'novelinha') {
         State.setScreen('ondemand');
+      } else if (current === 'settings' && document.querySelector('.tv-conta')) {
+        // Caixa da Conta Saimo aberta: VOLTAR fecha só ela.
+        document.querySelector<HTMLElement>('.tv-conta [data-acao="voltar"]')?.click();
       } else if (current === 'minhas' || current === 'addons') {
         State.setScreen('settings');
       } else if (current === 'live') {

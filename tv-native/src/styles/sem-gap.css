@@ -1,0 +1,47 @@
+/* Gerado por scripts/gerar_sem_gap.py: não editar à mão. */
+.sem-gap .tv-menu-logo > * + * { margin-left: 12px; }
+.sem-gap .tv-menu-tabs > * + * { margin-left: 2px; }
+.sem-gap .tv-hero-meta > * + * { margin-left: 14px; }
+.sem-gap .tv-rail-title > * + * { margin-left: 10px; }
+.sem-gap .tv-rail-items > * + * { margin-left: 32px; }
+.sem-gap .tv-card-wide .ch-header > * + * { margin-left: 14px; }
+.sem-gap .tv-zap-hud > * + * { margin-left: 26px; }
+.sem-gap .tv-zap-info > * + * { margin-top: 6px; }
+.sem-gap .tv-zap-channel-line > * + * { margin-left: 12px; }
+.sem-gap .tv-zap-next-line > * + * { margin-left: 16px; }
+.sem-gap .tv-drawer-channel-list > * + * { margin-top: 10px; }
+.sem-gap .tv-drawer-channel-item > * + * { margin-left: 16px; }
+.sem-gap .tv-player-osd > * + * { margin-top: 16px; }
+.sem-gap .tv-osd-progress-line > * + * { margin-left: 20px; }
+.sem-gap .tv-osd-buttons > * + * { margin-left: 16px; }
+.sem-gap .tv-btn > * + * { margin-left: 8px; }
+.sem-gap .tv-card > * + * { margin-top: 8px; }
+.sem-gap .tv-card-wide-inner > * + * { margin-left: 16px; }
+.sem-gap .tv-card-wide-info > * + * { margin-top: 4px; }
+.sem-gap .tv-ficha-content > * + * { margin-top: 24px; }
+.sem-gap .tv-ficha-top > * + * { margin-left: 50px; }
+.sem-gap .tv-ficha-main > * + * { margin-top: 14px; }
+.sem-gap .tv-ficha-badges > * + * { margin-left: 12px; }
+.sem-gap .tv-ficha-actions > * + * { margin-left: 16px; }
+.sem-gap .tv-guide-layout > * + * { margin-left: 40px; }
+.sem-gap .tv-guide-channels > * + * { margin-top: 10px; }
+.sem-gap .tv-guide-channel-item > * + * { margin-left: 16px; }
+.sem-gap .tv-guide-programmes > * + * { margin-top: 12px; }
+.sem-gap .tv-guide-prog-item > * + * { margin-top: 6px; }
+.sem-gap .tv-match-team > * + * { margin-left: 16px; }
+.sem-gap .tv-search-layout > * + * { margin-left: 50px; }
+.sem-gap .tv-search-left > * + * { margin-top: 24px; }
+.sem-gap .tv-search-input-box > * + * { margin-left: 16px; }
+.sem-gap .tv-search-right > * + * { margin-top: 20px; }
+.sem-gap .tv-settings-list > * + * { margin-top: 14px; }
+.sem-gap .tv-menu-tab > * + * { margin-left: 10px; }
+.sem-gap .tv-painel-chips > div > * + * { margin-left: 12px; }
+.sem-gap .tv-minha-lista > * + * { margin-left: 16px; }
+.sem-gap .tv-doacao-corpo > * + * { margin-left: 90px; }
+.sem-gap .tv-doacao-tag > * + * { margin-left: 10px; }
+.sem-gap .tv-doacao-vantagens > * + * { margin-left: 22px; }
+.sem-gap .tv-doacao-vantagem > * + * { margin-left: 16px; }
+.sem-gap .tv-filtros > * { margin-right: 12px; margin-bottom: 12px; }
+.sem-gap .tv-filtro > * + * { margin-left: 6px; }
+.sem-gap .tv-escolha-lista > * + * { margin-top: 10px; }
+.sem-gap .tv-conta > * + * { margin-left: 70px; }

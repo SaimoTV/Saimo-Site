@@ -26,6 +26,7 @@ import './Ajustes.css';
 import { IconeMaterial } from '../components/IconeMaterial';
 import { MinhasListas } from './MinhasListas';
 import { abrirModalDoacao } from '../services/doacaoService';
+import { ContaSaimo } from '../conta/ContaSaimo';
 import { abrirEscolha, assinar as assinarPerfis, ativo as perfilAtivo, definirPerguntar, perfis as listaPerfis, perguntarAoAbrir, versaoAtual as versaoPerfis } from '../perfis/perfis';
 import { Avatar } from '../perfis/EscolhaPerfil';
 import { ControleParental } from '../perfis/ControleParental';
@@ -190,6 +191,13 @@ function AjustesConteudo() {
         </section>
 
         <AddonsModal aberta={addonsAberto} aoFechar={() => setAddonsAberto(false)} />
+
+        {!perfil.kids && (
+          <section className="ajustes-bloco" id="conta">
+            <h2>Conta Saimo</h2>
+            <ContaSaimo />
+          </section>
+        )}
 
         <section className="ajustes-bloco" id="perfis">
           <h2>Perfis</h2>
