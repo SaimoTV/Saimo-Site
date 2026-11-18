@@ -17,6 +17,7 @@ import { ativo as perfilAtivo, conferirCodigo, pedeCodigo, perfis } from '../../
 import { conferirSenha, senhaEhPadrao, trocarSenha } from '../../../src/perfis/parental';
 import { brilho, definirBrilho } from '../../../src/plataforma/brilho';
 import { ehKids } from '../../../src/perfis/kids';
+import { caixaDaConta, resumoDaConta } from './ContaTela';
 
 export class SettingsScreen {
   private element: HTMLElement;
@@ -120,6 +121,18 @@ export class SettingsScreen {
 
       this.listContainer.appendChild(item);
     };
+
+    // CONTA SAIMO (fora do Kids)
+    if (!perfilAtivo().kids) {
+      addSection('Conta Saimo');
+      addOption('conta', 'Conta Saimo', resumoDaConta(), () => {
+        this.mostrarCaixa(caixaDaConta(() => {
+          this.mostrarCaixa(null);
+          this.renderSettings();
+          setTimeout(() => { const i = document.getElementById('setting-conta'); if (i) SpatialNav.focus(i); }, 50);
+        }));
+      });
+    }
 
     // PERFIS
     addSection('Perfis');

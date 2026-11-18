@@ -131,7 +131,9 @@ export class Storage {
       }
       prog.percent = Math.round((prog.position / prog.duration) * 100);
       prog.updatedAt = Date.now();
-      all[prog.title] = prog;
+      // Ano e letra que vieram da Conta Saimo ficam (o player não os conhece).
+      const antes = all[prog.title] as (VODProgress & { ano?: string; letra?: string }) | undefined;
+      all[prog.title] = { ...(antes?.ano ? { ano: antes.ano } : {}), ...(antes?.letra ? { letra: antes.letra } : {}), ...prog };
       localStorage.setItem(this.PROGRESS_KEY, JSON.stringify(all));
     } catch (e) {}
   }

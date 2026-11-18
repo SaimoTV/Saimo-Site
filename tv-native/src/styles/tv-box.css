@@ -319,3 +319,14 @@ html.tizen.video-ativo, html.tizen.video-ativo body { background: transparent !i
 .tv-campo:-webkit-autofill, .tv-campo:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0 1000px #1f2937 inset; box-shadow: 0 0 0 1000px #1f2937 inset; -webkit-text-fill-color: #fff;
 }
+/* Conta Saimo */
+.tv-conta { display: flex; align-items: center; justify-content: center; gap: 70px; padding: 110px 80px 40px; }
+.tv-conta-qr { flex: none; width: 320px; height: 320px; padding: 10px; border-radius: 18px; background: #fff; }
+.tv-conta-qr:empty { background: rgba(255,255,255,.08); }
+.tv-conta-qr svg { width: 100%; height: 100%; display: block; }
+.tv-conta-texto { max-width: 900px; }
+.tv-conta-codigo { margin: 24px 0 8px; font-size: 64px; font-weight: 800; letter-spacing: 10px; color: #2dd4bf; }
+.tv-conta .tv-perfis-acoes { margin-top: 30px; }
+.tv-conta .tv-btn { margin-right: 16px; }
+.tv-conta-dica { margin-top: 26px; opacity: .6; font-size: 22px; }
+.tv-conta.logada { flex-direction: column; text-align: center; }
