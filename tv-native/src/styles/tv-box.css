@@ -307,3 +307,15 @@ html.tizen.video-ativo, html.tizen.video-ativo body { background: transparent !i
 .tv-settings-section-title.discreto { margin-top: 70px; opacity: .55; font-size: 22px; }
 .tv-settings-item.discreto { opacity: .6; }
 .tv-settings-item.discreto.nav-focused { opacity: 1; }
+
+/* Campos de texto: fundo escuro sólido e texto branco travado. O navegador de
+   algumas TVs (e o preenchimento automático) pintava o campo de branco ao focar,
+   com a letra branca por cima: não se via o que se digitava. */
+.tv-campo, .tv-campo:focus, .tv-campo:hover, .tv-campo:active {
+  background-color: #1f2937; color: #fff; -webkit-text-fill-color: #fff; caret-color: #2dd4bf;
+  -webkit-appearance: none; appearance: none; outline: none;
+}
+.tv-campo::placeholder { color: rgba(255,255,255,.45); -webkit-text-fill-color: rgba(255,255,255,.45); }
+.tv-campo:-webkit-autofill, .tv-campo:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #1f2937 inset; box-shadow: 0 0 0 1000px #1f2937 inset; -webkit-text-fill-color: #fff;
+}
