@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  aoMudarConta, apagarConta, aprovarTv, codigoDoQr, definirSenha, entrarComCodigo, entrarComSenha, estadoConta, pedirCodigo, sair, sincronizar,
+  aoMudarConta, apagarConta, aprovarTv, cadastrar, codigoDoQr, entrarComSenha, estadoConta, sair, sincronizar, trocarSenha,
 } from './conta';
 import './conta.css';
 
@@ -20,119 +20,79 @@ export function useConta() {
 }
 
 /**
- * Entrar na conta: com a senha (quem criou uma) ou com o código de 6 números
- * que chega no e-mail. "Criar ou trocar a senha" também passa pelo código:
- * prova que o e-mail é de quem pede.
+ * Entrar ou criar a conta com e-mail e senha. O e-mail não é verificado: é só
+ * o nome de login.
  */
-export function EntrarComEmail({ texto, emailFixo, aoTerminar }: { texto?: string; emailFixo?: string; aoTerminar?: () => void }) {
-  type Modo = 'email' | 'senha' | 'codigo' | 'definir';
-  const [modo, setModo] = useState<Modo>(emailFixo ? 'definir' : 'email');
-  const [email, setEmail] = useState(emailFixo ?? '');
+export function EntrarComEmail({ texto }: { texto?: string }) {
+  const [criando, setCriando] = useState(false);
+  const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
-  const [codigo, setCodigo] = useState('');
-  const [codigoPedido, setCodigoPedido] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [aviso, setAviso] = useState('');
 
-  const tentar = async (f: () => Promise<void>) => {
-    setOcupado(true); setAviso('');
-    try { await f(); } catch (e) { setAviso(e instanceof Error ? e.message : 'Não deu certo'); } finally { setOcupado(false); }
-  };
-  const mandarCodigo = () => tentar(async () => {
-    try {
-      const r = await pedirCodigo(email);
-      if (r.codigoDev) setCodigo(r.codigoDev); // só no servidor de teste
-    } catch (e) {
-      // Pediu há menos de 1 minuto: o código que já chegou continua valendo (10 min).
-      if (!(e instanceof Error && /minuto/.test(e.message))) throw e;
-    }
-    setCodigoPedido(true);
-  });
   const emailOk = email.includes('@');
-  const voltar = () => { setModo('email'); setSenha(''); setCodigo(''); setCodigoPedido(false); setAviso(''); };
+  const pronto = emailOk && (criando ? senha.length >= 8 : senha.length > 0);
+  const enviar = async () => {
+    setOcupado(true); setAviso('');
+    try {
+      if (criando) await cadastrar(email, senha); else await entrarComSenha(email, senha);
+    } catch (e) {
+      setAviso(e instanceof Error ? e.message : 'Não deu certo');
+      setSenha('');
+    } finally { setOcupado(false); }
+  };
 
   return (
     <div className="conta-caixa" data-testid="conta-sem-login">
-      {!emailFixo && <p>{texto ?? 'Opcional: entre para guardar perfis, onde parou, favoritos, listas e addons na sua conta e ter tudo em qualquer aparelho. Sem conta, tudo continua só neste navegador.'}</p>}
-
-      {modo === 'email' && (
-        <form className="conta-linha" onSubmit={(e) => { e.preventDefault(); if (emailOk) setModo('senha'); }}>
-          <input className="conta-campo" type="email" autoComplete="email" placeholder="Seu e-mail" value={email}
-            onChange={(e) => setEmail(e.target.value)} data-testid="conta-email" />
-          <button className="ajustes-botao destaque" disabled={!emailOk} data-testid="conta-com-senha">Entrar com senha</button>
-          <button type="button" className="ajustes-botao" disabled={ocupado || !emailOk} data-testid="conta-enviar-codigo"
-            onClick={() => { setModo('codigo'); void mandarCodigo(); }}>
-            Receber código por e-mail
-          </button>
-        </form>
-      )}
-
-      {modo === 'senha' && (
-        <>
-          <p>{email.trim()}</p>
-          <form className="conta-linha" onSubmit={(e) => { e.preventDefault(); void tentar(() => entrarComSenha(email, senha)); }}>
-            <input className="conta-campo" type="password" autoComplete="current-password" placeholder="Senha" value={senha}
-              onChange={(e) => setSenha(e.target.value)} data-testid="conta-senha" />
-            <button className="ajustes-botao destaque" disabled={ocupado || !senha} data-testid="conta-entrar-senha">
-              {ocupado ? 'Entrando…' : 'Entrar'}
-            </button>
-          </form>
-          <div className="conta-linha">
-            <button type="button" className="ajustes-botao" onClick={() => { setModo('definir'); setSenha(''); void mandarCodigo(); }} data-testid="conta-esqueci">
-              Esqueci a senha / criar senha
-            </button>
-            <button type="button" className="ajustes-botao" onClick={voltar}>Usar outro e-mail</button>
-          </div>
-        </>
-      )}
-
-      {modo === 'codigo' && (
-        <>
-          <p>{codigoPedido ? `Digite o código de 6 números que chegou em ${email.trim()}.` : 'Enviando o código…'}</p>
-          <form className="conta-linha" onSubmit={(e) => { e.preventDefault(); void tentar(() => entrarComCodigo(email, codigo)); }}>
-            <input className="conta-campo conta-codigo" inputMode="numeric" maxLength={6} placeholder="000000" value={codigo}
-              onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ''))} data-testid="conta-codigo" />
-            <button className="ajustes-botao destaque" disabled={ocupado || codigo.length !== 6} data-testid="conta-entrar">
-              {ocupado ? 'Entrando…' : 'Entrar'}
-            </button>
-            <button type="button" className="ajustes-botao" onClick={voltar}>Usar outro e-mail</button>
-          </form>
-        </>
-      )}
-
-      {modo === 'definir' && (
-        <>
-          <p>
-            {codigoPedido ? `Chegou um código de 6 números em ${email.trim()}. Digite o código e a senha nova (pelo menos 8 caracteres).`
-              : emailFixo ? `Para criar ou trocar a senha, mandamos um código para ${email.trim()}.` : 'Enviando o código…'}
-          </p>
-          {emailFixo && !codigoPedido ? (
-            <div className="conta-linha">
-              <button className="ajustes-botao destaque" disabled={ocupado} onClick={() => void mandarCodigo()} data-testid="conta-pedir-codigo-senha">
-                {ocupado ? 'Enviando…' : 'Mandar o código'}
-              </button>
-              {aoTerminar && <button type="button" className="ajustes-botao" onClick={aoTerminar}>Cancelar</button>}
-            </div>
-          ) : (
-            <form className="conta-linha" onSubmit={(e) => {
-              e.preventDefault();
-              void tentar(async () => { await definirSenha(email, codigo, senha); aoTerminar?.(); });
-            }}>
-              <input className="conta-campo conta-codigo" inputMode="numeric" maxLength={6} placeholder="000000" value={codigo}
-                onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ''))} data-testid="conta-codigo-senha" />
-              <input className="conta-campo" type="password" autoComplete="new-password" placeholder="Senha nova" value={senha}
-                onChange={(e) => setSenha(e.target.value)} data-testid="conta-senha-nova" />
-              <button className="ajustes-botao destaque" disabled={ocupado || codigo.length !== 6 || senha.length < 8} data-testid="conta-salvar-senha">
-                {ocupado ? 'Salvando…' : 'Salvar senha e entrar'}
-              </button>
-              <button type="button" className="ajustes-botao" onClick={aoTerminar ?? voltar}>{aoTerminar ? 'Cancelar' : 'Voltar'}</button>
-            </form>
-          )}
-          {emailFixo && <p className="conta-dica">Trocar uma senha que já existia tira a conta dos outros aparelhos (entram de novo com a senha nova ou o QR).</p>}
-        </>
-      )}
-
+      <p>{texto ?? 'Opcional: entre para guardar perfis, onde parou, favoritos, listas e addons na sua conta e ter tudo em qualquer aparelho. Sem conta, tudo continua só neste navegador.'}</p>
+      <form className="conta-linha" onSubmit={(e) => { e.preventDefault(); if (pronto && !ocupado) void enviar(); }}>
+        <input className="conta-campo" type="email" autoComplete="email" placeholder="Seu e-mail" value={email}
+          onChange={(e) => setEmail(e.target.value)} data-testid="conta-email" />
+        <input className="conta-campo" type="password" autoComplete={criando ? 'new-password' : 'current-password'}
+          placeholder={criando ? 'Crie uma senha (8 ou mais)' : 'Senha'} value={senha}
+          onChange={(e) => setSenha(e.target.value)} data-testid="conta-senha" />
+        <button className="ajustes-botao destaque" disabled={ocupado || !pronto} data-testid={criando ? 'conta-criar' : 'conta-entrar-senha'}>
+          {ocupado ? 'Um momento…' : criando ? 'Criar conta' : 'Entrar'}
+        </button>
+      </form>
+      <div className="conta-linha">
+        <button type="button" className="ajustes-botao" onClick={() => { setCriando(!criando); setAviso(''); setSenha(''); }} data-testid="conta-alternar">
+          {criando ? 'Já tenho conta: entrar' : 'Não tenho conta: criar'}
+        </button>
+      </div>
+      {!criando && <p className="conta-dica">Esqueceu a senha? Num aparelho onde a conta já está aberta, use Trocar a senha.</p>}
       {aviso && <p className="conta-erro">{aviso}</p>}
+    </div>
+  );
+}
+
+/** Trocar a senha de quem está logado. */
+export function TrocarSenha({ aoTerminar }: { aoTerminar: () => void }) {
+  const [atual, setAtual] = useState('');
+  const [nova, setNova] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+  const [aviso, setAviso] = useState('');
+  return (
+    <div className="conta-caixa">
+      <form className="conta-linha" onSubmit={(e) => {
+        e.preventDefault();
+        setOcupado(true); setAviso('');
+        trocarSenha(atual, nova)
+          .then(() => { setAviso('Pronto: senha trocada. Os outros aparelhos saíram da conta.'); setAtual(''); setNova(''); })
+          .catch((err) => setAviso(err instanceof Error ? err.message : 'Não deu certo'))
+          .finally(() => setOcupado(false));
+      }}>
+        <input className="conta-campo" type="password" autoComplete="current-password" placeholder="Senha atual" value={atual}
+          onChange={(e) => setAtual(e.target.value)} data-testid="conta-senha-atual" />
+        <input className="conta-campo" type="password" autoComplete="new-password" placeholder="Senha nova (8 ou mais)" value={nova}
+          onChange={(e) => setNova(e.target.value)} data-testid="conta-senha-nova" />
+        <button className="ajustes-botao destaque" disabled={ocupado || nova.length < 8} data-testid="conta-salvar-senha">
+          {ocupado ? 'Salvando…' : 'Trocar a senha'}
+        </button>
+        <button type="button" className="ajustes-botao" onClick={aoTerminar}>Fechar</button>
+      </form>
+      <p className="conta-dica">Se a conta ainda não tem senha, deixe a atual em branco.</p>
+      {aviso && <p className={aviso.startsWith('Pronto') ? 'conta-ok' : 'conta-erro'}>{aviso}</p>}
     </div>
   );
 }
@@ -186,11 +146,11 @@ export function ContaSaimo() {
           Sincronizar agora
         </button>
         {conta.email && !mexendoNaSenha && (
-          <button className="ajustes-botao" onClick={() => setMexendoNaSenha(true)} data-testid="conta-criar-senha">Criar ou trocar a senha</button>
+          <button className="ajustes-botao" onClick={() => setMexendoNaSenha(true)} data-testid="conta-criar-senha">Trocar a senha</button>
         )}
       </div>
       {mexendoNaSenha && conta.email && (
-        <EntrarComEmail emailFixo={conta.email} aoTerminar={() => setMexendoNaSenha(false)} />
+        <TrocarSenha aoTerminar={() => setMexendoNaSenha(false)} />
       )}
 
       <h3>Entrar numa TV</h3>

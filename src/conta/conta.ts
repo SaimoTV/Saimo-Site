@@ -127,6 +127,17 @@ export async function definirSenha(email: string, codigo: string, senha: string)
   entrou(j.token, j.conta?.email ?? email.trim().toLowerCase());
 }
 
+/** Criar a conta com e-mail e senha (o e-mail não é verificado: é só o login). */
+export async function cadastrar(email: string, senha: string): Promise<void> {
+  const j = await api('POST', '/v1/senha/cadastrar', { email: email.trim(), senha, aparelho: nome() }, null);
+  entrou(j.token, j.conta?.email ?? email.trim().toLowerCase());
+}
+
+/** Trocar a senha de quem está logado (os outros aparelhos saem da conta). */
+export async function trocarSenha(senhaAtual: string, senhaNova: string): Promise<void> {
+  await api('POST', '/v1/senha/trocar', { senhaAtual, senhaNova });
+}
+
 function entrou(token: string, email: string | null): void {
   ultimoEnviado = '';
   mudar({ token, email, erro: null });
