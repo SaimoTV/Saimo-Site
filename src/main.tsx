@@ -13,21 +13,29 @@ import { vigiarExtensoes } from './plataforma/bloqueioExtensoes'
 import { iniciarBrilho } from './plataforma/brilho'
 import { iniciarConta } from './conta/conta'
 import { adaptadorDoSite } from './conta/site'
+import { mostrarFalha, ProtecaoDeFalha } from './plataforma/falha'
 
-// Antes de qualquer tela: esquece o que as versões anteriores guardaram de listas.
-migrarUmaVez()
-// Antes de tudo: extensão que captura os endereços (FlowPick) bloqueia o site.
-vigiarExtensoes()
-iniciarTv()
-iniciarBrilho()
-iniciarTelemetria()
-// Conta Saimo (opcional): sem login, não faz nada.
-iniciarConta(adaptadorDoSite)
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+try {
+  // Antes de qualquer tela: esquece o que as versões anteriores guardaram de listas.
+  migrarUmaVez()
+  // Antes de tudo: extensão que captura os endereços (FlowPick) bloqueia o site.
+  vigiarExtensoes()
+  iniciarTv()
+  iniciarBrilho()
+  iniciarTelemetria()
+  // Conta Saimo (opcional): sem login, não faz nada.
+  iniciarConta(adaptadorDoSite)
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <ProtecaoDeFalha>
+        <App />
+      </ProtecaoDeFalha>
+    </StrictMode>,
+  )
+} catch (erro) {
+  // Quebrou antes de desenhar: em vez de tela preta, o erro e como sair dele.
+  mostrarFalha(erro)
+}
 
 // Casca do app em cache e o site instalável como app (só no site publicado:
 // no app de desktop e em desenvolvimento, nada de service worker).

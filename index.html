@@ -136,6 +136,36 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <!-- O SDK do Chromecast só é baixado quando alguém usa o player (castService). -->
     <title>Saimo TV</title>
+    <!-- Rede de segurança: se o app quebrar antes de desenhar (dado velho no
+         navegador, módulo que não carregou), mostra o erro e como limpar, em vez
+         de tela preta. -->
+    <script>
+      (function () {
+        var erros = [];
+        window.addEventListener('error', function (e) { erros.push((e.message || 'erro') + (e.filename ? ' @ ' + e.filename.split('/').pop() + ':' + e.lineno : '')); }, true);
+        window.addEventListener('unhandledrejection', function (e) { var r = e.reason; erros.push(String(r && (r.message || r) || 'promessa rejeitada')); });
+        setTimeout(function () {
+          var raiz = document.getElementById('root');
+          if (!raiz || raiz.childElementCount > 0) return;
+          raiz.innerHTML = '<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;background:#0a0a0a;color:#fff;font-family:system-ui,sans-serif;text-align:center">' +
+            '<h1 style="font-size:24px;margin:0">O Saimo TV não conseguiu abrir</h1>' +
+            '<p style="max-width:560px;opacity:.8;margin:0;line-height:1.5">Algum dado guardado por uma versão anterior pode estar atrapalhando. Limpar os dados deste site resolve.</p>' +
+            '<pre id="saimo-erro" style="max-width:90vw;white-space:pre-wrap;font-size:12px;opacity:.6;background:#16161c;padding:12px;border-radius:8px;text-align:left"></pre>' +
+            '<div><button id="saimo-limpar" style="padding:12px 18px;border-radius:10px;border:0;background:#4fe3d0;color:#071311;font-weight:700;cursor:pointer">Limpar os dados do site e recarregar</button> ' +
+            '<button onclick="location.reload()" style="padding:12px 18px;border-radius:10px;border:1px solid #444;background:transparent;color:#fff;cursor:pointer">Tentar de novo</button></div></div>';
+          document.getElementById('saimo-erro').textContent = erros.join('\n') || 'Nenhum erro registrado (o código do site não carregou).';
+          document.getElementById('saimo-limpar').onclick = function () {
+            try { localStorage.clear(); sessionStorage.clear(); } catch (e) {}
+            var fim = function () { location.reload(); };
+            try {
+              var p1 = navigator.serviceWorker ? navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }) : Promise.resolve();
+              var p2 = window.caches ? caches.keys().then(function (ns) { return Promise.all(ns.map(function (n) { return caches.delete(n); })); }) : Promise.resolve();
+              Promise.all([p1, p2]).then(fim, fim);
+            } catch (e) { fim(); }
+          };
+        }, 10000);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
