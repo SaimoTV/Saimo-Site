@@ -351,3 +351,16 @@ html.tizen.video-ativo, html.tizen.video-ativo body { background: transparent !i
 
 /* Conta Saimo ainda não aberta: primeira linha de Ajustes em destaque */
 .tv-settings-item.destaque-conta { box-shadow: inset 0 0 0 4px #4fe3d0; background: rgba(79,227,208,.12); }
+
+/* Boas-vindas: o QR da conta embutido à esquerda */
+.tv-boasvindas .tv-conta { padding: 0; gap: 36px; justify-content: flex-start; margin-top: 10px; }
+.tv-boasvindas .tv-conta-qr { width: 250px; height: 250px; }
+.tv-boasvindas .tv-conta-texto { max-width: 480px; }
+.tv-boasvindas .tv-conta .tv-perfis-titulo { display: none; }
+.tv-boasvindas .tv-conta .tv-perfis-sub { font-size: 24px; line-height: 32px; margin-top: 0; }
+.tv-boasvindas .tv-conta-codigo { font-size: 46px; letter-spacing: 7px; margin: 12px 0 4px; }
+.tv-boasvindas .tv-conta-texto [data-acao="voltar"] { display: none; }
+.tv-boasvindas .tv-conta .tv-btn { height: 70px; font-size: 26px; padding: 0 30px; margin-top: 14px; }
+.tv-boasvindas .tv-conta.logada { align-items: stretch; text-align: left; }
+.tv-boasvindas .tv-conta-campo { width: 100%; }
+.tv-boasvindas .tv-conta-dica { display: none; }

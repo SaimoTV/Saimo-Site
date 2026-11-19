@@ -31,7 +31,7 @@ export function mostrarBoasVindas(aoTerminar: () => void): void {
           <li>Continue de onde parou no celular, na TV e no computador.</li>
           <li>Trocou de aparelho ou reinstalou? Nada se perde.</li>
         </ul>
-        <div class="tv-btn nav-focusable" data-nav="true" data-acao="entrar">Entrar ou criar conta</div>
+        <div class="tv-boasvindas-conta"></div>
       </div>
       <div class="tv-boasvindas-lado direita">
         <div class="tv-perfis-titulo">Entrar sem login</div>
@@ -43,16 +43,14 @@ export function mostrarBoasVindas(aoTerminar: () => void): void {
       try { localStorage.setItem(CHAVE, '1'); } catch (e) { /* vale só nesta visita */ }
       terminar();
     });
-    fundo.querySelector('[data-acao="entrar"]')!.addEventListener('click', () => {
-      fundo.innerHTML = '';
-      fundo.appendChild(caixaDaConta(() => {
-        if (estadoConta().token) terminar(); else tela();
-      }));
-    });
+    // O QR já aparece aqui; "E-mail e senha" troca o QR pelo formulário e "Voltar ao QR code" volta.
+    fundo.querySelector('.tv-boasvindas-conta')!.appendChild(caixaDaConta(() => {
+      if (estadoConta().token) terminar();
+    }));
     setTimeout(() => {
       const b = fundo.querySelector<HTMLElement>('.tv-btn');
       if (b) SpatialNav.focus(b);
-    }, 80);
+    }, 150);
   };
 
   document.body.appendChild(fundo);

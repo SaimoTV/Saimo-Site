@@ -77,7 +77,8 @@ export function caixaDaConta(fechar: () => void): HTMLElement {
   caixa.querySelector('[data-acao="voltar"]')!.addEventListener('click', fechar);
   caixa.querySelector('[data-acao="senha"]')!.addEventListener('click', () => {
     // Troca a caixa do QR pela do e-mail e senha (a do QR para de perguntar sozinha ao sair da tela).
-    caixa.replaceWith(caixaDeSenha(fechar));
+    const senha = caixaDeSenha(fechar, () => senha.replaceWith(caixaDaConta(fechar)));
+    caixa.replaceWith(senha);
   });
   setTimeout(() => { const b = caixa.querySelector<HTMLElement>('.tv-btn'); if (b) SpatialNav.focus(b); }, 50);
 
@@ -120,7 +121,7 @@ export function caixaDaConta(fechar: () => void): HTMLElement {
  * Entrar com e-mail e senha pelo controle. Criar ou trocar a senha fica no
  * celular ou no site, onde chega o código do e-mail.
  */
-function caixaDeSenha(fechar: () => void): HTMLElement {
+function caixaDeSenha(fechar: () => void, voltarAoQr?: () => void): HTMLElement {
   const caixa = document.createElement('div');
   caixa.className = 'tv-conta logada';
   caixa.innerHTML = `
@@ -132,7 +133,7 @@ function caixaDeSenha(fechar: () => void): HTMLElement {
     <div class="tv-perfis-acoes">
       <div class="tv-btn nav-focusable" data-nav="true" data-acao="entrar">Entrar</div>
       <div class="tv-btn nav-focusable" data-nav="true" data-acao="criar">Criar conta</div>
-      <div class="tv-btn nav-focusable" data-nav="true" data-acao="voltar">Voltar</div>
+      <div class="tv-btn nav-focusable" data-nav="true" data-acao="voltar">${voltarAoQr ? 'Voltar ao QR code' : 'Voltar'}</div>
     </div>`;
   const [email, senha] = Array.from(caixa.querySelectorAll<HTMLInputElement>('input'));
   const aviso = caixa.querySelector<HTMLElement>('.tv-perfis-aviso')!;
@@ -155,7 +156,7 @@ function caixaDeSenha(fechar: () => void): HTMLElement {
   });
   caixa.querySelector('[data-acao="entrar"]')!.addEventListener('click', () => entrar());
   caixa.querySelector('[data-acao="criar"]')!.addEventListener('click', () => entrar(true));
-  caixa.querySelector('[data-acao="voltar"]')!.addEventListener('click', fechar);
+  caixa.querySelector('[data-acao="voltar"]')!.addEventListener('click', voltarAoQr || fechar);
   setTimeout(() => SpatialNav.focus(email), 50);
   return caixa;
 }
