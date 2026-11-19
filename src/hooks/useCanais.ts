@@ -47,21 +47,28 @@ export function useCanais(): Channel[] {
     // a tela mostraria por um instante canais que já não abrem.
     const cache = cachedChannels();
     if (cache) setRemotos({ link, lista: cache });
-    atualizarFontesDesativadas()
-      .catch(() => false)
-      .then(() => fetchChannels())
-      .then((lista) => { if (vivo && lista) setRemotos({ link, lista }); })
-      .catch((err) => console.error('Erro ao carregar catálogo remoto:', err));
-    // Um servidor desligado no painel tem que sumir da tela em minutos, sem
-    // recarregar a página: a lista é remontada do que já está em disco.
+    const recarregar = () => {
+      atualizarFontesDesativadas()
+        .catch(() => false)
+        .then(() => fetchChannels())
+        .then((lista) => { if (vivo && lista) setRemotos({ link, lista }); })
+        .catch((err) => console.error('Erro ao carregar catálogo remoto:', err));
+    };
+    recarregar();
+    const aoFocar = () => { if (document.visibilityState === 'visible') recarregar(); };
+    window.addEventListener('focus', recarregar);
+    document.addEventListener('visibilitychange', aoFocar);
+    // Um servidor desligado no painel ou catálogo novo aparece em minutos, sem
+    // recarregar a página.
     const relogio = window.setInterval(() => {
-      void atualizarFontesDesativadas().then((mudou) => {
-        if (!mudou || !vivo) return;
-        const lista = cachedChannels();
-        if (lista) setRemotos({ link, lista });
-      });
+      recarregar();
     }, FONTES_MS);
-    return () => { vivo = false; window.clearInterval(relogio); };
+    return () => {
+      vivo = false;
+      window.clearInterval(relogio);
+      window.removeEventListener('focus', recarregar);
+      document.removeEventListener('visibilitychange', aoFocar);
+    };
   }, [link]);
 
   // `restritos.txt` só é pedido depois do código do controle parental.

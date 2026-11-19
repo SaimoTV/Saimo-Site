@@ -151,6 +151,7 @@ function hostsSemCors(): string[] {
 /** Anota que este endereço não abre direto, só pelo proxy. */
 export function marcarSemCors(url: string): void {
   try {
+    if (url.includes('cloudfront-net.lat')) return;
     const host = new URL(url).host;
     const lista = hostsSemCors();
     if (lista.includes(host)) return;
@@ -159,7 +160,10 @@ export function marcarSemCors(url: string): void {
 }
 
 function precisaComecarPeloProxy(source: ChannelSource): boolean {
-  try { return hostsSemCors().includes(new URL(source.url).host); }
+  try {
+    if (source.url.includes('cloudfront-net.lat')) return false;
+    return hostsSemCors().includes(new URL(source.url).host);
+  }
   catch { return false; }
 }
 
