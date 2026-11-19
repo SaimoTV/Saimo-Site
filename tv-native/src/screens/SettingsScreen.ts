@@ -20,6 +20,7 @@ import { ehKids } from '../../../src/perfis/kids';
 import { caixaDaConta, resumoDaConta } from './ContaTela';
 import { DESTAQUES, FUNDOS, definirTema, temaAtual } from '../../../src/plataforma/tema';
 import { OPCOES, definirEstiloDeLegenda, estiloAtual, type EstiloDeLegenda } from '../../../src/plataforma/legendaEstilo';
+import { resumoNovosEpisodios, dispensarNovosEpisodios } from '../core/NovosEpisodios';
 import { duracaoLegivel, estatisticas, limparAssistidos } from '../../../src/services/assistidos';
 
 /** O valor seguinte de uma lista de opções (volta ao primeiro depois do último). */
@@ -258,6 +259,7 @@ export class SettingsScreen {
     addOption('estat-filmes', 'Filmes concluídos', String(est.filmes), () => {});
     addOption('estat-eps', 'Episódios concluídos', `${est.episodios}${est.series ? ` · ${est.series} séries` : ''}`, () => {});
     if (est.maisVista) addOption('estat-top', 'Série mais vista', `${est.maisVista.titulo} (${est.maisVista.episodios})`, () => {});
+    addOption('novos-eps', 'Séries favoritas com episódio novo', resumoNovosEpisodios(), () => { dispensarNovosEpisodios(); });
     addOption('estat-zerar', 'Zerar estatísticas', 'OK para zerar', () => { limparAssistidos(); });
 
     // 3. CONTROLE PARENTAL

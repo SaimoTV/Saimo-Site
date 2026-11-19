@@ -3,6 +3,7 @@
  * Orquestra o ciclo de vida, roteador de telas, controle remoto e aceleração de vídeo.
  */
 
+import { verificarNovosEpisodios } from './core/NovosEpisodios';
 import './core/polyfills';
 // Logo depois dos polyfills: favoritos, progresso e recentes leem do perfil ativo.
 import '../../src/perfis/instalar';
@@ -98,6 +99,8 @@ class SaimoTVApp {
     State.on('abrir-perfis', (modo: 'escolher' | 'gerenciar') => telaPerfis.abrir(modo || 'escolher'));
 
     Addons.initBridge();
+    setTimeout(() => { verificarNovosEpisodios().catch(() => {}); }, 20000);
+    setInterval(() => { verificarNovosEpisodios().catch(() => {}); }, 1800000);
 
     // Adiciona elementos das telas ao contêiner
     this.screens.forEach((screen) => {
