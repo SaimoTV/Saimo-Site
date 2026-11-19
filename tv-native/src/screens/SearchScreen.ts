@@ -10,6 +10,12 @@ import { Addons } from '../core/Addons';
 import { VirtualKeyboard } from '../components/VirtualKeyboard';
 import { Rail, CardModel } from '../components/Rail';
 import { SpatialNav } from '../core/SpatialNav';
+import { buscarPessoas, creditosDe } from '../../../src/services/tmdbService';
+
+const RECENTES = 'saimo-buscas-recentes';
+const lerRecentes = (): string[] => {
+  try { const l = JSON.parse(localStorage.getItem(RECENTES) || '[]'); return Array.isArray(l) ? l : []; } catch (e) { return []; }
+};
 
 export class SearchScreen {
   private element: HTMLElement;
@@ -23,6 +29,10 @@ export class SearchScreen {
 
   private channelsRail: Rail;
   private vodRail: Rail;
+  private pessoasRail: Rail;
+  private recentesRail: Rail;
+  private pessoasGen = 0;
+  private pessoasTimer: any = null;
 
   constructor() {
     this.element = document.createElement('div');
@@ -56,7 +66,11 @@ export class SearchScreen {
     this.channelsRail = new Rail('Canais Encontrados', true);
     this.vodRail = new Rail('Filmes & Séries Encontrados', false);
 
+    this.pessoasRail = new Rail('Atores e Diretores', false);
+    this.recentesRail = new Rail('Buscas Recentes', false);
+    this.resultsContainer.appendChild(this.recentesRail.getElement());
     this.resultsContainer.appendChild(this.channelsRail.getElement());
+    this.resultsContainer.appendChild(this.pessoasRail.getElement());
     this.resultsContainer.appendChild(this.vodRail.getElement());
 
     layout.appendChild(leftCol);
@@ -82,6 +96,7 @@ export class SearchScreen {
       Api.fetchFichas().then((v) => { State.vodItems = v; }).catch(() => {});
     }
 
+    this.mostrarRecentes();
     this.keyboard.focusFirst();
   }
 
@@ -129,10 +144,75 @@ export class SearchScreen {
     }, 150);
   }
 
+  private mostrarRecentes() {
+    const lista = lerRecentes();
+    if (this.currentQuery.trim() || lista.length === 0) {
+      this.recentesRail.getElement().style.display = 'none';
+      return;
+    }
+    this.recentesRail.getElement().style.display = 'block';
+    this.recentesRail.setCards(lista.map((t, i) => ({
+      id: 'search_recent_' + i,
+      title: t,
+      subtitle: 'Buscar de novo',
+      image: '',
+      onClick: () => { this.currentQuery = t; this.updateQueryDisplay(); this.scheduleSearch(); },
+    })));
+  }
+
+  private guardarRecente(q: string) {
+    if (q.length < 2) return;
+    const nova = [q].concat(lerRecentes().filter((x) => x !== q)).slice(0, 8);
+    try { localStorage.setItem(RECENTES, JSON.stringify(nova)); } catch (e) { /* sem espaço */ }
+  }
+
+  /** Atores e diretores pelo nome: o que fizeram e existe no acervo (cruza pelo id do TMDB). */
+  private buscarPessoasNoAcervo(q: string) {
+    clearTimeout(this.pessoasTimer);
+    const gen = ++this.pessoasGen;
+    if (q.length < 4) { this.pessoasRail.getElement().style.display = 'none'; return; }
+    this.pessoasTimer = setTimeout(() => {
+      buscarPessoas(q).then((pessoas) => {
+        const ids = pessoas.filter((p) => p.area === 'Atuação' || p.area === 'Direção').slice(0, 2);
+        return Promise.all(ids.map((p) => creditosDe(p.id)));
+      }).then((listas) => {
+        if (gen !== this.pessoasGen) return;
+        const pool = Api.getSearchPool();
+        const porTmdb: { [k: string]: VODItem } = {};
+        for (let i = 0; i < pool.length; i++) {
+          if (pool[i].tmdbId) porTmdb[(pool[i].isSeries ? 's' : 'f') + pool[i].tmdbId] = pool[i];
+        }
+        const vistos: { [k: string]: boolean } = {};
+        const achados: VODItem[] = [];
+        for (let l = 0; l < listas.length; l++) {
+          for (let i = 0; i < listas[l].length && achados.length < 25; i++) {
+            const c = listas[l][i];
+            const item = porTmdb[(c.serie ? 's' : 'f') + c.id];
+            if (item && !vistos[item.id]) { vistos[item.id] = true; achados.push(item); }
+          }
+        }
+        if (achados.length === 0) { this.pessoasRail.getElement().style.display = 'none'; return; }
+        this.pessoasRail.getElement().style.display = 'block';
+        this.pessoasRail.setCards(achados.map((v) => ({
+          id: 'search_pessoa_' + v.id,
+          title: v.title,
+          subtitle: v.genres ? v.genres.slice(0, 2).join(' · ') : '',
+          image: v.poster,
+          badge: v.year || (v.isSeries ? 'SÉRIE' : ''),
+          badgeColor: v.isSeries ? '#7aa2ff' : '#4fe3d0',
+          onClick: () => { this.guardarRecente(q); State.setScreen('ficha', { vod: v }); },
+        })));
+      }).catch(() => {});
+    }, 450);
+  }
+
   private performSearch() {
     const q = this.currentQuery.trim().toLowerCase();
+    this.mostrarRecentes();
+    this.buscarPessoasNoAcervo(q);
     if (!q) {
       this.searchGen++;
+      this.pessoasRail.getElement().style.display = 'none';
       this.channelsRail.getElement().style.display = 'none';
       this.vodRail.getElement().style.display = 'none';
       return;
@@ -149,6 +229,7 @@ export class SearchScreen {
           subtitle: c.category,
           image: c.logo,
           onClick: () => {
+            this.guardarRecente(q);
             State.setScreen('live', { channel: c });
           },
         }))
@@ -183,6 +264,7 @@ export class SearchScreen {
             badge: v.year || (v.isSeries ? 'SÉRIE' : '4K'),
             badgeColor: v.isSeries ? '#7aa2ff' : '#4fe3d0',
             onClick: () => {
+              this.guardarRecente(q);
               State.setScreen('ficha', { vod: v });
             },
           }))
