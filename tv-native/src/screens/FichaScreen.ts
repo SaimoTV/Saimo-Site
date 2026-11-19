@@ -8,6 +8,7 @@
  */
 
 import { State } from '../core/State';
+import { desmarcarAssistido, ehAssistido, marcarAssistido } from '../../../src/services/assistidos';
 import { VODItem, Api } from '../core/Api';
 import { Addons, TvAddonStreamOption } from '../core/Addons';
 import { Storage } from '../core/Storage';
@@ -343,6 +344,14 @@ export class FichaScreen {
       title: `${ep.episodeNumber}. ${ep.title}`,
       subtitle: ep.overview || `Temporada ${currentSeason.seasonNumber}`,
       image: ep.thumb || item.poster,
+      marcado: ehAssistido(item.title, currentSeason.seasonNumber, ep.episodeNumber),
+      onMarcar: () => {
+        if (ehAssistido(item.title, currentSeason.seasonNumber, ep.episodeNumber)) desmarcarAssistido(item.title, currentSeason.seasonNumber, ep.episodeNumber);
+        else marcarAssistido(item.title, currentSeason.seasonNumber, ep.episodeNumber, 0, true);
+        const atual = SpatialNav.getCurrent()?.id;
+        this.renderSeasonsAndEpisodes(item);
+        if (atual) setTimeout(() => { const el = document.getElementById(atual); if (el) SpatialNav.focus(el); }, 30);
+      },
       onClick: () => {
         State.currentSeasonIndex = this.currentSeasonIdx;
         State.currentEpisodeIndex = epIdx;

@@ -36,6 +36,7 @@ import { MinhasListasScreen } from './screens/MinhasListasScreen';
 import { AddonsScreen } from './screens/AddonsScreen';
 import { DoacaoScreen } from './screens/DoacaoScreen';
 import { NovelinhaScreen } from './screens/NovelinhaScreen';
+import { iniciarTema } from '../../src/plataforma/tema';
 import { PerfisScreen } from './screens/PerfisScreen';
 import { iniciarConta } from '../../src/conta/conta';
 import { adaptadorDaTv } from './core/ContaTv';
@@ -114,6 +115,7 @@ class SaimoTVApp {
     // Listener Global de Tecla Voltar / Sair
     window.addEventListener('keydown', (e) => this.handleGlobalKeyDown(e), true);
 
+    iniciarTema();
     this.boot();
   }
 

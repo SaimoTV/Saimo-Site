@@ -18,6 +18,19 @@ import { conferirSenha, senhaEhPadrao, trocarSenha } from '../../../src/perfis/p
 import { brilho, definirBrilho } from '../../../src/plataforma/brilho';
 import { ehKids } from '../../../src/perfis/kids';
 import { caixaDaConta, resumoDaConta } from './ContaTela';
+import { DESTAQUES, FUNDOS, definirTema, temaAtual } from '../../../src/plataforma/tema';
+import { OPCOES, definirEstiloDeLegenda, estiloAtual, type EstiloDeLegenda } from '../../../src/plataforma/legendaEstilo';
+import { duracaoLegivel, estatisticas, limparAssistidos } from '../../../src/services/assistidos';
+
+/** O valor seguinte de uma lista de opções (volta ao primeiro depois do último). */
+function seguinte<T extends string>(lista: readonly (readonly [T, string])[], atual: T): T {
+  const i = lista.findIndex((x) => x[0] === atual);
+  return lista[(i + 1) % lista.length][0];
+}
+function rotuloDe<T extends string>(lista: readonly (readonly [T, string])[], valor: T): string {
+  const x = lista.find((y) => y[0] === valor);
+  return x ? x[1] : String(valor);
+}
 
 export class SettingsScreen {
   private element: HTMLElement;
@@ -213,25 +226,39 @@ export class SettingsScreen {
     // 2. LEGENDAS
     addSection('Legendas');
 
-    const tamanhoNomes = ['Pequena', 'Normal', 'Grande', 'Enorme'];
-    addOption(
-      'tamanho-legenda',
-      'Tamanho das Legendas',
-      tamanhoNomes[prefs.tamanhoLegenda] || 'Normal',
-      () => {
-        const next = (prefs.tamanhoLegenda + 1) % 4;
-        Storage.savePrefs({ tamanhoLegenda: next });
-      }
-    );
+    const leg = estiloAtual();
+    (['fonte', 'tamanho', 'cor', 'fundo', 'posicao'] as (keyof EstiloDeLegenda)[]).forEach((campo) => {
+      const nomes: Record<string, string> = { fonte: 'Fonte', tamanho: 'Tamanho', cor: 'Cor', fundo: 'Fundo', posicao: 'Posição' };
+      const lista = OPCOES[campo] as readonly (readonly [string, string])[];
+      addOption(`legenda-${campo}`, `${nomes[campo]} da legenda`, rotuloDe(lista, leg[campo]), () => {
+        definirEstiloDeLegenda({ [campo]: seguinte(lista, leg[campo]) } as Partial<EstiloDeLegenda>);
+      });
+    });
 
-    addOption(
-      'fundo-legenda',
-      'Fundo Escuro Atrás da Legenda',
-      prefs.legendaFundo ? 'Ativado' : 'Desativado',
-      () => {
-        Storage.savePrefs({ legendaFundo: !prefs.legendaFundo });
-      }
-    );
+    // APARÊNCIA
+    addSection('Aparência');
+    const tema = temaAtual();
+    const destaques = DESTAQUES.map((d) => [d.id, d.nome] as const);
+    const fundos = FUNDOS.map((f) => [f.id, f.nome] as const);
+    const animacoes = [['suaves', 'Suaves'], ['reduzidas', 'Reduzidas']] as const;
+    addOption('tema-cor', 'Cor de destaque', rotuloDe(destaques, tema.destaque), () => {
+      definirTema({ destaque: seguinte(destaques, tema.destaque) });
+    });
+    addOption('tema-fundo', 'Fundo', rotuloDe(fundos, tema.fundo), () => {
+      definirTema({ fundo: seguinte(fundos, tema.fundo) as typeof tema.fundo });
+    });
+    addOption('tema-anim', 'Animações entre telas', rotuloDe(animacoes, tema.animacoes), () => {
+      definirTema({ animacoes: seguinte(animacoes, tema.animacoes) });
+    });
+
+    // ESTATÍSTICAS (do perfil em uso)
+    addSection('Suas estatísticas');
+    const est = estatisticas();
+    addOption('estat-tempo', 'Tempo assistido', est.tempoTotal < 60 ? 'Ainda nada' : duracaoLegivel(est.tempoTotal), () => {});
+    addOption('estat-filmes', 'Filmes concluídos', String(est.filmes), () => {});
+    addOption('estat-eps', 'Episódios concluídos', `${est.episodios}${est.series ? ` · ${est.series} séries` : ''}`, () => {});
+    if (est.maisVista) addOption('estat-top', 'Série mais vista', `${est.maisVista.titulo} (${est.maisVista.episodios})`, () => {});
+    addOption('estat-zerar', 'Zerar estatísticas', 'OK para zerar', () => { limparAssistidos(); });
 
     // 3. CONTROLE PARENTAL
     addSection('Dados');

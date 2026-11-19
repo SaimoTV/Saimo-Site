@@ -6,6 +6,8 @@
 
 import { resolverDinamica } from '../core/Dinamica';
 import { State } from '../core/State';
+import { marcarAssistido, somarTempo } from '../../../src/services/assistidos';
+import { estiloAtual } from '../../../src/plataforma/legendaEstilo';
 import { Storage } from '../core/Storage';
 import { Api } from '../core/Api';
 import {
@@ -150,6 +152,7 @@ export class PlayerScreen {
   }
 
   async enter() {
+    this.aplicarEstiloDaLegenda();
     this.element.classList.remove('hidden');
     const vod = State.currentVOD;
     if (!vod) {
@@ -414,6 +417,12 @@ export class PlayerScreen {
 
   private saveCurrentProgress() {
     if (!State.currentVOD || this.currentTime < 10) return;
+    // Estatísticas: o tempo de tela (a cada 2 s tocando) e a conclusão (passou de 90%).
+    if (this.isPlaying) somarTempo(2);
+    if (this.duration > 0 && this.currentTime / this.duration >= 0.9) {
+      const serie = State.currentVOD.isSeries;
+      marcarAssistido(State.currentVOD.title, serie ? State.currentSeasonIndex + 1 : undefined, serie ? State.currentEpisodeIndex + 1 : undefined, this.duration);
+    }
     Storage.saveProgress({
       title: State.currentVOD.title,
       position: this.currentTime,
@@ -423,6 +432,20 @@ export class PlayerScreen {
       season: State.currentSeasonIndex + 1,
       episode: State.currentEpisodeIndex + 1,
     });
+  }
+
+  /** Fonte, tamanho, cor, fundo e posição da legenda (Ajustes > Legendas). */
+  private aplicarEstiloDaLegenda() {
+    const e = estiloAtual();
+    const tamanho = { pequena: 28, media: 36, grande: 48, enorme: 60 }[e.tamanho];
+    const cor = { branco: '#ffffff', amarelo: '#ffe14d', ciano: '#4fe3d0', verde: '#7ee787' }[e.cor];
+    const fonte = { padrao: 'inherit', classica: 'Georgia, serif', mono: 'monospace', arredondada: '"Trebuchet MS", sans-serif' }[e.fonte];
+    const fundo = e.fundo === 'preto' ? 'background:#000;padding:2px 14px;border-radius:6px;'
+      : e.fundo === 'translucido' ? 'background:rgba(0,0,0,.72);padding:2px 14px;border-radius:6px;' : '';
+    const sombra = e.fundo === 'sombra' || e.fundo === 'nenhum' ? 'text-shadow:0 0 4px #000,0 0 4px #000,2px 2px 3px #000,-2px -2px 3px #000;' : 'text-shadow:none;';
+    const posicao = e.posicao === 'topo' ? 'top:90px;' : e.posicao === 'alto' ? 'bottom:260px;' : 'bottom:120px;';
+    this.subOverlayEl.style.cssText =
+      `position:fixed; left:8%; right:8%; ${posicao} text-align:center; pointer-events:none; z-index:45; font-size:${tamanho}px; line-height:1.35; font-weight:700; color:${cor}; font-family:${fonte}; ${sombra} ${fundo} white-space:pre-line;`;
   }
 
   seekDelta(deltaSec: number) {

@@ -5,6 +5,7 @@
  */
 
 import { State } from '../core/State';
+import { nomeDoPais } from '../../../src/services/infoDosTitulos';
 import { Api, VODItem, DestaqueFila, Novelinha } from '../core/Api';
 import { paradaDaNovelinha } from './NovelinhaScreen';
 import { HeroBanner } from '../components/HeroBanner';
@@ -34,6 +35,7 @@ interface Filtros {
   rotuloAnos: string;
   idade: number | null;
   nota: number;
+  pais: string;
   ordem: Ordem;
 }
 
@@ -59,7 +61,7 @@ export class OnDemandScreen {
   private isLoaded = false;
   private filtrosBar: HTMLElement;
   private escolha = new Escolha();
-  private filtros: Filtros = { genero: '', anos: null, rotuloAnos: '', idade: null, nota: 0, ordem: 'destaques' };
+  private filtros: Filtros = { genero: '', anos: null, rotuloAnos: '', idade: null, nota: 0, pais: '', ordem: 'destaques' };
   private geracao = 0;
 
   constructor() {
@@ -108,7 +110,7 @@ export class OnDemandScreen {
 
   private filtrando(): boolean {
     const f = this.filtros;
-    return !!f.genero || !!f.anos || f.idade !== null || f.nota > 0 || f.ordem !== 'destaques';
+    return !!f.genero || !!f.anos || f.idade !== null || f.nota > 0 || !!f.pais || f.ordem !== 'destaques';
   }
 
   private renderFiltros() {
@@ -118,11 +120,12 @@ export class OnDemandScreen {
       { id: 'ano', rotulo: `Ano: ${f.rotuloAnos || 'Todos'}`, ativo: !!f.anos, abrir: () => this.escolherAno() },
       { id: 'idade', rotulo: `Idade: ${f.idade === null ? 'Todas' : f.idade === 0 ? 'Livre' : `até ${f.idade} anos`}`, ativo: f.idade !== null, abrir: () => this.escolherIdade() },
       { id: 'nota', rotulo: `Nota: ${f.nota ? `${f.nota} ou mais` : 'Qualquer'}`, ativo: f.nota > 0, abrir: () => this.escolherNota() },
+      { id: 'pais', rotulo: `País: ${f.pais ? nomeDoPais(f.pais) : 'Todos'}`, ativo: !!f.pais, abrir: () => this.escolherPais() },
       { id: 'ordem', rotulo: `Ordem: ${ORDENS.find((o) => o.id === f.ordem)!.rotulo}`, ativo: f.ordem !== 'destaques', abrir: () => this.escolherOrdem() },
     ];
     if (this.filtrando()) {
       botoes.push({ id: 'limpar', rotulo: 'Limpar filtros', ativo: false, abrir: () => {
-        this.filtros = { genero: '', anos: null, rotuloAnos: '', idade: null, nota: 0, ordem: 'destaques' };
+        this.filtros = { genero: '', anos: null, rotuloAnos: '', idade: null, nota: 0, pais: '', ordem: 'destaques' };
         this.aplicarFiltros('limpar');
       } });
     }
@@ -191,6 +194,17 @@ export class OnDemandScreen {
     })));
   }
 
+  private async escolherPais() {
+    const mapa = await Api.fetchDetalhes();
+    const conta: Record<string, number> = {};
+    mapa.forEach((d) => { if (d.pais) conta[d.pais] = (conta[d.pais] || 0) + 1; });
+    const paises = Object.keys(conta).filter((c) => conta[c] >= 30).sort((a, b) => conta[b] - conta[a]);
+    this.abrirEscolha('País de origem', 'pais', [
+      { rotulo: 'Todos', marcada: !this.filtros.pais, aplicar: () => { this.filtros.pais = ''; } },
+      ...paises.map((c) => ({ rotulo: nomeDoPais(c), marcada: this.filtros.pais === c, aplicar: () => { this.filtros.pais = c; } })),
+    ]);
+  }
+
   private escolherNota() {
     this.abrirEscolha('Nota mínima', 'nota', [0, 6, 7, 8].map((n) => ({
       rotulo: n ? `${n} ou mais` : 'Qualquer', marcada: this.filtros.nota === n, aplicar: () => { this.filtros.nota = n; },
@@ -224,6 +238,7 @@ export class OnDemandScreen {
       if (f.anos) { const a = anoDe(v); if (a < f.anos[0] || a > f.anos[1]) return false; }
       if (f.idade !== null && !(d && d.idade >= 0 && d.idade <= f.idade)) return false;
       if (f.nota > 0 && !(d && d.nota >= f.nota)) return false;
+      if (f.pais && d?.pais !== f.pais) return false;
       return true;
     });
     const nome = (v: VODItem) => v.title.toLowerCase();

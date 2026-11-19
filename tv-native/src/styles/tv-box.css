@@ -331,3 +331,9 @@ html.tizen.video-ativo, html.tizen.video-ativo body { background: transparent !i
 .tv-conta-dica { margin-top: 26px; opacity: .6; font-size: 22px; }
 .tv-conta.logada { flex-direction: column; text-align: center; }
 .tv-conta-campo { display: block; width: 760px; margin: 22px auto 0; }
+
+/* Episódio já assistido (marcado pelo player ou à mão) */
+.tv-card-marcado {
+  position: absolute; left: 10px; bottom: 10px; z-index: 3; padding: 4px 12px; border-radius: 999px;
+  font-size: 18px; font-weight: 700; color: #071311; background: var(--saimo-acento, #4fe3d0);
+}

@@ -18,6 +18,9 @@ export interface CardModel {
   onClick: () => void;
   onFocus?: () => void;
   onRemove?: () => void;
+  /** Já assistido (✓) e como marcar/desmarcar: botão verde ou amarelo do controle, ou a tecla M. */
+  marcado?: boolean;
+  onMarcar?: () => void;
   extraData?: any;
 }
 
@@ -82,6 +85,7 @@ export class Rail {
             ${card.image ? `<img class="tv-card-img" src="${card.image}" onerror="this.style.display='none'" loading="lazy" alt="" />` : '<div class="tv-card-placeholder"></div>'}
             ${card.badge ? `<span class="tv-card-badge" style="background:${card.badgeColor || '#00e3ff'}">${card.badge}</span>` : ''}
             ${card.onRemove ? `<span role="button" class="tv-card-remove" title="Remover de Continuar assistindo">×</span>` : ''}
+            ${card.marcado ? `<span class="tv-card-marcado">✓ Assistido</span>` : ''}
             ${card.progressPercent !== undefined ? `
               <div class="tv-card-progress-bar">
                 <div class="tv-card-progress-fill" style="width: ${card.progressPercent}%"></div>
@@ -113,6 +117,17 @@ export class Rail {
             e.preventDefault();
             e.stopPropagation();
             card.onRemove?.();
+          }
+        });
+      }
+
+      if (card.onMarcar) {
+        cardEl.addEventListener('keydown', (e: KeyboardEvent) => {
+          // Verde (404), amarelo (405) ou M (77): marca ou desmarca como assistido
+          if (e.keyCode === 404 || e.keyCode === 405 || e.keyCode === 77) {
+            e.preventDefault();
+            e.stopPropagation();
+            card.onMarcar?.();
           }
         });
       }

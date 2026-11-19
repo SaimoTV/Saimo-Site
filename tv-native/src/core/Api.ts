@@ -43,6 +43,8 @@ export interface Detalhe {
   nota: number;
   idade: number;
   popularidade: number;
+  /** País de origem (ISO), ou vazio. */
+  pais?: string;
 }
 
 export interface Novelinha {
@@ -563,6 +565,7 @@ export class Api {
             nota: parseFloat(c[3]) || 0,
             idade: isNaN(idade) ? -1 : idade,
             popularidade: parseInt(c[5], 10) || 0,
+            pais: (c[6] || '').trim(),
           });
         }
         this.detalhesMap = mapa;
