@@ -48,6 +48,7 @@ function temaCss() {
     '#7c3aed': '--saimo-roxo-escuro',
     '#6d28d9': '--saimo-roxo-escuro',
     '#0a0a0a': '--saimo-fundo',
+    '#070709': '--saimo-fundo',
   }
   const RGB: [RegExp, string, string][] = [
     [/\b(rgba?)\(\s*79\s*,\s*227\s*,\s*208\s*(,\s*[\d.]+\s*)?\)/gi, '--saimo-acento-rgb', '79, 227, 208'],
@@ -79,6 +80,7 @@ temaCss.postcss = true
 const configTv = defineConfig({
   base: './',
   plugins: [react()],
+  css: { postcss: { plugins: [temaCss()] } },
   worker: { format: 'iife' },
   define: { 'process.env.NODE_ENV': JSON.stringify('production'), 'import.meta.env.VITE_TV': '"1"' },
   build: {
