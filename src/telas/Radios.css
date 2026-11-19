@@ -19,4 +19,3 @@
 .cartao-radio-logo span { font-size: 2.4rem; font-weight: 800; color: rgba(255, 255, 255, 0.28); }
 .cartao-radio:hover .cartao-radio-logo, .cartao-radio.tocando .cartao-radio-logo { transform: translateY(-3px); border-color: #4ff3e0; }
 .cartao-radio strong { font-size: 0.82rem; font-weight: 600; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.cartao-radio-logo 

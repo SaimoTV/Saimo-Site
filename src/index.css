@@ -164,3 +164,21 @@ ol {
 .atalhos-linha dd { margin: 0; color: #b8c0cc; }
 .atalhos-caixa kbd { background: #2a2d36; border-radius: 6px; padding: 2px 8px; font-family: inherit; font-size: 13px; }
 .atalhos-caixa button { margin-top: 18px; background: #fff; color: #000; border: 0; border-radius: 8px; padding: 10px 18px; font-weight: 600; cursor: pointer; }
+
+/* Fundo escolhido nos Ajustes (cor padrão: #0a0a0a) */
+body { background: var(--saimo-fundo, #0a0a0a); }
+
+/* Transição suave entre telas; "Animações reduzidas" (ou o pedido do sistema) a desliga */
+@keyframes saimo-entrada { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.tela { animation: saimo-entrada 0.28s ease both; }
+html[data-animacoes='reduzidas'] *,
+html[data-animacoes='reduzidas'] *::before,
+html[data-animacoes='reduzidas'] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tela { animation: none; }
+}

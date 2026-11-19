@@ -14,6 +14,9 @@ import { iniciarBrilho } from './plataforma/brilho'
 import { iniciarConta } from './conta/conta'
 import { adaptadorDoSite } from './conta/site'
 import { mostrarFalha, ProtecaoDeFalha } from './plataforma/falha'
+import { iniciarTema } from './plataforma/tema'
+import { iniciarNovosEpisodios } from './services/novosEpisodios'
+import { aplicarEstiloDeLegenda } from './plataforma/legendaEstilo'
 
 try {
   // Antes de qualquer tela: esquece o que as versões anteriores guardaram de listas.
@@ -22,9 +25,12 @@ try {
   vigiarExtensoes()
   iniciarTv()
   iniciarBrilho()
+  iniciarTema()
+  aplicarEstiloDeLegenda()
   iniciarTelemetria()
   // Conta Saimo (opcional): sem login, não faz nada.
   iniciarConta(adaptadorDoSite)
+  iniciarNovosEpisodios()
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <ProtecaoDeFalha>

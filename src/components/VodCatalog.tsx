@@ -93,7 +93,8 @@ import {
   aoMudar as aoMudarFavoritos,
   contem as ehFavorito,
 } from '../services/vodFavoritos';
-import { carregarDetalhes, detalheDe, faixasDeAno, type Detalhes } from '../services/infoDosTitulos';
+import { aoMudarAssistidos, desmarcarAssistido, ehAssistido, marcarAssistido } from '../services/assistidos';
+import { carregarDetalhes, detalheDe, faixasDeAno, nomeDoPais, paisesDoAcervo, type Detalhes } from '../services/infoDosTitulos';
 import { NovelinhasTela } from './Novelinhas';
 import { carregarNovelinhas } from '../services/novelinhas';
 import './VodCatalog.css';
@@ -257,10 +258,14 @@ export function VodCatalog({
   const [anosFiltro, setAnosFiltro] = useState<string>('');
   const [idadeFiltro, setIdadeFiltro] = useState<string>('');
   const [notaFiltro, setNotaFiltro] = useState<string>('');
+  const [paisFiltro, setPaisFiltro] = useState<string>('');
+  // Muda quando um episódio é marcado ou concluído: refaz os ✓ da lista.
+  const [versaoAssistidos, setVersaoAssistidos] = useState(0);
+  useEffect(() => aoMudarAssistidos(() => setVersaoAssistidos((v) => v + 1)), []);
   const [ordemFiltro, setOrdemFiltro] = useState<'az' | 'novos' | 'populares' | 'melhores'>('az');
   const [detalhes, setDetalhes] = useState<Detalhes | null>(null);
   useEffect(() => { carregarDetalhes().then((m) => setDetalhes(m.size ? m : null)); }, []);
-  const filtrosExtras = !!(anosFiltro || idadeFiltro || notaFiltro || ordemFiltro !== 'az');
+  const filtrosExtras = !!(anosFiltro || idadeFiltro || notaFiltro || paisFiltro || ordemFiltro !== 'az');
   const [letraFiltro, setLetraFiltro] = useState<string>('A');
   const [termoBusca, setTermoBusca] = useState<string>('');
 
@@ -350,7 +355,7 @@ export function VodCatalog({
   }, [aberto]);
 
   // Paginação da Grade A-Z sem efeito cascata
-  const filtroAtual = `${secao || 'ondemand'}:${generoFiltro}:${letraFiltro}:${termoBusca.trim()}:${modo}:${anosFiltro}:${idadeFiltro}:${notaFiltro}:${ordemFiltro}`;
+  const filtroAtual = `${secao || 'ondemand'}:${generoFiltro}:${letraFiltro}:${termoBusca.trim()}:${modo}:${anosFiltro}:${idadeFiltro}:${notaFiltro}:${paisFiltro}:${ordemFiltro}`;
   const [pagina, setPagina] = useState({ filtro: '', quantos: PAGINA });
   const visiveis = pagina.filtro === filtroAtual ? pagina.quantos : PAGINA;
   const sentinelaRef = useRef<HTMLDivElement | null>(null);
@@ -1499,6 +1504,7 @@ export function VodCatalog({
       if (faixa) { const a = anoDe(i); if (a < faixa[0] || a > faixa[1]) return false; }
       if (idadeMax !== null && !(d && d.idade >= 0 && d.idade <= idadeMax)) return false;
       if (notaMin && !(d && d.nota >= notaMin)) return false;
+      if (paisFiltro && d?.pais !== paisFiltro) return false;
       return true;
     });
     // O mesmo título em duas pastas ("Jack" e "Jack (1993)") aparece uma vez só.
@@ -1514,7 +1520,9 @@ export function VodCatalog({
     else if (ordemFiltro === 'populares') lista = [...lista].sort((a, b) => (detalheDe(detalhes, b.titulo, b.serie)?.popularidade || 0) - (detalheDe(detalhes, a.titulo, a.serie)?.popularidade || 0));
     else if (ordemFiltro === 'melhores') lista = [...lista].sort((a, b) => (detalheDe(detalhes, b.titulo, b.serie)?.nota || 0) - (detalheDe(detalhes, a.titulo, a.serie)?.nota || 0));
     return lista;
-  }, [itensGrade, filtrosExtras, anosFiltro, idadeFiltro, notaFiltro, ordemFiltro, detalhes]);
+  }, [itensGrade, filtrosExtras, anosFiltro, idadeFiltro, notaFiltro, paisFiltro, ordemFiltro, detalhes]);
+
+  const paisesDisponiveis = useMemo(() => paisesDoAcervo(detalhes), [detalhes]);
 
   return (
     <div className="vod-catalog">
@@ -2116,6 +2124,15 @@ export function VodCatalog({
                   {[6, 7, 8].map((n) => <option key={n} value={String(n)}>{n} ou mais</option>)}
                 </select>
               </label>
+              {paisesDisponiveis.length > 0 && (
+                <label className={`vod-filtro${paisFiltro ? ' ativo' : ''}`}>
+                  <span>País</span>
+                  <select value={paisFiltro} onChange={(e) => setPaisFiltro(e.target.value)}>
+                    <option value="">Todos</option>
+                    {paisesDisponiveis.map((c) => <option key={c} value={c}>{nomeDoPais(c)}</option>)}
+                  </select>
+                </label>
+              )}
               <label className={`vod-filtro${ordemFiltro !== 'az' ? ' ativo' : ''}`}>
                 <span>Ordem</span>
                 <select value={ordemFiltro} onChange={(e) => setOrdemFiltro(e.target.value as typeof ordemFiltro)}>
@@ -2126,7 +2143,7 @@ export function VodCatalog({
                 </select>
               </label>
               {filtrosExtras && (
-                <button className="vod-filtro-limpar" onClick={() => { setAnosFiltro(''); setIdadeFiltro(''); setNotaFiltro(''); setOrdemFiltro('az'); }}>
+                <button className="vod-filtro-limpar" onClick={() => { setAnosFiltro(''); setIdadeFiltro(''); setNotaFiltro(''); setPaisFiltro(''); setOrdemFiltro('az'); }}>
                   Limpar filtros
                 </button>
               )}
@@ -2498,7 +2515,8 @@ export function VodCatalog({
                               }
                             }
                           } catch { /* ignorar */ }
-                          const assistido = progressoFracao >= 0.95;
+                          void versaoAssistidos;
+                          const assistido = ehAssistido(aberto.titulo, e.temporada, e.numero);
 
                           return (
                             <button
@@ -2519,6 +2537,28 @@ export function VodCatalog({
                                   </span>
                                 )}
                                 {assistido && <span className="vod-ep-badge assistido">✓ Assistido</span>}
+                                <span
+                                  role="button"
+                                  tabIndex={0}
+                                  className={`vod-ep-marcar${assistido ? ' ativo' : ''}`}
+                                  title={assistido ? 'Desmarcar como assistido' : 'Marcar como assistido'}
+                                  aria-label={assistido ? 'Desmarcar como assistido' : 'Marcar como assistido'}
+                                  aria-pressed={assistido}
+                                  onClick={(ev) => {
+                                    ev.stopPropagation();
+                                    if (assistido) desmarcarAssistido(aberto.titulo, e.temporada, e.numero);
+                                    else marcarAssistido(aberto.titulo, e.temporada, e.numero, 0, true);
+                                  }}
+                                  onKeyDown={(ev) => {
+                                    if (ev.key !== 'Enter' && ev.key !== ' ') return;
+                                    ev.preventDefault();
+                                    ev.stopPropagation();
+                                    if (assistido) desmarcarAssistido(aberto.titulo, e.temporada, e.numero);
+                                    else marcarAssistido(aberto.titulo, e.temporada, e.numero, 0, true);
+                                  }}
+                                >
+                                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" /></svg>
+                                </span>
                                 {progressoFracao > 0 && !assistido && (
                                   <div className="vod-ep-progresso-trilho">
                                     <div

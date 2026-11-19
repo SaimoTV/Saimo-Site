@@ -1677,3 +1677,19 @@ body:has(.barra-topo.oculta) .vod-letras-barra {
 .vod-filtro:focus-within { outline: 2px solid #fff; outline-offset: 2px; }
 .vod-filtro-limpar { height: 38px; padding: 0 16px; border-radius: 19px; border: 1px solid rgba(255,255,255,.2); background: transparent; color: #fff; font-size: 13px; cursor: pointer; }
 .vod-filtro-total { margin-left: auto; color: rgba(255,255,255,.55); font-size: 13px; }
+
+/* Marcar episódio como assistido (canto da miniatura) */
+.vod-ep-thumb { position: relative; }
+.vod-ep-marcar {
+  position: absolute; top: 8px; right: 8px; z-index: 3; width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  background: rgba(0, 0, 0, 0.55); color: rgba(255, 255, 255, 0.75); border: 1px solid rgba(255, 255, 255, 0.25);
+  opacity: 0; transition: opacity 0.15s ease, background 0.15s ease;
+}
+.vod-ep-marcar svg { width: 18px; height: 18px; }
+.vod-ep-card:hover .vod-ep-marcar,
+.vod-ep-card:focus-visible .vod-ep-marcar,
+.vod-ep-marcar:focus-visible,
+.vod-ep-marcar.ativo { opacity: 1; }
+.vod-ep-marcar.ativo { background: #4fe3d0; color: #071311; border-color: #4fe3d0; }
+@media (hover: none) { .vod-ep-marcar { opacity: 1; } }

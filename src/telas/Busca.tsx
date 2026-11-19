@@ -17,9 +17,10 @@ import {
   useTemAddons,
 } from '../services/addons';
 import {
-  buscar, capaDaFicha, colecao, generos as lerGeneros, semAno,
-  type Generos, type ItemDestaque, type SerieColecao,
+  buscar, capaDaFicha, colecao, generos as lerGeneros, semAno, todos as listarTudo, tituloDoId,
+  type Achado, type Generos, type ItemDestaque, type SerieColecao,
 } from '../services/vodService';
+import { buscarPessoas, creditosDe, type PessoaAchada } from '../services/tmdbService';
 import { chave } from '../services/radios';
 import { ROTULO_TIPO, useAbrirVod } from './compartilhado';
 
@@ -41,6 +42,11 @@ export function Busca() {
   const [colecoes, setColecoes] = useState<{ animes: SerieColecao[]; doramas: SerieColecao[] } | null>(null);
   const [fichas, setFichas] = useState<Generos | null>(null);
   const [recentes, setRecentes] = useState(lerRecentes);
+  // Atores e diretores: o nome digitado também procura gente, e escolher uma
+  // pessoa mostra o que dela existe no acervo.
+  const [pessoas, setPessoas] = useState<PessoaAchada[]>([]);
+  const [pessoa, setPessoa] = useState<PessoaAchada | null>(null);
+  const [achados, setAchados] = useState<{ id: number; lista: ItemDestaque[] } | null>(null);
   const t = termo.trim();
 
   useEffect(() => {
@@ -93,6 +99,46 @@ export function Busca() {
     }, 220);
     return () => { vivo = false; window.clearTimeout(espera); };
   }, [t, podeVod, links.filmes, temAddons, addons]);
+
+  useEffect(() => {
+    if (t.length < 3) return;
+    let vivo = true;
+    const espera = window.setTimeout(() => {
+      void buscarPessoas(t).then((l) => { if (vivo) setPessoas(l); });
+    }, 350);
+    return () => { vivo = false; window.clearTimeout(espera); };
+  }, [t]);
+
+  useEffect(() => {
+    if (!pessoa || !fichas) return;
+    let vivo = true;
+    void (async () => {
+      const creditos = await creditosDe(pessoa.id);
+      const [comFilmes, comSeries] = await Promise.all([listarTudo(false), listarTudo(true)]);
+      if (!vivo) return;
+      const porNome = new Map<string, Achado>();
+      for (const a of [...comFilmes, ...comSeries]) porNome.set(`${a.serie ? 's' : 'f'}|${a.titulo}`, a);
+      const vistos = new Set<string>();
+      const saida: ItemDestaque[] = [];
+      for (const c of creditos) {
+        const titulo = tituloDoId(fichas, c.id, c.serie);
+        if (!titulo) continue;
+        const marca = c.serie ? 's' : 'f';
+        const achado = porNome.get(`${marca}|${titulo}`) ?? porNome.get(`${marca}|${semAno(titulo)}`);
+        if (!achado) continue;
+        const k = `${marca}|${achado.titulo}`;
+        if (vistos.has(k)) continue;
+        vistos.add(k);
+        saida.push({ tipo: marca, titulo: achado.titulo, letra: achado.letra, ano: achado.ano, capa: c.capa ?? capaDaFicha(fichas, achado.titulo, achado.serie) ?? '' });
+      }
+      setAchados({ id: pessoa.id, lista: saida });
+    })();
+    return () => { vivo = false; };
+  }, [pessoa, fichas]);
+
+  // Só vale enquanto o termo tem 3 letras ou mais, e para a pessoa escolhida.
+  const pessoasVisiveis = t.length >= 3 ? pessoas : [];
+  const trabalhos = pessoa && achados?.id === pessoa.id ? achados.lista : null;
 
   const guardar = (q: string) => {
     if (q.length < 2) return;
@@ -149,12 +195,44 @@ export function Busca() {
             </div>
           </>
         )}
+        {pessoasVisiveis.length > 0 && !pessoa && links.filmes && (
+          <>
+            <h2 className="grade-titulo">Atores e diretores</h2>
+            <div className="busca-pessoas">
+              {pessoasVisiveis.map((p) => (
+                <button key={p.id} className="busca-pessoa" onClick={() => { guardar(t); setPessoa(p); }}>
+                  {p.foto ? <img src={p.foto} alt="" loading="lazy" /> : <span className="busca-pessoa-sem" />}
+                  <span><strong>{p.nome}</strong><small>{[p.area, p.conhecidaPor].filter(Boolean).join(' · ')}</small></span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+        {pessoa && (
+          <>
+            <div className="busca-pessoa-cab">
+              <button className="busca-pessoa-voltar" onClick={() => setPessoa(null)}>‹ Voltar</button>
+              <h2 className="grade-titulo">No acervo, com {pessoa.nome}</h2>
+            </div>
+            {trabalhos === null && <p className="ajustes-dica">Procurando no acervo…</p>}
+            {trabalhos?.length === 0 && <p className="ajustes-dica">Nada de {pessoa.nome} no acervo agora.</p>}
+          </>
+        )}
         {!links.canais && !temAddons && <SemLista tipo="canais" />}
         {!links.filmes && !temAddons && <SemLista tipo="filmes" />}
         {nada && (links.canais || podeVod) && <div className="tela-vazio"><h2>Nada encontrado</h2><p>Nada para “{t}”. Tente outro nome.</p></div>}
       </div>
 
-      {canaisAchados.length > 0 && (
+      {pessoa && trabalhos && trabalhos.length > 0 && (
+        <div className="busca-pessoa-grade">
+          {trabalhos.map((i) => (
+            <CartaoCapa key={`${i.tipo}${i.titulo}${i.ano}`} titulo={semAno(i.titulo)} capa={i.capa}
+              rotulo={i.ano || ROTULO_TIPO[i.tipo]} aoAbrir={() => abrirVod(i)} />
+          ))}
+        </div>
+      )}
+
+      {!pessoa && canaisAchados.length > 0 && (
         <Fileira titulo="Canais">
           {canaisAchados.map((c) => (
             <CartaoLargo key={c.id} titulo={c.name} logo={c.logo} linha={c.category}
@@ -162,10 +240,10 @@ export function Busca() {
           ))}
         </Fileira>
       )}
-      {grade('Filmes', filmes)}
-      {grade('Séries', series)}
-      {grade('Animes', daColecao.animes)}
-      {grade('Doramas', daColecao.doramas)}
+      {!pessoa && grade('Filmes', filmes)}
+      {!pessoa && grade('Séries', series)}
+      {!pessoa && grade('Animes', daColecao.animes)}
+      {!pessoa && grade('Doramas', daColecao.doramas)}
     </div>
   );
 }

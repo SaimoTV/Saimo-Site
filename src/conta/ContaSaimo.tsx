@@ -4,6 +4,12 @@ import {
 } from './conta';
 import './conta.css';
 
+/** ABCD2345 vira ABCD-2345 enquanto digita; o que não é letra ou número some. */
+function mascaraDoCodigo(texto: string): string {
+  const limpo = texto.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+  return limpo.length > 4 ? `${limpo.slice(0, 4)}-${limpo.slice(4)}` : limpo;
+}
+
 function haQuanto(ms: number): string {
   if (!ms) return 'ainda não sincronizou';
   const min = Math.floor((Date.now() - ms) / 60000);
@@ -114,7 +120,7 @@ export function AprovarTv({ inicial = '', aoAprovar }: { inicial?: string; aoApr
           .finally(() => setOcupado(false));
       }}>
         <input className="conta-campo conta-codigo" maxLength={9} placeholder="ABCD-2345" value={tv}
-          onChange={(e) => setTv(e.target.value.toUpperCase())} data-testid="conta-codigo-tv" />
+          onChange={(e) => setTv(mascaraDoCodigo(e.target.value))} autoCapitalize="characters" autoComplete="off" spellCheck={false} data-testid="conta-codigo-tv" />
         <button className="ajustes-botao destaque" disabled={ocupado || !valido} data-testid="conta-aprovar-tv">
           {ocupado ? 'Aprovando…' : 'Entrar nesta TV'}
         </button>

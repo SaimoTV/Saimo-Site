@@ -178,3 +178,28 @@
 @keyframes eq { 0%, 100% { height: 20%; } 50% { height: 100%; } }
 .sem-lista-acao.secundaria { background: rgba(255, 255, 255, 0.14); color: #fff; margin-left: 10px; }
 .sem-lista-acao.secundaria:hover, .sem-lista-acao.secundaria:focus-visible { background: rgba(255, 255, 255, 0.24); }
+
+/* Busca por atores e diretores */
+.busca-pessoas { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.busca-pessoa {
+  display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 14px; cursor: pointer;
+  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.08); color: #fff; font: inherit; text-align: left;
+}
+.busca-pessoa:hover, .busca-pessoa:focus-visible { background: rgba(255, 255, 255, 0.12); }
+.busca-pessoa img, .busca-pessoa-sem { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex: none; background: rgba(255, 255, 255, 0.1); }
+.busca-pessoa strong { display: block; font-size: 0.95rem; }
+.busca-pessoa small { display: block; font-size: 0.78rem; color: rgba(255, 255, 255, 0.6); margin-top: 2px; }
+.busca-pessoa-cab { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.busca-pessoa-voltar { padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.2); background: transparent; color: #fff; cursor: pointer; font: inherit; }
+.busca-pessoa-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px 12px; padding: 12px 24px 40px; max-width: 1200px; margin: 0 auto; }
+
+/* Avisos de episódios novos */
+.novos-eps { margin: 16px 0 6px; display: flex; flex-direction: column; gap: 8px; }
+.novos-eps-linha { display: flex; align-items: stretch; gap: 6px; }
+.novos-eps-abrir {
+  flex: 1; display: flex; flex-direction: column; gap: 2px; text-align: left; cursor: pointer; font: inherit; color: #fff;
+  padding: 10px 14px; border-radius: 12px; background: rgba(var(--saimo-acento-rgb, 79, 227, 208), 0.12);
+  border: 1px solid rgba(var(--saimo-acento-rgb, 79, 227, 208), 0.35);
+}
+.novos-eps-abrir span { font-size: 0.8rem; color: rgba(255, 255, 255, 0.7); }
+.novos-eps-fechar { width: 38px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.15); background: transparent; color: #fff; font-size: 20px; cursor: pointer; }

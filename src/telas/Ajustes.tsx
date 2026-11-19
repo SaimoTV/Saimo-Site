@@ -32,6 +32,7 @@ import { Avatar } from '../perfis/EscolhaPerfil';
 import { ControleParental } from '../perfis/ControleParental';
 import { PedirCodigo } from '../perfis/PedirCodigo';
 import { pedeCodigo } from '../perfis/perfis';
+import { AparenciaAjustes, EstatisticasPessoais, LegendasAjustes, NotificacoesAjustes } from './AjustesExtras';
 import { brilho as brilhoGuardado, definirBrilho, aoMudarBrilho } from '../plataforma/brilho';
 
 export type AoIniciar = 'inicio' | 'ultimo';
@@ -317,6 +318,11 @@ function AjustesConteudo() {
           </label>
           <p className="ajustes-dica">Em 0% a tela fica preta: qualquer tecla ou clique volta ao normal.</p>
         </section>
+
+        <AparenciaAjustes />
+        <LegendasAjustes />
+        <NotificacoesAjustes />
+        <EstatisticasPessoais />
 
         <section className="ajustes-bloco">
           <h2>Dados deste perfil</h2>

@@ -3,6 +3,8 @@ import { useRef, useEffect, useState, useCallback, memo, useMemo } from 'react';
 import { rota } from '../utils/rotas';
 import { useMediaSession } from '../hooks/useMediaSession';
 import { registrar as registrarAndamento, posicao as posicaoDoAndamento } from '../services/continuar';
+import { marcarAssistido, somarTempo } from '../services/assistidos';
+import { aoMudarEstiloDeLegenda, linhaDaLegenda, posicionarFalas } from '../plataforma/legendaEstilo';
 import { buscarPulos, trechoEm, inicioDosCreditos, rotuloTrecho, type Trecho } from '../services/pulos';
 import { buscarLegendas, carregarLegenda, idiomaGuardado, guardarIdioma, mesclarLegendasComStream, type LegendaOpcao, type Fala } from '../services/legendas';
 import { isDebridPendingUrl } from '../services/addons';
@@ -41,6 +43,21 @@ const fonteInicial = (lista: readonly { url: string; versao?: string }[], filme?
   filme?.initialSourceUrl
     ? initialSourceIndex(lista, filme.initialSourceUrl)
     : fontePreferida(serieDe(filme), lista);
+
+/** Guarda onde parou (e marca como assistido ao passar de 90%). Chamada ao sair e a cada 20 s tocando. */
+function guardarPonto(video: HTMLVideoElement, movie: Movie): void {
+  const tempo = video.currentTime;
+  const duracao = video.duration;
+  if (!Number.isFinite(tempo) || !Number.isFinite(duracao) || tempo <= 30 || duracao <= 0) return;
+  const progresso = (tempo / duracao) * 100;
+  if (progresso < 95) localStorage.setItem(`movie-progress-${movie.id}`, String(tempo));
+  else localStorage.removeItem(`movie-progress-${movie.id}`);
+  if (movie.origem) registrarAndamento(movie.origem, movie.name, tempo, duracao, movie.seasonNumber, movie.episodeNumber);
+  if (progresso >= 90) {
+    const obra = movie.origem?.titulo || movie.seriesName || movie.name;
+    marcarAssistido(obra, movie.seasonNumber, movie.episodeNumber, duracao);
+  }
+}
 
 /** Pula para um ponto do vídeo; ignora valor não finito (duração ainda desconhecida em TV). */
 function posicionar(video: HTMLVideoElement, segundos: number): void {
@@ -320,15 +337,7 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
       if (atual()) acao();
     };
 
-    const salvarProgresso = () => {
-      const tempo = video.currentTime;
-      const duracao = video.duration;
-      if (!Number.isFinite(tempo) || !Number.isFinite(duracao) || tempo <= 30 || duracao <= 0) return;
-      const progresso = (tempo / duracao) * 100;
-      if (progresso < 95) localStorage.setItem(`movie-progress-${movie.id}`, String(tempo));
-      else localStorage.removeItem(`movie-progress-${movie.id}`);
-      if (movie.origem) registrarAndamento(movie.origem, movie.name, tempo, duracao, movie.seasonNumber, movie.episodeNumber);
-    };
+    const salvarProgresso = () => guardarPonto(video, movie);
 
     const carregarProgresso = () => {
       if (!atual()) return;
@@ -707,6 +716,7 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
       setIsPlaying(false);
       if (movie) {
         localStorage.removeItem(`movie-progress-${movie.id}`);
+        marcarAssistido(movie.origem?.titulo || movie.seriesName || movie.name, movie.seasonNumber, movie.episodeNumber, video.duration || 0);
       }
       // Mostra botão de próximo episódio quando o vídeo termina
       if (nextEpisode) {
@@ -733,6 +743,29 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
       video.removeEventListener('ended', handleEnded);
     };
   }, [movie, nextEpisode]);
+
+  // Mudou o estilo da legenda nos Ajustes (ou aqui): a posição vale já para as falas em curso.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    posicionarFalas(video);
+    return aoMudarEstiloDeLegenda(() => posicionarFalas(video));
+  }, [movie, legendaExt]);
+
+  // Tempo de tela (estatísticas) e o ponto guardado a cada 20 s: antes ele só
+  // era guardado ao sair, e uma aba fechada à força perdia o lugar.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !movie) return;
+    let ciclos = 0;
+    const id = window.setInterval(() => {
+      if (video.paused || video.ended || video.readyState < 3) return;
+      somarTempo(5);
+      ciclos += 1;
+      if (ciclos % 4 === 0) guardarPonto(video, movie);
+    }, 5000);
+    return () => window.clearInterval(id);
+  }, [movie]);
 
   // Função para abrir em nova aba
   const openInNewTab = useCallback(() => {
@@ -858,7 +891,10 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
     for (const fala of falasRef.current) {
       const fim = fala.fim + atraso;
       if (fim <= 0) continue;
-      faixa.addCue(new VTTCue(Math.max(0, fala.inicio + atraso), fim, fala.texto));
+      const cue = new VTTCue(Math.max(0, fala.inicio + atraso), fim, fala.texto);
+      cue.snapToLines = true;
+      cue.line = linhaDaLegenda();
+      faixa.addCue(cue);
     }
     faixa.mode = 'showing';
   }, []);

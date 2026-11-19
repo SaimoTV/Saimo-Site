@@ -11,6 +11,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import { getCurrentProgram } from '../services/epgService';
 import { alternar, aoMudar, lista as vodLista } from '../services/vodFavoritos';
 import type { ItemDestaque } from '../services/vodService';
+import { aoMudarAvisos, avisos as lerAvisos, dispensarAviso } from '../services/novosEpisodios';
 import type { Channel } from '../types/channel';
 import { ROTULO_TIPO, useAbrirVod, useHeroiVod } from './compartilhado';
 
@@ -26,6 +27,8 @@ export function Favoritos() {
   const [sob, setSob] = useState<ItemDestaque | null>(null);
 
   useEffect(() => aoMudar(() => setVod(vodLista())), []);
+  const [avisosEp, setAvisosEp] = useState(lerAvisos);
+  useEffect(() => aoMudarAvisos(() => setAvisosEp(lerAvisos())), []);
 
   const favCanais = useMemo(
     () => ids.map((id) => canais.find((c) => c.id === id)).filter((c): c is Channel => !!c), [ids, canais]);
@@ -45,6 +48,21 @@ export function Favoritos() {
             <button key={k} className={filtro === k ? 'on' : ''} onClick={() => setFiltro(k)}>{r}</button>
           ))}
         </div>
+
+        {avisosEp.length > 0 && (
+          <div className="novos-eps" role="status">
+            <h2 className="grade-titulo">Episódios novos</h2>
+            {avisosEp.map((a) => (
+              <div key={`${a.item.tipo}${a.item.titulo}${a.item.ano}`} className="novos-eps-linha">
+                <button className="novos-eps-abrir" onClick={() => { dispensarAviso(a.item); abrirVod(a.item); }}>
+                  <strong>{a.item.titulo}</strong>
+                  <span>{a.novos} {a.novos === 1 ? 'episódio novo' : 'episódios novos'} · {a.total} no total</span>
+                </button>
+                <button className="novos-eps-fechar" aria-label="Dispensar aviso" onClick={() => dispensarAviso(a.item)}>×</button>
+              </div>
+            ))}
+          </div>
+        )}
 
         {vazio && (
           <div className="tela-vazio">

@@ -52,3 +52,17 @@
 .ajustes-brilho { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; max-width: 520px; }
 .ajustes-brilho input[type='range'] { width: 100%; accent-color: #2dd4bf; height: 28px; }
 .ajustes-dica { color: rgba(255, 255, 255, 0.55); font-size: 13px; margin-top: 6px; }
+
+/* Estatísticas, aparência e legendas */
+.estat-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 10px; }
+.estat-cartao { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: 14px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.08); }
+.estat-cartao strong { font-size: 1.45rem; line-height: 1.15; color: var(--saimo-acento, #4fe3d0); }
+.estat-cartao span { font-size: 0.8rem; color: rgba(255, 255, 255, 0.65); }
+.estat-cartao.largo { grid-column: span 2; }
+.estat-cartao.largo strong { font-size: 1.05rem; color: #fff; }
+.tema-amostras { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 14px; }
+.tema-amostra { display: flex; align-items: center; gap: 8px; padding: 8px 14px 8px 8px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 0.85rem; color: #fff; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); }
+.tema-amostra.on { border-color: var(--saimo-acento, #4fe3d0); background: rgba(255, 255, 255, 0.12); }
+.tema-bola { width: 26px; height: 26px; border-radius: 50%; display: inline-block; }
+.legenda-previa { margin-top: 14px; padding: 36px 16px; border-radius: 14px; text-align: center; background: linear-gradient(160deg, #3a4a5a, #1c232b); }
+.legenda-previa-texto { display: inline-block; }
