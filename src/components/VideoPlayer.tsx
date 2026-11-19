@@ -210,6 +210,21 @@ export const VideoPlayer = memo(function VideoPlayer({
     return sources.some(exigeCabecalho);
   }, [channel, attempts]);
 
+  // Canais servidos por cloudfront-net.lat (EmbedTV) sofrem bloqueio de DNS nas operadoras (Anatel)
+  // e só abrem no navegador quando o DNS 1.1.1.1 (Somente DNS, sem túnel WARP) está ativo.
+  const exigeDns1111 = useMemo(
+    () => !ehAppDaTv() && (channel?.sources ?? []).some((s) => s.url.includes('cloudfront-net.lat')),
+    [channel],
+  );
+  const [copiouDns, setCopiouDns] = useState(false);
+  const copiarEndDns = useCallback(() => {
+    try {
+      void navigator.clipboard.writeText('chrome://settings/security');
+      setCopiouDns(true);
+      window.setTimeout(() => setCopiouDns(false), 3000);
+    } catch { /* sem área de transferência */ }
+  }, []);
+
   const [sourceIndex, setSourceIndex] = useState(0);
   const [reloadTick, setReloadTick] = useState(0);
   // Extensão de captura detectada: refaz o carregamento, a limpeza derruba o
@@ -446,7 +461,13 @@ export const VideoPlayer = memo(function VideoPlayer({
         return;
       }
       telemetria.caiu('live', channel.name, urlsDasFontes.length);
-      setError('Erro ao carregar o canal. Tente novamente.');
+      if (exigeDns1111 && motivo.includes('/lula/')) {
+        setError('Este canal bloqueia o modo túnel VPN (WARP). No 1.1.1.1, mude de "1.1.1.1 with WARP" para "1.1.1.1 (Somente DNS)".');
+      } else if (exigeDns1111) {
+        setError('Este canal só funciona no site com o DNS 1.1.1.1 ativo (as operadoras bloqueiam o servidor no DNS padrão).');
+      } else {
+        setError('Erro ao carregar o canal. Tente novamente.');
+      }
       setIsLoading(false);
     };
 
@@ -618,6 +639,12 @@ export const VideoPlayer = memo(function VideoPlayer({
       });
 
       // Um fragmento que chegou apaga o erro anterior: a recuperação funcionou.
+      hls.on(Hls.Events.FRAG_LOADING, (_, data) => {
+        if (data.frag?.url && (data.frag.url.includes('/lula/') || data.frag.url.includes('lula.s25-cloudfront-net.lat'))) {
+          try { hls.stopLoad(); } catch { /* segue */ }
+          descer('bloqueio warp /lula/');
+        }
+      });
       hls.on(Hls.Events.FRAG_LOADED, () => { setError(null); recoveryAttemptsRef.current = 0; });
       hls.on(Hls.Events.LEVEL_LOADED, () => { setError(null); recoveryAttemptsRef.current = 0; });
 
@@ -1109,10 +1136,15 @@ export const VideoPlayer = memo(function VideoPlayer({
             <div className="loading-overlay">
               <LogoCarregando src={channel.logo} nome={channel.name} />
               <p>Carregando {channel.name}...</p>
+              {exigeDns1111 && (
+                <span className="loading-dns-hint">
+                  Este canal requer o DNS <strong>1.1.1.1 (Somente DNS, sem WARP)</strong> ativo para abrir no site
+                </span>
+              )}
             </div>
           )}
 
-          {error && fonteHttp && (
+          {error && fonteHttp && !exigeDns1111 && (
             <div className="error-overlay http-overlay" role="alert">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <rect x="3" y="4" width="18" height="13" rx="2" />
@@ -1158,13 +1190,45 @@ export const VideoPlayer = memo(function VideoPlayer({
             </div>
           )}
 
-          {error && !fonteHttp && (
+          {error && (!fonteHttp || exigeDns1111) && (
             <div className="error-overlay">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="10" />
                 <path d="M12 8v4M12 16h.01" />
               </svg>
               <p>{error}</p>
+              {exigeDns1111 && (
+                <div className="aviso-app aviso-dns">
+                  <div>
+                    <strong>Este canal só funciona no site com o DNS 1.1.1.1 ativo</strong>
+                    <span>
+                      As operadoras bloqueiam o servidor deste canal no DNS padrão. Ative o{' '}
+                      <strong>1.1.1.1</strong> no modo <strong>&ldquo;Somente DNS (1.1.1.1)&rdquo;</strong>{' '}
+                      (sem o túnel &ldquo;with WARP&rdquo;), ou ligue o <strong>DNS seguro (Cloudflare 1.1.1.1)</strong>{' '}
+                      nas configurações de segurança do Chrome/Edge.
+                    </span>
+                  </div>
+                  <div className="aviso-dns-botoes">
+                    <button
+                      type="button"
+                      onClick={copiarEndDns}
+                      className="aviso-app-botao"
+                      data-focusable="true"
+                    >
+                      {copiouDns ? 'Copiado! Cole na barra do Chrome' : 'Copiar chrome://settings/security'}
+                    </button>
+                    <a
+                      href="https://one.one.one.one/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="aviso-app-botao"
+                      data-focusable="true"
+                    >
+                      App 1.1.1.1
+                    </a>
+                  </div>
+                </div>
+              )}
               {!proxyDeVideoLiberado() && (
                 <div className="aviso-app">
                   <div>
