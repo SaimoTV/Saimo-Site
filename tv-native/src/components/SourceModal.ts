@@ -110,8 +110,10 @@ export class SourceModal {
     SpatialNav.pausado = false;
     SpatialNav.setTrap(this.element);
 
-    const first = this.listEl.querySelector<HTMLElement>('.tv-btn');
-    if (first) SpatialNav.focus(first);
+    // Foco já na fonte em uso, para o cursor não sugerir que a em uso é a primeira.
+    const itens = this.listEl.querySelectorAll<HTMLElement>('.tv-btn');
+    const inicial = itens[currentIndex] || itens[0];
+    if (inicial) SpatialNav.focus(inicial);
   }
 
   close() {
