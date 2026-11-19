@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   aoMudarConta, apagarConta, aprovarTv, cadastrar, codigoDoQr, entrarComSenha, estadoConta, sair, sincronizar, trocarSenha,
 } from './conta';
+import { EntrarComQrOuEmail } from './EntrarComQr';
 import './conta.css';
 
 /** ABCD2345 vira ABCD-2345 enquanto digita; o que não é letra ou número some. */
@@ -139,7 +140,7 @@ export function ContaSaimo() {
   const [aviso, setAviso] = useState('');
   const [mexendoNaSenha, setMexendoNaSenha] = useState(false);
 
-  if (!conta.token) return <EntrarComEmail />;
+  if (!conta.token) return <EntrarComQrOuEmail />;
 
   return (
     <div className="conta-caixa" data-testid="conta-logada">

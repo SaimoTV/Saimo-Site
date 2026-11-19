@@ -6,7 +6,8 @@
  * a Conta Saimo continua sendo a primeira opção em Ajustes.
  */
 import { useState } from 'react';
-import { EntrarComEmail, useConta } from './ContaSaimo';
+import { useConta } from './ContaSaimo';
+import { EntrarComQrOuEmail } from './EntrarComQr';
 import './boasvindas.css';
 
 const CHAVE = 'saimo-boas-vindas-feito';
@@ -36,7 +37,7 @@ export function BoasVindas() {
             <li>Você continua de onde parou no celular, na TV e no computador.</li>
             <li>Se trocar de aparelho ou reinstalar o app, não perde nada.</li>
           </ul>
-          <EntrarComEmail texto=" " />
+          <EntrarComQrOuEmail />
         </section>
         <section className="boasvindas-lado boasvindas-sem">
           <h1>Entrar sem login</h1>
