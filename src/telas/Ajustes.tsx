@@ -26,7 +26,7 @@ import './Ajustes.css';
 import { IconeMaterial } from '../components/IconeMaterial';
 import { MinhasListas } from './MinhasListas';
 import { abrirModalDoacao } from '../services/doacaoService';
-import { ContaSaimo } from '../conta/ContaSaimo';
+import { ContaSaimo, useConta } from '../conta/ContaSaimo';
 import { abrirEscolha, assinar as assinarPerfis, ativo as perfilAtivo, definirPerguntar, perfis as listaPerfis, perguntarAoAbrir, versaoAtual as versaoPerfis } from '../perfis/perfis';
 import { Avatar } from '../perfis/EscolhaPerfil';
 import { ControleParental } from '../perfis/ControleParental';
@@ -80,6 +80,7 @@ function AjustesConteudo() {
   const [zeroDelay, setZeroDelay] = useLocalStorage<ModoZeroDelay>(CHAVE_ZERO_DELAY, 'off');
   const [aviso, setAviso] = useState('');
   useSyncExternalStore(assinarPerfis, versaoPerfis);
+  const conta = useConta();
   const perfil = perfilAtivo();
   const [personalizados, setPersonalizados] = useState<Channel[]>(canaisLocais);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -161,6 +162,13 @@ function AjustesConteudo() {
         <h1 className="tela-titulo">Ajustes</h1>
         {aviso && <div className="ajustes-aviso">{aviso}</div>}
 
+        {!perfil.kids && (
+          <section className={`ajustes-bloco${conta.token ? '' : ' ajustes-bloco-destaque'}`} id="conta">
+            <h2>Conta Saimo</h2>
+            <ContaSaimo />
+          </section>
+        )}
+
         <section className="ajustes-bloco" id="listas">
           <h2>Listas</h2>
           <p>Os endereços de onde o site lê os canais e os filmes e séries. Já vêm preenchidos; troque por outros, ou deixe em branco e salve para desligar uma lista (o site fica vazio naquela parte).</p>
@@ -192,13 +200,6 @@ function AjustesConteudo() {
         </section>
 
         <AddonsModal aberta={addonsAberto} aoFechar={() => setAddonsAberto(false)} />
-
-        {!perfil.kids && (
-          <section className="ajustes-bloco" id="conta">
-            <h2>Conta Saimo</h2>
-            <ContaSaimo />
-          </section>
-        )}
 
         <section className="ajustes-bloco" id="perfis">
           <h2>Perfis</h2>

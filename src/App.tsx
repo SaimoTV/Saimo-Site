@@ -18,6 +18,7 @@ import { useTemAddons } from './services/addons';
 import { useTemMinhasListas } from './hooks/useTemMinhasListas';
 import { RaizDoSite, raizAbreOApp } from './landing/RaizDoSite';
 import { EscolhaPerfil } from './perfis/EscolhaPerfil';
+import { BoasVindas } from './conta/BoasVindas';
 import { ehKids } from './perfis/kids';
 import { Landing } from './landing/Landing';
 import { Privacidade, Termos, Conteudo, Exclusao, Suporte } from './landing/Legal';
@@ -698,6 +699,7 @@ function AppLayout() {
     </Routes>
     {/* Perfis: só nas telas do app, nunca na apresentação nem nas páginas legais. */}
     {ehTelaDoApp(location.pathname) && <EscolhaPerfil />}
+    {ehTelaDoApp(location.pathname) && <BoasVindas />}
     {/* A página /apoie é só o conteúdo: sem a barra do celular e sem o botão flutuante. */}
     {location.pathname !== '/apoie' && <NavegacaoMobile />}
     {location.pathname !== '/apoie' && <DoacaoModal />}

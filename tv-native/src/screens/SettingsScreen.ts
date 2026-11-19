@@ -18,6 +18,7 @@ import { conferirSenha, senhaEhPadrao, trocarSenha } from '../../../src/perfis/p
 import { brilho, definirBrilho } from '../../../src/plataforma/brilho';
 import { ehKids } from '../../../src/perfis/kids';
 import { caixaDaConta, resumoDaConta } from './ContaTela';
+import { estadoConta } from '../../../src/conta/conta';
 import { DESTAQUES, FUNDOS, definirTema, temaAtual } from '../../../src/plataforma/tema';
 import { OPCOES, definirEstiloDeLegenda, estiloAtual, type EstiloDeLegenda } from '../../../src/plataforma/legendaEstilo';
 import { resumoNovosEpisodios, dispensarNovosEpisodios } from '../core/NovosEpisodios';
@@ -91,6 +92,7 @@ export class SettingsScreen {
     }
     this.renderSettings();
 
+    if (!estadoConta().token) document.getElementById('setting-conta')?.classList.add('destaque-conta');
     setTimeout(() => {
       const firstItem = this.listContainer.querySelector<HTMLElement>('.tv-settings-item');
       if (firstItem) SpatialNav.focus(firstItem);

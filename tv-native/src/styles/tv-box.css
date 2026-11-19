@@ -337,3 +337,17 @@ html.tizen.video-ativo, html.tizen.video-ativo body { background: transparent !i
   position: absolute; left: 10px; bottom: 10px; z-index: 3; padding: 4px 12px; border-radius: 999px;
   font-size: 18px; font-weight: 700; color: #071311; background: var(--saimo-acento, #4fe3d0);
 }
+
+/* Boas-vindas: entrar ou criar conta (esquerda) e entrar sem login (direita) */
+.tv-boasvindas { position: fixed; left: 0; top: 0; width: 1920px; height: 1080px; z-index: 9000; display: flex; padding: 90px 100px; box-sizing: border-box; background: #0b0e14; color: #fff; }
+.tv-boasvindas-lado { flex: 1; padding: 0 50px; box-sizing: border-box; }
+.tv-boasvindas-lado.esquerda { border-right: 2px solid rgba(255,255,255,.18); }
+.tv-boasvindas-lado .tv-perfis-titulo { font-size: 56px; }
+.tv-boasvindas-porque { margin-top: 36px; font-size: 32px; font-weight: 700; }
+.tv-boasvindas ul { margin: 14px 0 44px 34px; padding: 0; font-size: 28px; line-height: 44px; color: rgba(255,255,255,.75); list-style: disc; }
+.tv-boasvindas .tv-perfis-sub { font-size: 30px; line-height: 44px; }
+.tv-boasvindas .tv-btn { margin-top: 46px; }
+.tv-boasvindas .tv-perfis-sub + .tv-perfis-sub + .tv-btn { margin-top: 66px; }
+
+/* Conta Saimo ainda não aberta: primeira linha de Ajustes em destaque */
+.tv-settings-item.destaque-conta { box-shadow: inset 0 0 0 4px #4fe3d0; background: rgba(79,227,208,.12); }

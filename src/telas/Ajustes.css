@@ -66,3 +66,10 @@
 .tema-bola { width: 26px; height: 26px; border-radius: 50%; display: inline-block; }
 .legenda-previa { margin-top: 14px; padding: 36px 16px; border-radius: 14px; text-align: center; background: linear-gradient(160deg, #3a4a5a, #1c232b); }
 .legenda-previa-texto { display: inline-block; }
+
+/* Conta Saimo para quem ainda não entrou: primeira opção, em destaque. */
+.ajustes-bloco-destaque {
+  border-color: rgba(79, 227, 208, 0.65);
+  box-shadow: 0 0 0 2px rgba(79, 227, 208, 0.35);
+  background: rgba(79, 227, 208, 0.07);
+}

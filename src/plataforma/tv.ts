@@ -145,13 +145,19 @@ function pedirParaSair(): void {
 }
 
 /**
- * Em TV 4K o app monta o layout com 3840 px de largura e cabem ~20 capas por fileira, minúsculas.
- * O zoom fica no <html> (o React não mexe nele) e reduz a área lógica: 4K real = 1,6; 1440p = 1,3.
+ * Escala única: a área lógica do app é sempre 1920 x 1080, qualquer que seja a
+ * resolução que a TV entrega ao navegador (720p, 1080p, 4K, 8K). O mesmo
+ * tamanho de texto e de capa em todas as telas.
+ *
+ * Usa a janela (innerWidth/innerHeight), não screen nem devicePixelRatio: é o
+ * que a TV realmente deu ao app. O zoom fica no <html> (o React não mexe nele)
+ * e não muda innerWidth, então reaplicar no resize é estável.
  */
-function ajustarZoom4k(w: Window): void {
-  const largura = (w.screen?.width || w.innerWidth || 0) * (w.devicePixelRatio || 1);
-  const zoom = largura >= 3200 ? 1.6 : largura >= 2200 ? 1.3 : 1;
-  (document.documentElement.style as CSSStyleDeclaration & { zoom: string }).zoom = String(zoom);
+export function ajustarEscalaTv(w: Window = window): void {
+  const largura = w.innerWidth || w.screen?.width || 1920;
+  const altura = w.innerHeight || w.screen?.height || 1080;
+  const zoom = Math.max(0.4, Math.min(4, Math.min(largura / 1920, altura / 1080)));
+  (document.documentElement.style as CSSStyleDeclaration & { zoom: string }).zoom = String(Math.round(zoom * 1000) / 1000);
 }
 
 let ligado = false;
@@ -164,8 +170,11 @@ export function iniciarTv(): void {
   if (!marca) return;
   ligado = true;
   document.documentElement.classList.add('modo-tv', `tv-${marca}`);
-  ajustarZoom4k(w);
-  w.addEventListener('resize', () => ajustarZoom4k(w));
+  ajustarEscalaTv(w);
+  w.addEventListener('resize', () => ajustarEscalaTv(w));
+  // Algumas TVs só informam o tamanho final da janela depois de abrir.
+  w.setTimeout(() => ajustarEscalaTv(w), 800);
+  w.setTimeout(() => ajustarEscalaTv(w), 3000);
   // Samsung só entrega ao app as teclas que ele pede.
   if (marca === 'tizen') {
     for (const nome of TECLAS_SAMSUNG) {

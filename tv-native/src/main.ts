@@ -4,6 +4,8 @@
  */
 
 import { verificarNovosEpisodios } from './core/NovosEpisodios';
+import { mostrarBoasVindas } from './screens/BoasVindasTv';
+import { ajustarEscalaTv } from '../../src/plataforma/tv';
 import './core/polyfills';
 // Logo depois dos polyfills: favoritos, progresso e recentes leem do perfil ativo.
 import '../../src/perfis/instalar';
@@ -55,6 +57,10 @@ class SaimoTVApp {
 
   constructor() {
     Platform.init();
+    ajustarEscalaTv(window);
+    window.addEventListener('resize', () => ajustarEscalaTv(window));
+    setTimeout(() => ajustarEscalaTv(window), 800);
+    setTimeout(() => ajustarEscalaTv(window), 3000);
     SpatialNav.init();
     iniciarBrilho();
     // Conta Saimo (opcional): sem login, não faz nada.
@@ -130,6 +136,11 @@ class SaimoTVApp {
     Api.fetchChannels().then((c) => { if (c.length) State.channels = c; }).catch(() => {});
     Api.fetchEPG();
 
+    // Sem conta e sem ter escolhido "entrar sem login": primeiro a tela de boas-vindas.
+    mostrarBoasVindas(() => this.depoisDasBoasVindas());
+  }
+
+  private depoisDasBoasVindas() {
     // Com 2 ou mais perfis, a partida pergunta quem está assistindo.
     if (deveEscolherAoAbrir()) {
       (this.screens.get('perfis') as PerfisScreen).obrigatoria = true;
