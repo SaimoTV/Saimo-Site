@@ -83,6 +83,68 @@ function Contador({ ate, sufixo = '', duracao = 1400 }: { ate: number; sufixo?: 
   return <span ref={ref}>{valor}{sufixo}</span>;
 }
 
+/* ───────────────────────────── números ao vivo (Conta Saimo) ───────────────────────────── */
+
+/** Arquivo estático publicado a cada 10 min (SaimoConta/scripts/publicar_numeros.sh): ler não custa nada. */
+const NUMEROS_URL = 'https://saimo-numeros.pages.dev/numeros.json';
+
+interface Numeros { contas: number; novas24h: number; aparelhos: number; ativas24h: number }
+
+/** Número que corre até o valor novo quando ele muda. */
+function NumeroVivo({ valor }: { valor: number }) {
+  const [mostrado, setMostrado] = useState(valor);
+  const atual = useRef(valor);
+  useEffect(() => {
+    const de = atual.current, ate = valor;
+    if (de === ate) return;
+    const reduzido = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    let raf = 0;
+    const t0 = performance.now(), dur = reduzido ? 0 : 900;
+    const passo = (t: number) => {
+      const p = dur ? Math.min(1, (t - t0) / dur) : 1;
+      const v = Math.round(de + (ate - de) * (1 - Math.pow(1 - p, 3)));
+      atual.current = v;
+      setMostrado(v);
+      if (p < 1) raf = requestAnimationFrame(passo);
+    };
+    raf = requestAnimationFrame(passo);
+    return () => cancelAnimationFrame(raf);
+  }, [valor]);
+  return <>{mostrado.toLocaleString('pt-BR')}</>;
+}
+
+/**
+ * Quantas pessoas já têm a Conta Saimo, ao vivo. Lê um arquivo estático (sem
+ * pedido ao servidor da conta) ao abrir e a cada 2 min com a página à vista.
+ */
+function NumerosAoVivo() {
+  const [n, setN] = useState<Numeros | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    const buscar = () => {
+      if (document.visibilityState === 'hidden') return;
+      fetch(`${NUMEROS_URL}?t=${Math.floor(Date.now() / 120_000)}`).then((r) => (r.ok ? r.json() : null)).then((j) => {
+        if (vivo && j && typeof j.contas === 'number') setN(j as Numeros);
+      }).catch(() => { /* fora do ar: fica o último */ });
+    };
+    buscar();
+    const t = setInterval(buscar, 120_000);
+    const aoVoltar = () => { if (document.visibilityState === 'visible') buscar(); };
+    document.addEventListener('visibilitychange', aoVoltar);
+    return () => { vivo = false; clearInterval(t); document.removeEventListener('visibilitychange', aoVoltar); };
+  }, []);
+  if (!n) return null;
+  return (
+    <div className="ao-vivo" aria-live="polite">
+      <span className="ao-vivo-selo"><i /> Ao vivo</span>
+      <div><strong><NumeroVivo valor={n.contas} /></strong><span>contas criadas</span></div>
+      <div><strong><NumeroVivo valor={n.novas24h} /></strong><span>novas nas últimas 24 h</span></div>
+      <div><strong><NumeroVivo valor={n.ativas24h} /></strong><span>contas usadas hoje</span></div>
+      <div><strong><NumeroVivo valor={n.aparelhos} /></strong><span>aparelhos conectados</span></div>
+    </div>
+  );
+}
+
 /* ───────────────────────────── ícones ───────────────────────────── */
 
 type IconeProps = { nome: string; tamanho?: number };
@@ -216,6 +278,7 @@ function Heroi() {
             <li><Icone nome="check" tamanho={15} /> Dados só no seu aparelho</li>
             <li><Icone nome="check" tamanho={15} /> Não hospeda conteúdo</li>
           </ul>
+          <NumerosAoVivo />
         </div>
         <div className="heroi-visual rv d2">
           <Dispositivos />

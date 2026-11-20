@@ -615,3 +615,35 @@ body:has(.landing) nav.navegacao-mobile, body:has(.legal) nav.navegacao-mobile {
 .perfis-lp-avatares { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 40px; opacity: 0.85; }
 .perfis-lp-avatares img { border-radius: 14px; }
 @media (max-width: 920px) { .perfis-lp-palco { grid-template-columns: 1fr; } }
+
+/* Números ao vivo da Conta Saimo (herói) */
+.ao-vivo {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 14px 28px;
+  margin-top: 26px; padding: 14px 20px; border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px); max-width: 640px;
+  animation: ao-vivo-entra 0.6s ease both;
+}
+@keyframes ao-vivo-entra { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.ao-vivo > div { display: flex; flex-direction: column; min-width: 110px; }
+.ao-vivo strong { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.ao-vivo span { font-size: 0.78rem; opacity: 0.7; }
+.ao-vivo-selo {
+  display: inline-flex; align-items: center; gap: 8px; font-size: 0.72rem !important; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase; opacity: 1 !important; color: #34d399;
+}
+.ao-vivo-selo i {
+  width: 8px; height: 8px; border-radius: 50%; background: #34d399;
+  box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7); animation: ao-vivo-pulso 1.8s infinite;
+}
+@keyframes ao-vivo-pulso {
+  0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6); }
+  70% { box-shadow: 0 0 0 10px rgba(52, 211, 153, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+}
+@media (max-width: 640px) {
+  .ao-vivo { gap: 12px 18px; padding: 12px 14px; }
+  .ao-vivo > div { min-width: 40%; }
+  .ao-vivo strong { font-size: 1.25rem; }
+}
+@media (prefers-reduced-motion: reduce) { .ao-vivo-selo i { animation: none; } }
