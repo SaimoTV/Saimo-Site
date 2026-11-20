@@ -85,7 +85,7 @@ function Contador({ ate, sufixo = '', duracao = 1400 }: { ate: number; sufixo?: 
 
 /* ───────────────────────────── números ao vivo (Conta Saimo) ───────────────────────────── */
 
-/** Arquivo estático publicado a cada 10 min (SaimoConta/scripts/publicar_numeros.sh): ler não custa nada. */
+/** Arquivo estático publicado de hora em hora (SaimoConta/scripts/publicar_numeros.sh): ler não custa nada. */
 const NUMEROS_URL = 'https://saimo-numeros.pages.dev/numeros.json';
 
 interface Numeros { contas: number; novas24h: number; aparelhos: number; ativas24h: number }
@@ -115,7 +115,7 @@ function NumeroVivo({ valor }: { valor: number }) {
 
 /**
  * Quantas pessoas já têm a Conta Saimo, ao vivo. Lê um arquivo estático (sem
- * pedido ao servidor da conta) ao abrir e a cada 2 min com a página à vista.
+ * pedido ao servidor da conta) ao abrir e a cada 10 min com a página à vista.
  */
 function NumerosAoVivo() {
   const [n, setN] = useState<Numeros | null>(null);
@@ -123,12 +123,12 @@ function NumerosAoVivo() {
     let vivo = true;
     const buscar = () => {
       if (document.visibilityState === 'hidden') return;
-      fetch(`${NUMEROS_URL}?t=${Math.floor(Date.now() / 120_000)}`).then((r) => (r.ok ? r.json() : null)).then((j) => {
+      fetch(`${NUMEROS_URL}?t=${Math.floor(Date.now() / 600_000)}`).then((r) => (r.ok ? r.json() : null)).then((j) => {
         if (vivo && j && typeof j.contas === 'number') setN(j as Numeros);
       }).catch(() => { /* fora do ar: fica o último */ });
     };
     buscar();
-    const t = setInterval(buscar, 120_000);
+    const t = setInterval(buscar, 600_000);
     const aoVoltar = () => { if (document.visibilityState === 'visible') buscar(); };
     document.addEventListener('visibilitychange', aoVoltar);
     return () => { vivo = false; clearInterval(t); document.removeEventListener('visibilitychange', aoVoltar); };
