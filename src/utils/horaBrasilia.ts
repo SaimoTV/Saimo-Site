@@ -1,13 +1,17 @@
 /**
- * Horário de Brasília (UTC-3, sem horário de verão desde 2019) sem depender do
- * fuso do aparelho. TV e TV Box costumam vir em UTC: com a hora local, a agenda
- * de jogos mostrava tudo 3 h adiantado. Conta feita à mão (sem Intl.timeZone),
- * que também funciona nos navegadores antigos das TVs.
+ * Hora dos eventos no fuso de quem assiste (Acre, Amazonas, Noronha… cada um vê
+ * a sua). Exceção: aparelho em UTC (muita TV e TV Box vem assim, sem ninguém
+ * ter escolhido) usa Brasília (UTC-3, sem horário de verão desde 2019); antes,
+ * com a hora local crua, a agenda dessas TVs ficava 3 h adiantada. Conta feita
+ * à mão (sem Intl.timeZone), que funciona nos navegadores antigos das TVs.
  */
-const DESLOCAMENTO = -3 * 3600_000;
+function deslocamento(ms: number): number {
+  const minutos = -new Date(ms).getTimezoneOffset();
+  return (minutos === 0 ? -180 : minutos) * 60_000;
+}
 const SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 
-const emBrasilia = (ms: number) => new Date(ms + DESLOCAMENTO);
+const emBrasilia = (ms: number) => new Date(ms + deslocamento(ms));
 const dois = (n: number) => (n < 10 ? '0' : '') + n;
 
 /** "21:30" */
@@ -16,9 +20,9 @@ export function horaBr(ms: number): string {
   return `${dois(d.getUTCHours())}:${dois(d.getUTCMinutes())}`;
 }
 
-/** Número do dia em Brasília: a diferença entre dois dá "hoje", "amanhã"... */
+/** Número do dia (no fuso de quem assiste): a diferença entre dois dá "hoje", "amanhã"... */
 export function diaBr(ms: number): number {
-  return Math.floor((ms + DESLOCAMENTO) / 86_400_000);
+  return Math.floor((ms + deslocamento(ms)) / 86_400_000);
 }
 
 /** "sáb" */
