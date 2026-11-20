@@ -18,7 +18,8 @@ const DO_BUILD = (import.meta as unknown as { env?: Record<string, string | unde
 export const CONTA_API = (DO_BUILD || 'https://conta.saimo-tv.com.br').replace(/\/$/, '');
 
 const CHAVE = 'saimo-conta-v1';
-const DEZ_MIN = 10 * 60 * 1000;
+/** Conferência periódica com a página aberta (abrir e voltar à aba já sincronizam na hora). */
+const PERIODICO = 15 * 60 * 1000;
 
 type Obj = Record<string, any>;
 
@@ -283,8 +284,32 @@ export function sincronizar(forcar = false): Promise<void> {
   return emCurso;
 }
 
-/** Entre um envio e outro, no mínimo isso (assistindo, o ponto muda a cada 20 s). */
-const INTERVALO_MINIMO = 120_000;
+/**
+ * Entre um envio e outro, no mínimo isso (assistindo, o ponto muda a cada 20 s).
+ * Ao esconder ou fechar a aba, o que falta vai na hora (enviarAoSair).
+ */
+const INTERVALO_MINIMO = 300_000;
+
+/** Fechou ou escondeu a aba com mudança ainda não enviada: manda já (keepalive sobrevive ao fechar). */
+function enviarAoSair(): void {
+  const a = adaptador;
+  if (!estado.token || !a || emCurso) return;
+  try {
+    const pacote = montarPacote(a);
+    const texto = JSON.stringify(pacote);
+    if (texto === ultimoEnviado) return;
+    const corpoEnvio = JSON.stringify({ dados: pacote });
+    // keepalive só leva até 64 KB; maior que isso fica para a próxima abertura.
+    if (corpoEnvio.length > 60_000) return;
+    ultimoEnviado = texto;
+    if (agendado) { clearTimeout(agendado); agendado = null; }
+    void fetch(CONTA_API + '/v1/dados', {
+      method: 'PUT', keepalive: true,
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${estado.token}` },
+      body: corpoEnvio,
+    }).catch(() => { ultimoEnviado = ''; });
+  } catch { /* segue */ }
+}
 
 let agendado: ReturnType<typeof setTimeout> | null = null;
 /**
@@ -313,7 +338,9 @@ export function iniciarConta(a: Adaptador): void {
   a.aoMudarLocal?.(() => agendar());
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && Date.now() - estado.sincronizadaEm > 60_000) void sincronizar();
+    else if (document.visibilityState === 'hidden') enviarAoSair();
   });
-  setInterval(() => { if (document.visibilityState !== 'hidden') void sincronizar(); }, DEZ_MIN);
+  window.addEventListener('pagehide', enviarAoSair);
+  setInterval(() => { if (document.visibilityState !== 'hidden') void sincronizar(); }, PERIODICO);
   if (estado.token) setTimeout(() => void sincronizar(), 3000);
 }

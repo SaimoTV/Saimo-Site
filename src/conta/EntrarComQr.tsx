@@ -40,11 +40,15 @@ function PorQr({ aoUsarEmail }: { aoUsarEmail: () => void }) {
       setCodigo(pedido.codigo);
       setQr(buildQrSvg(pedido.url, 240));
       setSituacao('Esperando o celular…');
+      const inicio = Date.now();
       while (vivo && Date.now() < pedido.expiraEm) {
-        await dorme(pedido.intervaloMs);
+        // Rápido no começo (quem vai ler o QR lê logo) e mais espaçado depois:
+        // 8 s nos 2 primeiros minutos, então 15 s, e 20 s depois de 5 min.
+        const passou = Date.now() - inicio;
+        await dorme(passou < 120_000 ? pedido.intervaloMs : passou < 300_000 ? 15_000 : 20_000);
         if (!vivo) return;
-        // Aba escondida não pergunta; volta a perguntar quando aparecer.
-        if (document.visibilityState === 'hidden') continue;
+        // Aba escondida ou janela sem foco (a pessoa foi para outro programa): não pergunta.
+        if (document.visibilityState === 'hidden' || !document.hasFocus()) continue;
         let r: boolean | null;
         try { r = await conferirAprovacao(pedido); } catch { r = false; }
         if (r === true) { setSituacao('Pronto! Sincronizando…'); return; }
