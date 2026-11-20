@@ -202,19 +202,25 @@ export const VideoPlayer = memo(function VideoPlayer({
     return buildAttempts(sources);
   }, [channel]);
 
-  // Site: canal cujas fontes todas exigem Referer/User-Agent só abre pelo proxy, que aqui
-  // fica desligado (custo). Ele não some da lista: avisa que abre no aplicativo.
+  // Site: canal cujas fontes todas exigem Referer/User-Agent (ou CDN sem CORS de navegador)
+  // só abre pelo proxy, que aqui fica desligado (custo). Ele não some da lista: avisa que abre no aplicativo.
   const soNoApp = useMemo(() => {
     if (!channel || attempts.length > 0 || proxyDeVideoLiberado()) return false;
     const sources: ChannelSource[] = channel.sources?.length ? channel.sources : [];
-    return sources.some(exigeCabecalho);
+    return sources.some((s) => exigeCabecalho(s) || s.url.includes('mais.uol.com.br'));
   }, [channel, attempts]);
+
+  const [sourceIndex, setSourceIndex] = useState(0);
 
   // Canais servidos por cloudfront-net.lat (EmbedTV) sofrem bloqueio de DNS nas operadoras (Anatel)
   // e só abrem no navegador quando o DNS 1.1.1.1 (Somente DNS, sem túnel WARP) está ativo.
   const exigeDns1111 = useMemo(
     () => !ehAppDaTv() && (channel?.sources ?? []).some((s) => s.url.includes('cloudfront-net.lat')),
     [channel],
+  );
+  const tentativaAtualDns1111 = useMemo(
+    () => !ehAppDaTv() && Boolean(attempts[sourceIndex]?.source.url.includes('cloudfront-net.lat')),
+    [attempts, sourceIndex],
   );
   const [copiouDns, setCopiouDns] = useState(false);
   const copiarEndDns = useCallback(() => {
@@ -225,7 +231,6 @@ export const VideoPlayer = memo(function VideoPlayer({
     } catch { /* sem área de transferência */ }
   }, []);
 
-  const [sourceIndex, setSourceIndex] = useState(0);
   const [reloadTick, setReloadTick] = useState(0);
   // Extensão de captura detectada: refaz o carregamento, a limpeza derruba o
   // player (que senão voltaria a pedir os segmentos) e a trava não deixa recomeçar.
@@ -1136,7 +1141,7 @@ export const VideoPlayer = memo(function VideoPlayer({
             <div className="loading-overlay">
               <LogoCarregando src={channel.logo} nome={channel.name} />
               <p>Carregando {channel.name}...</p>
-              {exigeDns1111 && (
+              {tentativaAtualDns1111 && (
                 <span className="loading-dns-hint">
                   Este canal requer o DNS <strong>1.1.1.1 (Somente DNS, sem WARP)</strong> ativo para abrir no site
                 </span>
