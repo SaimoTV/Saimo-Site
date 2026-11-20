@@ -82,27 +82,33 @@ export function caixaDaConta(fechar: () => void): HTMLElement {
   });
   setTimeout(() => { const b = caixa.querySelector<HTMLElement>('.tv-btn'); if (b) SpatialNav.focus(b); }, 50);
 
-  // Pergunta enquanto a caixa estiver na tela; fechou, para sozinho.
+  // Pergunta enquanto a caixa estiver na tela; fechou, para sozinho. Um código
+  // por rodada: venceu, para de perguntar e oferece um novo (cada pergunta é cobrada).
   const aberta = () => caixa.isConnected;
-  void (async () => {
-    await espera(30);
-    while (aberta()) {
-      let pedido;
+  const acoes = caixa.querySelector<HTMLElement>('.tv-perfis-acoes')!;
+  const rodada = async () => {
+    caixa.querySelector('[data-acao="novo"]')?.remove();
+    situacao.textContent = 'Pedindo um código…';
+    let pedido;
+    for (let tentativa = 0; aberta() && !pedido; tentativa++) {
       try {
         pedido = await pedirCodigoDaTv();
       } catch (err) {
+        if (tentativa >= 2) break;
         situacao.textContent = err instanceof Error ? err.message : 'Sem conexão: tentando de novo…';
         await espera(10_000);
-        continue;
       }
-      if (!aberta()) return;
+    }
+    if (!aberta()) return;
+    if (pedido) {
       codigo.textContent = pedido.codigo;
       qr.innerHTML = buildQrSvg(pedido.url, 300);
       situacao.textContent = 'Esperando o celular…';
       while (aberta() && Date.now() < pedido.expiraEm) {
         await espera(pedido.intervaloMs);
         if (!aberta()) return;
-        let r: boolean | null = false;
+        if (document.visibilityState === 'hidden') continue;
+        let r: boolean | null;
         try { r = await conferirAprovacao(pedido); } catch { r = false; }
         if (r === true) {
           situacao.textContent = 'Pronto! Sincronizando…';
@@ -112,8 +118,21 @@ export function caixaDaConta(fechar: () => void): HTMLElement {
         }
         if (r === null) break;
       }
+      if (!aberta()) return;
     }
-  })();
+    qr.innerHTML = '';
+    codigo.textContent = '';
+    situacao.textContent = pedido ? 'O código venceu.' : 'Sem conexão agora.';
+    const novo = document.createElement('div');
+    novo.className = 'tv-btn nav-focusable';
+    novo.dataset.nav = 'true';
+    novo.dataset.acao = 'novo';
+    novo.textContent = 'Gerar novo código';
+    novo.addEventListener('click', () => { void rodada(); });
+    acoes.prepend(novo);
+    if (caixa.contains(document.activeElement) || !document.activeElement || document.activeElement === document.body) SpatialNav.focus(novo);
+  };
+  void (async () => { await espera(30); await rodada(); })();
   return caixa;
 }
 

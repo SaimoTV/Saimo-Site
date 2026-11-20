@@ -11,6 +11,8 @@
  * - Listas: os dois endereços (`saimo-link-*`, com `saimo-links-em`) e as
  *   Minhas listas que vieram de link.
  * - Addons e Debrid: o formato do Connect (utils/addonClient).
+ * - Remoções (./remocoes.ts): o que sai daqui é anotado (olhando o antes e o
+ *   depois de cada gravação) e viaja no pacote, para a união não trazer de volta.
  */
 import type { Adaptador, DadosDoPerfil } from './conta';
 import { gravarNoPerfil, idAtivo, lerDoPerfil } from '../perfis/perfis';
@@ -18,7 +20,11 @@ import type { Andamento } from '../services/continuar';
 import type { ItemDestaque } from '../services/vodService';
 import { idDoCanal, nomeDoCanal } from '../services/catalogService';
 import { definirLink, linkCanais, linkFilmes, linksEm, normalizarEndereco } from '../services/listas';
-import { adicionarLista, aoMudar as aoMudarMinhas, baixarLista, listas as minhasListas } from '../services/minhasListas';
+import { adicionarLista, aoMudar as aoMudarMinhas, baixarLista, listas as minhasListas, removerLista } from '../services/minhasListas';
+import {
+  camposDoPacote, canalRemovido, chaveTitulo, gravarRegistro, gravarRegistroListas, juntarRegistro, juntarRegistroListas,
+  lerRegistro, lerRegistroListas, listaRemovida, tituloRemovido, type Registro,
+} from './remocoes';
 import { aoMudarAddons, aplicarDadosConnect, exportConnectDadosPayload } from '../services/addons';
 
 type Obj = Record<string, any>;
@@ -56,16 +62,41 @@ export function dadosDoPerfil(id: string): DadosDoPerfil {
       };
     })
     .filter((p) => p.tipo === 'f' || (p.temporada > 0 && p.episodio > 0));
+  const reg = lerRegistro(id);
   const favTitulos = lerLista<ItemDestaque>(C_FAV_TITULOS, id)
     .filter((f) => f?.titulo)
-    .map((f) => ({ tipo: tipoDoPacote(f.tipo), titulo: f.titulo, ano: f.ano || '', letra: f.letra || '' }));
+    .map((f) => {
+      const x = { tipo: tipoDoPacote(f.tipo), titulo: f.titulo, ano: f.ano || '', letra: f.letra || '' };
+      const em = reg.favEm[chaveTitulo(x)];
+      return em ? { ...x, em } : x;
+    });
   const favCanais = lerLista<string>(C_FAV_CANAIS, id)
     .map((c) => nomeDoCanal(c))
     .filter((n): n is string => !!n);
-  return { progresso, favTitulos, favCanais };
+  return { progresso, favTitulos, favCanais, extras: camposDoPacote(reg) };
 }
 
-export function juntarNoPerfil(id: string, chegou: Partial<DadosDoPerfil>): void {
+/** Tira daqui o que foi removido (em outro aparelho) depois de entrar. */
+function aplicarRemocoes(id: string, reg: Registro): void {
+  const cont = lerLista<Andamento>(C_CONTINUAR, id);
+  const contFica = cont.filter((a) => !a?.origem || !tituloRemovido(reg.prog,
+    { tipo: tipoDoPacote(a.origem.tipo), titulo: a.origem.titulo, ano: a.origem.ano || '' }, num(a.quando)));
+  if (contFica.length !== cont.length) gravarNoPerfil(C_CONTINUAR, id, JSON.stringify(contFica));
+  const fav = lerLista<ItemDestaque>(C_FAV_TITULOS, id);
+  const favFica = fav.filter((f) => {
+    const x = { tipo: tipoDoPacote(f.tipo), titulo: f.titulo, ano: f.ano || '' };
+    return !tituloRemovido(reg.fav, x, num(reg.favEm[chaveTitulo(x)]));
+  });
+  if (favFica.length !== fav.length) gravarNoPerfil(C_FAV_TITULOS, id, JSON.stringify(favFica));
+  const canais = lerLista<string>(C_FAV_CANAIS, id);
+  const canaisFica = canais.filter((c) => { const n = nomeDoCanal(c); return !n || !canalRemovido(reg, n); });
+  if (canaisFica.length !== canais.length) gravarNoPerfil(C_FAV_CANAIS, id, JSON.stringify(canaisFica));
+}
+
+export function juntarNoPerfil(id: string, chegou: Partial<DadosDoPerfil> & Obj): void {
+  const reg = juntarRegistro(lerRegistro(id), chegou);
+  gravarRegistro(id, reg);
+  aplicarRemocoes(id, reg);
   // Onde parou: por título, vale o mais recente.
   if (Array.isArray(chegou.progresso) && chegou.progresso.length) {
     const atuais = lerLista<Andamento>(C_CONTINUAR, id);
@@ -79,6 +110,7 @@ export function juntarNoPerfil(id: string, chegou: Partial<DadosDoPerfil>): void
       // Filme visto até o fim não volta para "Continue assistindo".
       if (!serie && pos / dur >= 0.95) continue;
       const ano = txt(p.ano);
+      if (tituloRemovido(reg.prog, { tipo: serie ? 's' : 'f', titulo, ano }, em)) continue;
       const i = atuais.findIndex((a) => a.origem?.titulo === titulo && (a.origem.ano || '') === ano);
       const local = i >= 0 ? atuais[i] : undefined;
       if (local && num(local.quando) >= em) continue;
@@ -108,7 +140,7 @@ export function juntarNoPerfil(id: string, chegou: Partial<DadosDoPerfil>): void
       const titulo = txt(f?.titulo);
       if (!titulo) continue;
       const tipo = tipoDoPacote(txt(f.tipo)), ano = txt(f.ano);
-      if (tem(titulo, tipo, ano)) continue;
+      if (tem(titulo, tipo, ano) || tituloRemovido(reg.fav, { tipo, titulo, ano }, num(f.em))) continue;
       atuais.push({ tipo, titulo, letra: txt(f.letra), ano, capa: '' });
       mudou = true;
     }
@@ -118,15 +150,20 @@ export function juntarNoPerfil(id: string, chegou: Partial<DadosDoPerfil>): void
   // Canais favoritos: união pelos ids do site.
   if (Array.isArray(chegou.favCanais) && chegou.favCanais.length) {
     const atuais = lerLista<string>(C_FAV_CANAIS, id);
-    const novos = chegou.favCanais.filter((n) => typeof n === 'string' && n).map(idDoCanal).filter((c) => !atuais.includes(c));
+    const novos = chegou.favCanais.filter((n) => typeof n === 'string' && n && !canalRemovido(reg, n)).map(idDoCanal).filter((c) => !atuais.includes(c));
     if (novos.length) gravarNoPerfil(C_FAV_CANAIS, id, JSON.stringify([...atuais, ...new Set(novos)]));
   }
 }
 
 function listas(): Obj {
+  const reg = lerRegistroListas();
   return {
     canais: linkCanais(), filmes: linkFilmes(), em: linksEm(),
-    minhas: minhasListas().filter((l) => !!l.link).map((l) => ({ nome: l.nome, link: l.link as string })),
+    minhas: minhasListas().filter((l) => !!l.link).map((l) => {
+      const em = reg.em[l.link as string];
+      return { nome: l.nome, link: l.link as string, ...(em ? { em } : {}) };
+    }),
+    ...(reg.rem.length ? { minhasRemovidas: reg.rem } : {}),
   };
 }
 
@@ -143,10 +180,15 @@ async function aplicarListas(l: Obj): Promise<void> {
     if (c !== linkCanais()) definirLink('canais', c, quando);
     if (f !== linkFilmes()) definirLink('filmes', f, quando);
   }
+  const reg = juntarRegistroListas(lerRegistroListas(), l.minhasRemovidas);
+  gravarRegistroListas(reg);
+  for (const x of minhasListas()) {
+    if (x.link && listaRemovida(reg, x.link)) await removerLista(x.id, false).catch(() => { /* segue */ });
+  }
   const minhas: Obj[] = Array.isArray(l.minhas) ? l.minhas : [];
   for (const m of minhas) {
     const link = txt(m?.link).trim();
-    if (!/^https?:\/\//i.test(link) || minhasListas().some((x) => x.link === link)) continue;
+    if (!/^https?:\/\//i.test(link) || minhasListas().some((x) => x.link === link) || listaRemovida(reg, link, num(m.em))) continue;
     try { await adicionarLista(txt(m.nome), link, await baixarLista(link)); } catch { /* fora do ar ou no limite: segue */ }
   }
 }
@@ -172,16 +214,81 @@ function nomeDoAparelho(): string {
   return `Site no ${nav}${so ? ` (${so})` : ''}`;
 }
 
+/**
+ * Anota o que saiu (e quando um favorito entrou) comparando o antes e o depois
+ * de uma gravação das telas no perfil ativo. "Continue assistindo" só conta como
+ * remoção quando a fileira encolheu (o corte em 20 ao entrar um novo não é remoção).
+ */
+function anotarMudanca(chave: string, antes: string | null, depois: string | null): void {
+  const ler = (v: string | null): any[] => { try { const x = JSON.parse(v || '[]'); return Array.isArray(x) ? x : []; } catch { return []; } };
+  const a = ler(antes), d = ler(depois);
+  const id = idAtivo();
+  const reg = lerRegistro(id);
+  const agora = Date.now();
+  let mudou = false;
+  if (chave === C_CONTINUAR) {
+    if (d.length >= a.length) return;
+    const ficou = new Set(d.map((x: Andamento) => x?.origem?.titulo));
+    for (const x of a as Andamento[]) {
+      if (!x?.origem?.titulo || ficou.has(x.origem.titulo)) continue;
+      reg.prog.push({ tipo: tipoDoPacote(x.origem.tipo), titulo: x.origem.titulo, ano: x.origem.ano || '', em: agora });
+      mudou = true;
+    }
+  } else if (chave === C_FAV_TITULOS) {
+    const k = (f: ItemDestaque) => chaveTitulo({ tipo: tipoDoPacote(f.tipo), titulo: f.titulo, ano: f.ano || '' });
+    const ka = new Set(a.filter((f) => f?.titulo).map(k)), kd = new Set(d.filter((f) => f?.titulo).map(k));
+    for (const f of a as ItemDestaque[]) {
+      if (!f?.titulo || kd.has(k(f))) continue;
+      reg.fav.push({ tipo: tipoDoPacote(f.tipo), titulo: f.titulo, ano: f.ano || '', em: agora });
+      delete reg.favEm[k(f)];
+      mudou = true;
+    }
+    for (const f of d as ItemDestaque[]) {
+      if (!f?.titulo || ka.has(k(f))) continue;
+      reg.favEm[k(f)] = agora;
+      mudou = true;
+    }
+  } else if (chave === C_FAV_CANAIS) {
+    const sa = new Set(a), sd = new Set(d);
+    for (const c of a) {
+      const n = typeof c === 'string' && !sd.has(c) ? nomeDoCanal(c) : null;
+      if (!n) continue;
+      reg.canal.push({ nome: n, em: agora });
+      delete reg.canalEm[n];
+      mudou = true;
+    }
+    for (const c of d) {
+      const n = typeof c === 'string' && !sa.has(c) ? nomeDoCanal(c) : null;
+      if (!n) continue;
+      reg.canalEm[n] = agora;
+      reg.canal = reg.canal.filter((r) => r.nome !== n);
+      mudou = true;
+    }
+  }
+  if (mudou) gravarRegistro(id, reg);
+}
+
 /** Mudanças daqui que vão para a conta. */
 function aoMudarLocal(f: () => void): void {
   const chaves = new Set([C_FAV_CANAIS, C_FAV_TITULOS, C_CONTINUAR, 'saimo-perfis', 'saimo-perfis-removidos']);
+  const anotadas = new Set([C_FAV_CANAIS, C_FAV_TITULOS, C_CONTINUAR]);
   // O site grava direto no localStorage; olhar o setItem pega tudo, de qualquer tela.
+  // (A sincronia grava pelo acesso cru de perfis.ts e não passa por aqui.)
   const proto = Storage.prototype;
-  const set = proto.setItem;
-  proto.setItem = function (this: Storage, k: string, v: string) {
-    set.call(this, k, v);
+  const set = proto.setItem, del = proto.removeItem;
+  const gravar = (alvo: Storage, k: string, escrever: () => void) => {
+    const anota = alvo === window.localStorage && anotadas.has(k);
+    const antes = anota ? lerDoPerfil(k, idAtivo()) : null;
+    escrever();
+    if (anota) { try { anotarMudanca(k, antes, lerDoPerfil(k, idAtivo())); } catch { /* segue */ } }
     const base = String(k).split('@')[0];
     if (chaves.has(base) || base.startsWith('saimo-link-')) f();
+  };
+  proto.setItem = function (this: Storage, k: string, v: string) {
+    gravar(this, String(k), () => set.call(this, k, v));
+  };
+  proto.removeItem = function (this: Storage, k: string) {
+    gravar(this, String(k), () => del.call(this, k));
   };
   aoMudarMinhas(f);
   aoMudarAddons(f);

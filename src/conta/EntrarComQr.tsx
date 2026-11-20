@@ -18,42 +18,54 @@ function PorQr({ aoUsarEmail }: { aoUsarEmail: () => void }) {
   const [codigo, setCodigo] = useState('');
   const [qr, setQr] = useState('');
   const [situacao, setSituacao] = useState('Pedindo um código…');
+  const [vencido, setVencido] = useState(false);
+  const [rodada, setRodada] = useState(0);
 
+  // Um código por rodada: quando vence, para de perguntar e mostra "Gerar novo QR"
+  // (cada pergunta ao servidor é cobrada; aba esquecida aberta não pergunta para sempre).
   useEffect(() => {
     let vivo = true;
+    const dorme = (ms: number) => new Promise((r) => setTimeout(r, ms));
     void (async () => {
-      while (vivo) {
-        let pedido;
+      let pedido;
+      for (let tentativa = 0; vivo && !pedido; tentativa++) {
         try { pedido = await pedirCodigoDaTv(); } catch (e) {
-          if (vivo) setSituacao(e instanceof Error ? e.message : 'Sem conexão: tentando de novo…');
-          await new Promise((r) => setTimeout(r, 10_000));
-          continue;
-        }
-        if (!vivo) return;
-        setCodigo(pedido.codigo);
-        setQr(buildQrSvg(pedido.url, 240));
-        setSituacao('Esperando o celular…');
-        while (vivo && Date.now() < pedido.expiraEm) {
-          await new Promise((r) => setTimeout(r, pedido.intervaloMs));
           if (!vivo) return;
-          let r: boolean | null;
-          try { r = await conferirAprovacao(pedido); } catch { r = false; }
-          if (r === true) { setSituacao('Pronto! Sincronizando…'); return; }
-          if (r === null) break;
+          if (tentativa >= 2) { setSituacao(e instanceof Error ? e.message : 'Sem conexão agora'); setVencido(true); return; }
+          setSituacao('Sem conexão: tentando de novo…');
+          await dorme(10_000);
         }
       }
+      if (!vivo || !pedido) return;
+      setCodigo(pedido.codigo);
+      setQr(buildQrSvg(pedido.url, 240));
+      setSituacao('Esperando o celular…');
+      while (vivo && Date.now() < pedido.expiraEm) {
+        await dorme(pedido.intervaloMs);
+        if (!vivo) return;
+        // Aba escondida não pergunta; volta a perguntar quando aparecer.
+        if (document.visibilityState === 'hidden') continue;
+        let r: boolean | null;
+        try { r = await conferirAprovacao(pedido); } catch { r = false; }
+        if (r === true) { setSituacao('Pronto! Sincronizando…'); return; }
+        if (r === null) break;
+      }
+      if (!vivo) return;
+      setSituacao('O código venceu.');
+      setVencido(true);
     })();
     return () => { vivo = false; };
-  }, []);
+  }, [rodada]);
 
   return (
     <div className="conta-caixa" data-testid="conta-qr">
       <p>No celular com o Saimo e a sua conta, leia o QR com a câmera. Ou abra Ajustes &gt; Conta Saimo &gt; Entrar numa TV e digite o código:</p>
       <div className="conta-qr-linha">
-        {qr ? <div className="conta-qr" dangerouslySetInnerHTML={{ __html: qr }} /> : <div className="conta-qr" />}
+        {qr && !vencido ? <div className="conta-qr" dangerouslySetInnerHTML={{ __html: qr }} /> : <div className="conta-qr" />}
         <div>
-          <div className="conta-qr-codigo">{codigo || '…'}</div>
+          <div className="conta-qr-codigo">{vencido ? '' : codigo || '…'}</div>
           <p className="conta-dica">{situacao}</p>
+          {vencido && <button type="button" className="ajustes-botao" onClick={() => { setVencido(false); setCodigo(''); setQr(''); setSituacao('Pedindo um código…'); setRodada((n) => n + 1); }} data-testid="conta-novo-qr">Gerar novo QR</button>}
         </div>
       </div>
       <div className="conta-linha">

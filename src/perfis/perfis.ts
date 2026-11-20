@@ -55,7 +55,7 @@ export const AVATARES = [
 /** Chaves que são de cada perfil. */
 const DO_PERFIL = new Set([
   'tv-favorites', 'tv-last-channel', 'saimo-vod-favoritos', 'saimo-continuar', 'saimo-buscas-recentes',
-  'saimo-radios-recentes', 'saimo-novelinhas-progresso', 'current-movie-id', 'saimo-assistidos', 'saimo-novos-episodios',
+  'saimo-radios-recentes', 'saimo-novelinhas-progresso', 'current-movie-id', 'saimo-assistidos', 'saimo-novos-episodios', 'saimo-remocoes',
   // App da Samsung e da LG (tv-native), que usa este mesmo módulo.
   'saimo_tv_fav_channels', 'saimo_tv_fav_vod', 'saimo_tv_vod_progress', 'saimo_tv_ultimo_canal',
   'saimo_novelinhas_parada',

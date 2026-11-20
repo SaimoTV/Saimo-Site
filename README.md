@@ -153,3 +153,5 @@ devagar. Os campos de texto das TVs são sempre escuros com letra branca.
 ## Conta Saimo (opcional)
 
 Site: Ajustes > Conta Saimo entra com o código do e-mail ou com e-mail e senha, cria e troca a senha, aprova TVs pelo código e apaga a conta; `/conectar?c=ABCD2345` é aonde leva o QR das TVs. App da Samsung e da LG: Ajustes > Conta Saimo mostra o QR e tem e-mail e senha. Núcleo comum em `src/conta/conta.ts`; o que cada um lê e grava em `src/conta/site.ts` e `tv-native/src/core/ContaTv.ts`. Teste: `VITE_CONTA_API=http://127.0.0.1:8787 npx vite`. Contrato: SaimoPlayer/docs/conta.md. Sem conta, nada muda.
+
+Custo e remoções (3.3.3): o QR para de perguntar quando o código vence ("Gerar novo QR") e quando a aba fica escondida; pedidos sem sessão vão como `text/plain` (sem OPTIONS). Uma sincronia é um pedido só (PUT com mudança, GET sem), no máximo um envio a cada 2 min; mudança logo depois de sincronizar não se perde mais. O que sai do Continue assistindo, dos favoritos e das Minhas listas é anotado em `src/conta/remocoes.ts` (olhando o antes e o depois de cada gravação) e viaja no pacote, para a sincronia não trazer de volta.

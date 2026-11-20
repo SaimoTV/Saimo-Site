@@ -11,6 +11,7 @@
  * é conferido contra o gabarito em tests/minhasListas.test.mjs.
  */
 
+import { anotarLista } from '../conta/remocoes';
 import type { Channel, ChannelSource } from '../types/channel';
 
 import { chaveDoNome, ehRestrito, lerM3u } from '../utils/leitorM3u';
@@ -220,6 +221,7 @@ export async function adicionarLista(nome: string, link: string | null, canais: 
   };
   await gravarCanais(lista.id, canais);
   salvarListas([...atuais, lista]);
+  anotarLista(link, false);
   return lista;
 }
 
@@ -236,9 +238,12 @@ export function definirAtiva(id: string, ativa: boolean): void {
   salvarListas(listas().map((l) => (l.id === id ? { ...l, ativa } : l)));
 }
 
-export async function removerLista(id: string): Promise<void> {
+/** `anotar` falso: quem tira é a sincronia (a remoção já veio anotada de outro aparelho). */
+export async function removerLista(id: string, anotar = true): Promise<void> {
+  const link = listas().find((l) => l.id === id)?.link;
   await apagarCanais(id);
   salvarListas(listas().filter((l) => l.id !== id));
+  if (anotar) anotarLista(link, true);
 }
 
 let atualizando = false;

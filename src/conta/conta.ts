@@ -22,7 +22,11 @@ const DEZ_MIN = 10 * 60 * 1000;
 
 type Obj = Record<string, any>;
 
-export interface DadosDoPerfil { progresso: Obj[]; favTitulos: Obj[]; favCanais: string[] }
+export interface DadosDoPerfil {
+  progresso: Obj[]; favTitulos: Obj[]; favCanais: string[];
+  /** Remoções e quando cada favorito entrou (progressoRemovido, favTitulosRemovidos, favCanaisRemovidos, favCanaisEm). */
+  extras?: Obj;
+}
 
 /** O que cada app sabe fazer com os seus dados. */
 export interface Adaptador {
@@ -82,7 +86,8 @@ async function api(metodo: string, rota: string, corpo?: unknown, token: string 
   try {
     r = await fetch(CONTA_API + rota, {
       method: metodo,
-      headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
+      // Sem token, `text/plain` evita o OPTIONS antes de cada pedido (o servidor lê o JSON do mesmo jeito).
+      headers: token ? { 'content-type': 'application/json', authorization: `Bearer ${token}` } : { 'content-type': 'text/plain;charset=UTF-8' },
       body: corpo === undefined ? undefined : JSON.stringify(corpo),
     });
   } catch {
@@ -203,6 +208,7 @@ export function montarPacote(a: Adaptador): Obj {
       id: p.id, nome: p.nome, avatar: p.avatar, em: p.em,
       ...(p.kids ? { kids: true, codigo: p.codigo ?? '' } : {}),
       progresso: d.progresso, favTitulos: d.favTitulos, favCanais: d.favCanais,
+      ...(d.extras ?? {}),
     };
   });
   const principal = daqui.find((p) => p.id === PRINCIPAL);
@@ -245,11 +251,10 @@ export function aplicarPacote(a: Adaptador, p: Obj): void {
 
 let ultimoEnviado = '';
 let emCurso: Promise<void> | null = null;
-let aplicandoAte = 0;
 
 /**
- * Baixa o que a conta tem, junta aqui (regras do Connect) e manda o que este
- * aparelho tem; o servidor junta de novo e guarda. Só manda quando mudou.
+ * Com mudança aqui: manda (PUT) e o servidor devolve tudo já juntado, que é
+ * aplicado aqui. Sem mudança: só baixa (GET) e junta. Um pedido por sincronia.
  */
 export function sincronizar(forcar = false): Promise<void> {
   const a = adaptador;
@@ -258,17 +263,14 @@ export function sincronizar(forcar = false): Promise<void> {
   emCurso = (async () => {
     mudar({ sincronizando: true });
     try {
-      const remoto = await api('GET', '/v1/dados');
-      if (remoto?.dados) {
-        aplicandoAte = Date.now() + 3000;
-        aplicarPacote(a, remoto.dados);
-      }
       const pacote = montarPacote(a);
       const texto = JSON.stringify(pacote);
-      if (forcar || texto !== ultimoEnviado) {
-        await api('PUT', '/v1/dados', { dados: pacote });
-        ultimoEnviado = texto;
-      }
+      const remoto = forcar || texto !== ultimoEnviado
+        ? await api('PUT', '/v1/dados', { dados: pacote })
+        : await api('GET', '/v1/dados');
+      if (remoto?.dados) aplicarPacote(a, remoto.dados);
+      // O servidor já tem tudo o que ficou aqui depois de juntar: só manda de novo se mudar.
+      ultimoEnviado = JSON.stringify(montarPacote(a));
       mudar({ sincronizadaEm: Date.now(), erro: null });
       gravarSessao();
     } catch (e) {
@@ -281,12 +283,25 @@ export function sincronizar(forcar = false): Promise<void> {
   return emCurso;
 }
 
+/** Entre um envio e outro, no mínimo isso (assistindo, o ponto muda a cada 20 s). */
+const INTERVALO_MINIMO = 120_000;
+
 let agendado: ReturnType<typeof setTimeout> | null = null;
-/** Algo mudou aqui: manda em alguns segundos (várias mudanças viram um envio só). */
+/**
+ * Algo mudou aqui: manda em alguns segundos (várias mudanças viram um envio só),
+ * no máximo um envio a cada 2 min. Se o pacote não mudou desde o último envio
+ * (eco das telas depois de juntar), não vai à rede.
+ */
 export function agendar(ms = 15000): void {
-  if (!estado.token || Date.now() < aplicandoAte) return;
+  if (!estado.token) return;
   if (agendado) clearTimeout(agendado);
-  agendado = setTimeout(() => { agendado = null; void sincronizar(); }, ms);
+  const espera = Math.max(ms, INTERVALO_MINIMO - (Date.now() - estado.sincronizadaEm));
+  agendado = setTimeout(() => {
+    agendado = null;
+    if (emCurso) { agendar(3000); return; }
+    try { if (adaptador && JSON.stringify(montarPacote(adaptador)) === ultimoEnviado) return; } catch { /* manda */ }
+    void sincronizar();
+  }, espera);
 }
 
 let iniciada = false;
