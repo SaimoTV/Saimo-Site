@@ -1,4 +1,4 @@
-import { ehAppDaTv } from '../plataforma/tv';
+import { ehAppDaTv, ehTv, setaRecente } from '../plataforma/tv';
 import { useRef, useEffect, useState, useCallback, memo, useMemo } from 'react';
 import { rota } from '../utils/rotas';
 import { useMediaSession } from '../hooks/useMediaSession';
@@ -60,8 +60,16 @@ function guardarPonto(video: HTMLVideoElement, movie: Movie): void {
 }
 
 /** Pula para um ponto do vídeo; ignora valor não finito (duração ainda desconhecida em TV). */
+/** Quando o app pediu um pulo por último (ms): o resto é pulo que a TV fez sozinha. */
+let ultimoPuloDoApp = 0;
+/** Última seta lateral apertada (ms) e o último ponto bom do vídeo (para desfazer pulo da TV). */
+let setaLateralEm = 0;
+let pontoBom = 0;
+
 function posicionar(video: HTMLVideoElement, segundos: number): void {
-  if (Number.isFinite(segundos)) video.currentTime = Math.max(0, segundos);
+  if (!Number.isFinite(segundos)) return;
+  ultimoPuloDoApp = Date.now();
+  video.currentTime = Math.max(0, segundos);
 }
 
 function rotuloDaFonte(f: MovieSource, pos: number): { principal: string } {
@@ -1159,6 +1167,33 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
     }
     setTrechoPulado(trechoAtual);
   }, [trechoAtual]);
+
+  // TV (LG): o sistema pode mexer no tempo do vídeo sozinho quando a seta é
+  // apertada, mesmo com o foco nos botões de baixo, sem passar pelo app. Na TV
+  // o tempo só muda pelo app (barra de progresso em foco, botões −10/+10,
+  // arrastar): um pulo que o app não pediu, logo depois de uma seta, é desfeito.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !ehTv()) return;
+    const aoTeclar = (e: KeyboardEvent) => {
+      if (e.keyCode === 37 || e.keyCode === 39 || e.key === 'ArrowLeft' || e.key === 'ArrowRight') setaLateralEm = Date.now();
+    };
+    const aoAndar = () => { if (!video.seeking) pontoBom = video.currentTime; };
+    const aoPular = () => {
+      const doApp = Date.now() - ultimoPuloDoApp < 1500;
+      if (doApp || (!setaRecente(1500) && Date.now() - setaLateralEm > 1500)) return;
+      if (Math.abs(video.currentTime - pontoBom) < 2) return;
+      posicionar(video, pontoBom);
+    };
+    window.addEventListener('keydown', aoTeclar, true);
+    video.addEventListener('timeupdate', aoAndar);
+    video.addEventListener('seeking', aoPular);
+    return () => {
+      window.removeEventListener('keydown', aoTeclar, true);
+      video.removeEventListener('timeupdate', aoAndar);
+      video.removeEventListener('seeking', aoPular);
+    };
+  });
 
   useMediaSession({
     titulo: movie?.name,
