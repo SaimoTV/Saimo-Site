@@ -239,6 +239,62 @@ function agruparEpisodios(lista: Episodio[]): EpisodioAgrupado[] {
     .sort((a, b) => a.temporada - b.temporada || a.numero - b.numero);
 }
 
+
+/* ───────────── cache do On Demand ───────────── */
+
+interface CacheOnDemand {
+  link?: string;
+  filasDestaque?: FilaDestaque[];
+  generos?: Generos;
+  gavetas?: Gaveta[];
+  todosFilmes?: Achado[];
+  todasSeries?: Achado[];
+  animesColecao?: SerieColecao[];
+  doramasColecao?: SerieColecao[];
+  categoriasMapa?: Categorias;
+  totalNovelinhas?: number;
+  capasNovelinhas?: string[];
+}
+
+/** Na memória enquanto a página está aberta (trocar de aba e voltar é instantâneo). */
+const memoriaOnDemand: CacheOnDemand = {};
+/** As fileiras também ficam no armazenamento: abrir o site de novo já as mostra. */
+const CHAVE_CACHE_ONDEMAND = 'saimo-ondemand-cache-v1';
+
+function lerCacheOnDemand(link: string): CacheOnDemand {
+  if (memoriaOnDemand.link !== link) {
+    for (const k of Object.keys(memoriaOnDemand)) delete (memoriaOnDemand as Record<string, unknown>)[k];
+    memoriaOnDemand.link = link;
+    try {
+      const salvo = JSON.parse(localStorage.getItem(CHAVE_CACHE_ONDEMAND) || 'null');
+      if (salvo && salvo.link === link) {
+        memoriaOnDemand.filasDestaque = salvo.filasDestaque;
+        memoriaOnDemand.gavetas = salvo.gavetas;
+      }
+    } catch { /* sem armazenamento */ }
+  }
+  return memoriaOnDemand;
+}
+
+/** Guarda e diz se mudou (igual ao que já está na tela: nada a fazer). */
+function guardarOnDemand<K extends keyof CacheOnDemand>(chave: K, valor: CacheOnDemand[K]): boolean {
+  const antes = memoriaOnDemand[chave];
+  if (antes === valor) return false;
+  // Listas pequenas: compara o conteúdo (a mesma resposta não redesenha a tela).
+  if ((chave === 'filasDestaque' || chave === 'gavetas') && antes && JSON.stringify(antes) === JSON.stringify(valor)) return false;
+  if (Array.isArray(antes) && Array.isArray(valor) && antes.length === valor.length && antes.length > 2000
+    && JSON.stringify(antes[0]) === JSON.stringify(valor[0]) && JSON.stringify(antes[antes.length - 1]) === JSON.stringify(valor[valor.length - 1])) return false;
+  memoriaOnDemand[chave] = valor;
+  if (chave === 'filasDestaque' || chave === 'gavetas') {
+    try {
+      localStorage.setItem(CHAVE_CACHE_ONDEMAND, JSON.stringify({
+        link: memoriaOnDemand.link, filasDestaque: memoriaOnDemand.filasDestaque, gavetas: memoriaOnDemand.gavetas,
+      }));
+    } catch { /* cheio: fica só na memória */ }
+  }
+  return true;
+}
+
 export function VodCatalog({
   onSelectMovie,
   onBack,
@@ -274,17 +330,29 @@ export function VodCatalog({
   useEffect(() => aoMudarFavoritos(() => setMarcaFav((n) => n + 1)), []);
 
   // Catálogos e metadados
-  const [filasDestaque, setFilasDestaque] = useState<FilaDestaque[]>([]);
-  const [generos, setGeneros] = useState<Generos | null>(null);
-  const [gavetas, setGavetas] = useState<Gaveta[]>([]);
-  const [todosFilmes, setTodosFilmes] = useState<Achado[]>([]);
-  const [todasSeries, setTodasSeries] = useState<Achado[]>([]);
-  const [animesColecao, setAnimesColecao] = useState<SerieColecao[]>([]);
-  const [doramasColecao, setDoramasColecao] = useState<SerieColecao[]>([]);
-  const [categoriasMapa, setCategoriasMapa] = useState<Categorias | null>(null);
-  const [totalNovelinhas, setTotalNovelinhas] = useState(0);
-  const [capasNovelinhas, setCapasNovelinhas] = useState<string[]>([]);
-  const [carregandoDados, setCarregandoDados] = useState(true);
+  // Cache do On Demand: o que foi carregado da última vez aparece na hora (da
+  // memória e, as fileiras, do armazenamento); a busca por novidade roda em
+  // segundo plano e só troca o que mudou.
+  const guardado = useMemo(() => lerCacheOnDemand(linkFilmes()), []);
+  const [filasDestaque, setFilasDestaqueBruto] = useState<FilaDestaque[]>(guardado.filasDestaque ?? []);
+  const [generos, setGenerosBruto] = useState<Generos | null>(guardado.generos ?? null);
+  const [gavetas, setGavetasBruto] = useState<Gaveta[]>(guardado.gavetas ?? []);
+  const [todosFilmes, setTodosFilmesBruto] = useState<Achado[]>(guardado.todosFilmes ?? []);
+  const [todasSeries, setTodasSeriesBruto] = useState<Achado[]>(guardado.todasSeries ?? []);
+  const [animesColecao, setAnimesColecaoBruto] = useState<SerieColecao[]>(guardado.animesColecao ?? []);
+  const [doramasColecao, setDoramasColecaoBruto] = useState<SerieColecao[]>(guardado.doramasColecao ?? []);
+  const [categoriasMapa, setCategoriasMapaBruto] = useState<Categorias | null>(guardado.categoriasMapa ?? null);
+  const [totalNovelinhas, setTotalNovelinhas] = useState(guardado.totalNovelinhas ?? 0);
+  const [capasNovelinhas, setCapasNovelinhas] = useState<string[]>(guardado.capasNovelinhas ?? []);
+  const [carregandoDados, setCarregandoDados] = useState(!guardado.filasDestaque?.length);
+  const setFilasDestaque = useCallback((v: FilaDestaque[]) => { if (guardarOnDemand('filasDestaque', v)) setFilasDestaqueBruto(v); }, []);
+  const setGeneros = useCallback((v: Generos) => { if (guardarOnDemand('generos', v)) setGenerosBruto(v); }, []);
+  const setGavetas = useCallback((v: Gaveta[]) => { if (guardarOnDemand('gavetas', v)) setGavetasBruto(v); }, []);
+  const setTodosFilmes = useCallback((v: Achado[]) => { if (guardarOnDemand('todosFilmes', v)) setTodosFilmesBruto(v); }, []);
+  const setTodasSeries = useCallback((v: Achado[]) => { if (guardarOnDemand('todasSeries', v)) setTodasSeriesBruto(v); }, []);
+  const setAnimesColecao = useCallback((v: SerieColecao[]) => { if (guardarOnDemand('animesColecao', v)) setAnimesColecaoBruto(v); }, []);
+  const setDoramasColecao = useCallback((v: SerieColecao[]) => { if (guardarOnDemand('doramasColecao', v)) setDoramasColecaoBruto(v); }, []);
+  const setCategoriasMapa = useCallback((v: Categorias) => { if (guardarOnDemand('categoriasMapa', v)) setCategoriasMapaBruto(v); }, []);
 
   // Item atualmente sob o cursor do mouse para o Hero Destaque
   const [itemSobMouse, setItemSobMouse] = useState<ItemDestaque | null>(null);
@@ -573,7 +641,8 @@ export function VodCatalog({
 
   useEffect(() => {
     let ativo = true;
-    setCarregandoDados(true);
+    // Com o cache na tela não há "carregando": a novidade entra quando chegar.
+    if (!memoriaOnDemand.filasDestaque?.length) setCarregandoDados(true);
     void (async () => {
       try {
         const [destaquesSaimo, addonRails, tmdbRails] = await Promise.all([
@@ -647,6 +716,8 @@ export function VodCatalog({
       if (!ativo) return;
       setTotalNovelinhas(lista.length);
       setCapasNovelinhas(lista.slice(0, 4).map((n) => n.capa));
+      memoriaOnDemand.totalNovelinhas = lista.length;
+      memoriaOnDemand.capasNovelinhas = lista.slice(0, 4).map((n) => n.capa);
     }).catch(() => {});
 
     // 3. Carga do índice completo de busca (30k títulos) postergada para não concorrer com as capas
@@ -660,7 +731,7 @@ export function VodCatalog({
       ativo = false;
       clearTimeout(timerBusca);
     };
-  }, [temListaFilmes, temAddons, addons]);
+  }, [temListaFilmes, temAddons, addons, setFilasDestaque, setGeneros, setGavetas, setTodosFilmes, setTodasSeries, setAnimesColecao, setDoramasColecao, setCategoriasMapa]);
 
   // Títulos do acervo em cada categoria. Animes e doramas somam-se às coleções
   // (sem repetir o que a coleção já tem); novelas e kids vêm só do acervo.

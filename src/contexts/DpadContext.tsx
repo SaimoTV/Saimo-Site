@@ -530,6 +530,10 @@ export function DpadNavigationProvider({ children }: { children: React.ReactNode
       if (handled) {
         event.preventDefault();
         event.stopPropagation();
+      } else if (ehTv() && event.key.startsWith('Arrow') && document.querySelector('.movie-player video')) {
+        // LG: seta que o app não usou (ponta da fileira de botões) não pode cair no
+        // vídeo do sistema, que avança/volta sozinho.
+        event.preventDefault();
       }
     };
 

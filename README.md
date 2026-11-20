@@ -155,3 +155,10 @@ devagar. Os campos de texto das TVs são sempre escuros com letra branca.
 Site: Ajustes > Conta Saimo entra com o código do e-mail ou com e-mail e senha, cria e troca a senha, aprova TVs pelo código e apaga a conta; `/conectar?c=ABCD2345` é aonde leva o QR das TVs. App da Samsung e da LG: Ajustes > Conta Saimo mostra o QR e tem e-mail e senha. Núcleo comum em `src/conta/conta.ts`; o que cada um lê e grava em `src/conta/site.ts` e `tv-native/src/core/ContaTv.ts`. Teste: `VITE_CONTA_API=http://127.0.0.1:8787 npx vite`. Contrato: SaimoPlayer/docs/conta.md. Sem conta, nada muda.
 
 Custo e remoções (3.3.3): o QR para de perguntar quando o código vence ("Gerar novo QR") e quando a aba fica escondida; pedidos sem sessão vão como `text/plain` (sem OPTIONS). Uma sincronia é um pedido só (PUT com mudança, GET sem), no máximo um envio a cada 2 min; mudança logo depois de sincronizar não se perde mais. O que sai do Continue assistindo, dos favoritos e das Minhas listas é anotado em `src/conta/remocoes.ts` (olhando o antes e o depois de cada gravação) e viaja no pacote, para a sincronia não trazer de volta.
+
+## Ajustes da 3.3.4
+
+- **LG**: a TV mandava as setas como "voltar/avançar" de mídia (Media Session) e o filme andava mesmo com o foco nos botões (legendas, episódios): agora só vale sem botão em foco, e seta que o app não usou não chega ao vídeo. No ao vivo, a mesma ação vira a seta (abre a lista); com o ponteiro do Magic Remote deixando os controles à vista, sem botão em foco vale o padrão (esquerda/direita/OK abrem a lista, cima/baixo trocam de canal).
+- **On Demand com cache**: o que veio da última vez aparece na hora (memória e, as fileiras, `saimo-ondemand-cache-v1`); a busca por novidade roda por trás e só troca o que mudou.
+- **Pular abertura** (app antigo das TVs, tv-native): passou a vir desligado.
+- **Números ao vivo** no topo do site: `https://saimo-numeros.pages.dev/numeros.json` (arquivo estático, sem custo; ver SaimoConta/scripts/publicar_numeros.sh).

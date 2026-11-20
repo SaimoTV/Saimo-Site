@@ -38,7 +38,7 @@ const DEFAULT_PREFS: TVPreferences = {
   upscaling: 'off',
   versaoAudio: 'dub',
   proximoAutomatico: true,
-  pularAutomatico: true,
+  pularAutomatico: false,
   tamanhoLegenda: 1,
   legendaFundo: true,
   ultimoCanal: '',
@@ -86,6 +86,14 @@ export class Storage {
     try {
       const data = localStorage.getItem(this.PREFS_KEY);
       if (data) prefs = { ...DEFAULT_PREFS, ...JSON.parse(data) };
+      // 3.3.4: "pular aberturas" passou a vir desligado; quem tinha o padrão antigo volta ao desligado uma vez.
+      if (localStorage.getItem('saimo_pular_padrao_v2') !== '1') {
+        localStorage.setItem('saimo_pular_padrao_v2', '1');
+        if (prefs.pularAutomatico) {
+          prefs.pularAutomatico = false;
+          if (data) localStorage.setItem(this.PREFS_KEY, JSON.stringify({ ...JSON.parse(data), pularAutomatico: false }));
+        }
+      }
     } catch (e) {}
     try {
       const ultimo = localStorage.getItem(this.ULTIMO_CANAL_KEY);

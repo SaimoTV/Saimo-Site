@@ -104,7 +104,11 @@ export function useControleTv(o: {
           if (linha) { consumir(); setFocus(linha); return; }
         }
       }
-      if (s.painelAberto || s.controlesVisiveis) return; // aí o D-pad cuida
+      if (s.painelAberto) return; // aí o D-pad cuida
+      // Controles à vista com um botão deles em foco: as setas andam entre os
+      // botões. Sem botão em foco (na LG o ponteiro do Magic Remote deixa os
+      // controles sempre à vista), vale o padrão do ao vivo abaixo.
+      if (s.controlesVisiveis && document.querySelector('.video-player-container .dpad-focused')) return;
       if (s.multiTela && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
         consumir(); s.trocarLado?.(); mostrarControles(); return;
       }

@@ -78,8 +78,21 @@ function tecla(alvo: EventTarget | null, key: string, keyCode: number): boolean 
 /** Setas e OK do controle, por código: `key` pode vir vazio ou "Unidentified" em TV antiga. */
 const POR_CODIGO: Record<number, string> = { 37: 'ArrowLeft', 38: 'ArrowUp', 39: 'ArrowRight', 40: 'ArrowDown', 13: 'Enter' };
 
+/** Quando chegou a última seta de verdade do controle (ms): a LG às vezes manda a seta como ação de mídia. */
+let ultimaSeta = 0;
+export function setaRecente(ms = 400): boolean {
+  return Date.now() - ultimaSeta < ms;
+}
+
+/** Ação de mídia que a LG fez da seta (sem a tecla ter chegado): vira a seta. */
+export function setaPelaMidia(key: 'ArrowLeft' | 'ArrowRight'): void {
+  if (setaRecente()) return;
+  tecla(document.activeElement ?? document, key, key === 'ArrowLeft' ? 37 : 39);
+}
+
 function aoApertar(e: KeyboardEvent): void {
   const codigo = e.keyCode;
+  if (e.isTrusted && (codigo === 37 || codigo === 39)) ultimaSeta = Date.now();
   // Já é a tecla traduzida por nós: deixa seguir.
   if (!e.isTrusted) return;
   const certa = POR_CODIGO[codigo];
