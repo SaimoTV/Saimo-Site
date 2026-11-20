@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { ehTv, setaRecente } from '../plataforma/tv';
+import { ehTv } from '../plataforma/tv';
 
 /**
  * Título, capa e botões do vídeo nos controles do sistema: a tela de bloqueio
@@ -16,8 +16,10 @@ export function useMediaSession(opcoes: {
   aoAvancar?: () => void;
   aoProximo?: () => void;
   aoAnterior?: () => void;
+  /** Ao vivo na TV: as ações de mídia da LG viram as setas (abrir a lista); o filme não usa. */
+  midiaNaTv?: boolean;
 }) {
-  const { titulo, subtitulo, capa, aoTocar, aoPausar, aoVoltar, aoAvancar, aoProximo, aoAnterior } = opcoes;
+  const { titulo, subtitulo, capa, aoTocar, aoPausar, aoVoltar, aoAvancar, aoProximo, aoAnterior, midiaNaTv } = opcoes;
   useEffect(() => {
     if (!('mediaSession' in navigator) || !titulo) return;
     const ms = navigator.mediaSession;
@@ -26,17 +28,12 @@ export function useMediaSession(opcoes: {
       artist: subtitulo ?? 'Saimo TV',
       artwork: capa ? [{ src: capa, sizes: '512x512' }] : [{ src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' }],
     });
-    // LG (webOS): o sistema manda as setas esquerda/direita do controle como
-    // "voltar/avançar" daqui enquanto o vídeo toca. Com um botão do player em
-    // foco (legendas, episódios…) a seta é para andar entre eles, não mexer no
-    // tempo: só vale sem nada focado (controles escondidos).
-    const soSemFoco = (fn?: () => void) => (fn && ehTv()
-      ? () => {
-        // Seta que acabou de chegar como tecla já andou o foco: não mexe no tempo de novo.
-        if (setaRecente() && document.querySelector('.video-player-container .dpad-focused, .movie-player .dpad-focused, .dpad-focused.control-btn')) return;
-        if (!document.querySelector('.video-player-container .dpad-focused, .movie-player .dpad-focused, .dpad-focused.control-btn')) fn();
-      }
-      : fn);
+    // Na TV (LG, Samsung) "voltar/avançar" do sistema nunca mexe no tempo: a LG
+    // manda as setas do controle por aqui mesmo com o foco nos botões do player.
+    // Na TV o tempo só anda pela barra de progresso em foco (MoviePlayer).
+    // Um manipulador vazio (e não nenhum): assim a TV entrega a ação para nós, que a ignoramos.
+    const nada = () => { /* na TV, o tempo é da barra */ };
+    const soSemFoco = (fn?: () => void) => (ehTv() && !midiaNaTv ? (fn ? nada : undefined) : fn);
     const acoes: [MediaSessionAction, (() => void) | undefined][] = [
       ['play', aoTocar], ['pause', aoPausar], ['seekbackward', soSemFoco(aoVoltar)], ['seekforward', soSemFoco(aoAvancar)],
       ['nexttrack', aoProximo], ['previoustrack', aoAnterior],
@@ -49,5 +46,5 @@ export function useMediaSession(opcoes: {
         try { ms.setActionHandler(acao, null); } catch { /* idem */ }
       }
     };
-  }, [titulo, subtitulo, capa, aoTocar, aoPausar, aoVoltar, aoAvancar, aoProximo, aoAnterior]);
+  }, [titulo, subtitulo, capa, aoTocar, aoPausar, aoVoltar, aoAvancar, aoProximo, aoAnterior, midiaNaTv]);
 }

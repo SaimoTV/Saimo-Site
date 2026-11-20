@@ -1846,3 +1846,17 @@
   border-color: rgba(255, 255, 255, 0.35);
   color: #fff;
 }
+
+/* Controle remoto: a barra de progresso em foco (só aí as setas voltam/avançam). */
+.progress-container.dpad-focused,
+.progress-container:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.85);
+  border-radius: 6px;
+  height: 10px;
+}
+.progress-container.dpad-focused .progress-thumb,
+.progress-container:focus-visible .progress-thumb {
+  transform: translate(-50%, -50%) scale(1.4);
+  opacity: 1;
+}

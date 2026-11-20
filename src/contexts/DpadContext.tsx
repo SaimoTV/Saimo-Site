@@ -493,6 +493,12 @@ export function DpadNavigationProvider({ children }: { children: React.ReactNode
         case 'ArrowDown':
         case 'ArrowLeft':
         case 'ArrowRight': {
+          // Elemento que usa as setas laterais para si (a barra de progresso do
+          // filme: voltar/avançar): elas não movem o foco, vão para ele.
+          if ((event.key === 'ArrowLeft' || event.key === 'ArrowRight')
+            && currentFocusRef.current?.dataset.setasProprias === 'true' && document.activeElement === currentFocusRef.current) {
+            return;
+          }
           // Delay para evitar navegação muito rápida
           if (now - lastKeyTime < KEY_DELAY) {
             event.preventDefault();

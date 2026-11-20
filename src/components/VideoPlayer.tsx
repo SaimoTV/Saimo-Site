@@ -891,7 +891,7 @@ export const VideoPlayer = memo(function VideoPlayer({
     aoPausar: retomar,
     // LG: as setas do controle podem chegar só como "voltar/avançar" de mídia;
     // no ao vivo elas fazem o que a seta faz (abrir a lista de canais).
-    ...(ehTv() ? { aoVoltar: voltarPelaMidia, aoAvancar: avancarPelaMidia } : {}),
+    ...(ehTv() ? { aoVoltar: voltarPelaMidia, aoAvancar: avancarPelaMidia, midiaNaTv: true } : {}),
   });
 
   const toggleMute = useCallback(() => {

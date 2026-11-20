@@ -1995,6 +1995,19 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
             ref={progressRef}
             role="slider"
             aria-label="Progresso"
+            // No controle remoto a barra recebe foco: só com ela em foco as setas
+            // laterais voltam/avançam (nos botões elas só andam entre eles).
+            tabIndex={0}
+            data-focusable="true"
+            data-nav-group="player-controls"
+            data-setas-proprias="true"
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                e.preventDefault();
+                e.stopPropagation();
+                seek(e.key === 'ArrowLeft' ? -10 : 10);
+              }
+            }}
             aria-valuemin={0}
             aria-valuemax={Math.round(duration)}
             aria-valuenow={Math.round(currentTime)}
