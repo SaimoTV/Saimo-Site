@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /conectar
+Disallow: /teste
+
+Sitemap: https://saimo-tv.com.br/sitemap.xml

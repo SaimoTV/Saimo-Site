@@ -113,12 +113,17 @@
     <link rel="apple-touch-icon" href="%BASE_URL%icons/apple-touch-icon.png" />
     <link rel="manifest" href="%BASE_URL%manifest.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Saimo TV: um player para as listas e os links que você mesmo adiciona — no navegador, na TV, no celular e no computador." />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="description" content="Saimo TV: player leve e gratuito para assistir TV ao vivo, filmes, séries, animes, doramas e rádios com as suas listas M3U e addons — direto no navegador, Android TV, TV Box, Celular, Windows, Mac, Linux e Roku." />
+    <meta name="keywords" content="Saimo TV, saimo-tv, player M3U, player IPTV, TV ao vivo no navegador, aplicativo Saimo TV, Android TV, TV Box, Roku, Smart TV Samsung LG, player de listas" />
+    <meta name="author" content="Saimo TV" />
+    <meta name="application-name" content="Saimo TV" />
+    <meta name="apple-mobile-web-app-title" content="Saimo TV" />
     <!-- Prévia do link no WhatsApp e redes sociais. -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Saimo TV" />
-    <meta property="og:title" content="Saimo TV" />
-    <meta property="og:description" content="Um player para as listas e os links que você mesmo adiciona — no navegador, na TV, no celular e no computador." />
+    <meta property="og:title" content="Saimo TV — Player para Navegador, TV Box, Celular, PC e Roku" />
+    <meta property="og:description" content="Um player rápido e gratuito para as listas e os links que você mesmo adiciona — no navegador, na TV, no celular e no computador." />
     <meta property="og:url" content="https://saimo-tv.com.br/" />
     <!-- Absoluto: WhatsApp e redes sociais não resolvem caminho relativo. -->
     <meta property="og:image" content="https://saimo-tv.com.br/icons/icon-512.png" />
@@ -126,16 +131,48 @@
     <meta property="og:image:height" content="512" />
     <meta property="og:locale" content="pt_BR" />
     <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Saimo TV — Player para Navegador, TV Box, Celular, PC e Roku" />
+    <meta name="twitter:description" content="Um player rápido e gratuito para as listas e os links que você mesmo adiciona — no navegador, na TV, no celular e no computador." />
     <meta name="twitter:image" content="https://saimo-tv.com.br/icons/icon-512.png" />
     <link rel="canonical" href="https://saimo-tv.com.br/" />
+    <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml" />
     <meta name="theme-color" content="#0a0a0a" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://saimo-tv.com.br/#website",
+            "url": "https://saimo-tv.com.br/",
+            "name": "Saimo TV",
+            "alternateName": ["SaimoTV", "saimo-tv.com.br"],
+            "description": "Player multiplataforma para listas M3U, canais ao vivo, filmes, séries e rádios no navegador, Android TV, TV Box, celular, Windows, macOS, Linux e Roku.",
+            "inLanguage": "pt-BR"
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://saimo-tv.com.br/#app",
+            "name": "Saimo TV",
+            "url": "https://saimo-tv.com.br/app",
+            "applicationCategory": "MultimediaApplication",
+            "operatingSystem": "Web, Android TV, Android, Windows, macOS, Linux, Roku, Tizen, webOS",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "BRL"
+            }
+          }
+        ]
+      }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Fonte sem travar a primeira pintura: carrega por trás e troca quando chega. -->
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <!-- O SDK do Chromecast só é baixado quando alguém usa o player (castService). -->
-    <title>Saimo TV</title>
+    <title>Saimo TV — Player para Navegador, TV Box, Celular, PC e Roku</title>
     <!-- Rede de segurança: se o app quebrar antes de desenhar (dado velho no
          navegador, módulo que não carregou), mostra o erro e como limpar, em vez
          de tela preta. -->
@@ -169,6 +206,22 @@
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <main style="padding:32px;max-width:720px;margin:0 auto;font-family:system-ui,sans-serif;color:#fff;background:#0a0a0a">
+        <h1>Saimo TV — Player para Navegador, TV Box, Celular, PC e Roku</h1>
+        <p>O Saimo TV é um reprodutor multiplataforma para listas M3U, canais ao vivo, filmes, séries e rádios que você mesmo adiciona.</p>
+        <nav>
+          <ul>
+            <li><a href="https://saimo-tv.com.br/home">Abrir Saimo TV no Navegador</a></li>
+            <li><a href="https://saimo-tv.com.br/tv">Canais de TV ao Vivo</a></li>
+            <li><a href="https://saimo-tv.com.br/movies">Catálogo de Filmes e Séries</a></li>
+            <li><a href="https://saimo-tv.com.br/app">Baixar Aplicativo Saimo TV (Android TV, TV Box, Celular, Windows, Mac, Linux e Roku)</a></li>
+            <li><a href="https://saimo-tv.com.br/radios">Rádios ao Vivo</a></li>
+            <li><a href="https://saimo-tv.com.br/suporte">Suporte e Ajuda</a></li>
+          </ul>
+        </nav>
+      </main>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -635,13 +635,39 @@ function ehTelaDoApp(caminho: string): boolean {
   return TELAS_DO_APP.some((t) => caminho === t || caminho.startsWith(`${t}/`));
 }
 
-// Layout principal que gerencia scroll
+// Layout principal que gerencia scroll e título/canonical de SEO por rota
+const TITULOS_POR_ROTA: Record<string, string> = {
+  '/': 'Saimo TV — Player para Navegador, TV Box, Celular, PC e Roku',
+  '/home': 'Início · Saimo TV',
+  '/tv': 'TV ao Vivo · Saimo TV',
+  '/movies': 'Filmes, Séries, Animes e Doramas · Saimo TV',
+  '/app': 'Baixar Aplicativo Saimo TV (TV Box, Android, Windows, Mac, Linux e Roku)',
+  '/radios': 'Rádios ao Vivo · Saimo TV',
+  '/eventos': 'Jogos e Eventos ao Vivo · Saimo TV',
+  '/busca': 'Buscar Canais, Filmes e Séries · Saimo TV',
+  '/favoritos': 'Favoritos · Saimo TV',
+  '/ajustes': 'Ajustes e Listas · Saimo TV',
+  '/formato': 'Formato de Listas e Catálogo · Saimo TV',
+  '/suporte': 'Suporte e Ajuda · Saimo TV',
+  '/sobre': 'Sobre o Saimo TV',
+  '/privacidade': 'Política de Privacidade · Saimo TV',
+  '/termos': 'Termos de Uso · Saimo TV',
+  '/conteudo': 'Política de Conteúdo e DMCA · Saimo TV',
+};
+
 function AppLayout() {
   const location = useLocation();
   
-  // Reset scroll on route change
+  // Reset scroll e atualiza título + canonical de SEO em cada rota
   useEffect(() => {
     window.scrollTo(0, 0);
+    const p = location.pathname;
+    const titulo = TITULOS_POR_ROTA[p] || (p.startsWith('/tv/') ? 'TV ao Vivo · Saimo TV' : 'Saimo TV');
+    document.title = titulo;
+    const linkCanonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (linkCanonical) {
+      linkCanonical.href = `https://saimo-tv.com.br${p === '/' ? '/' : p}`;
+    }
   }, [location.pathname]);
 
   // Trocar um endereço em Ajustes refaz as telas de dados do zero: nada de
