@@ -21,8 +21,8 @@ interface Liga {
 }
 
 const LIGAS: Liga[] = [
-  { caminho: 'soccer/bra.1', duracao: 120, sempre: ['premiere'] },
-  { caminho: 'soccer/bra.2', duracao: 120, sempre: ['premiere'] },
+  { caminho: 'soccer/bra.1', duracao: 120, sempre: ['premiere-clubes', 'premiere-2'] },
+  { caminho: 'soccer/bra.2', duracao: 120, sempre: ['premiere-clubes', 'premiere-2'] },
   { caminho: 'soccer/bra.copa_do_brazil', duracao: 120 },
   { caminho: 'soccer/conmebol.libertadores', duracao: 120 },
   { caminho: 'soccer/conmebol.sudamericana', duracao: 120 },
@@ -40,20 +40,46 @@ const LIGAS: Liga[] = [
   { caminho: 'soccer/ksa.1', duracao: 120 },
   { caminho: 'soccer/fifa.world', duracao: 120 },
   { caminho: 'soccer/fifa.worldq.conmebol', duracao: 120 },
-  { caminho: 'basketball/nba', duracao: 150, sempre: ['nba-league-pass'] },
+  { caminho: 'basketball/nba', duracao: 150 },
   { caminho: 'football/nfl', duracao: 210 },
   { caminho: 'baseball/mlb', duracao: 180 },
   { caminho: 'hockey/nhl', duracao: 150 },
   { caminho: 'mma/ufc', duracao: 300 },
 ];
 
-/** Canais esportivos com grade no meuguia.tv: código → nome do canal (vira o slug). */
-const GRADES: [string, string][] = [
-  ['GRD', 'Globo'], ['SPO', 'SporTV'], ['SP2', 'SporTV 2'], ['SP3', 'SporTV 3'],
-  ['121', 'Premiere Clubes'], ['ESP', 'ESPN'], ['ES2', 'ESPN 2'], ['ES3', 'ESPN 3'],
-  ['ES4', 'ESPN 4'], ['ES5', 'ESPN 5'], ['BAN', 'Band'], ['BSP', 'BandSports'],
-  ['TNT', 'TNT'], ['SPA', 'Space'], ['RTV', 'RedeTV'], ['REC', 'Record'],
-  ['SBT', 'SBT'], ['135', 'Combate'],
+/** Canais esportivos com grade no meuguia.tv (`m`): código → slugs exatos do catálogo. */
+const GRADES_M: [string, string[]][] = [
+  ['GRD', ['globo-sp', 'globo-rj', 'globo']],
+  ['SPO', ['sportv']],
+  ['SP2', ['sportv-2']],
+  ['SP3', ['sportv-3']],
+  ['121', ['premiere-clubes', 'premiere']],
+  ['ESP', ['espn']],
+  ['ES2', ['espn-2']],
+  ['ES3', ['espn-3']],
+  ['ES4', ['espn-4']],
+  ['ES5', ['espn-5']],
+  ['BAN', ['band-sp', 'band']],
+  ['BSP', ['band-sports']],
+  ['TNT', ['tnt']],
+  ['SPA', ['space']],
+  ['RTV', ['redetv']],
+  ['REC', ['record-sp', 'record-rj', 'record']],
+  ['SBT', ['sbt-sp', 'sbt-rj', 'sbt']],
+  ['135', ['combate']],
+];
+
+/** Canais extras vindos do guiadetv.com (`g`) no epg-esportes.json: chave → slugs exatos. */
+const GRADES_G: [string, string[]][] = [
+  ['espn-6', ['espn-6']],
+  ['premiere-2', ['premiere-2']],
+  ['premiere-3', ['premiere-3']],
+  ['premiere-4', ['premiere-4']],
+  ['premiere-5', ['premiere-5']],
+  ['premiere-6', ['premiere-6']],
+  ['premiere-7', ['premiere-7']],
+  ['sportynet', ['sportynet']],
+  ['nsports', ['n-sports']],
 ];
 
 const BRT = -3 * 3600_000;
@@ -67,113 +93,99 @@ function brt(ms: number): string {
 }
 
 function sem(acentos: string): string {
-  return acentos.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-}
-
-function slugCanal(nome: string): string {
-  return sem(nome).replace(/\+/g, '-plus').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return acentos.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
 const GENERICAS = new Set([
   'club', 'clube', 'futebol', 'football', 'sport', 'sports', 'esporte', 'esportes', 'sporting',
   'atletico', 'athletic', 'united', 'city', 'real', 'deportivo', 'calcio', 'associacao',
-  'regatas', 'saint', 'santa', 'sociedade', 'esportiva', 'recreativo', 'fc', 'sc', 'ec',
+  'regatas', 'saint', 'santa', 'sociedade', 'esportiva', 'recreativo', 'fc', 'sc', 'ec', 'ac', 'cf', 'cd',
 ]);
 
-/** Palavras que identificam o time ("Athletico Paranaense" → athletico, paranaense). */
-function palavrasDoTime(nomes: (string | undefined)[]): string[] {
-  const set = new Set<string>();
+const APELIDOS_TIME: Record<string, string[]> = {
+  'atletico mg': ['atletico mineiro', 'mineiro'],
+  'atletico mineiro': ['atletico mg'],
+  'atletico go': ['atletico goianiense', 'goianiense'],
+  'atletico goianiense': ['atletico go'],
+  'athletico pr': ['athletico paranaense', 'paranaense'],
+  'athletico paranaense': ['athletico pr'],
+  'psv eindhoven': ['psv'],
+  'paris saint germain': ['psg'],
+  'internazionale': ['inter de milao', 'inter milan'],
+  'rb bragantino': ['red bull bragantino', 'bragantino'],
+  'red bull bragantino': ['rb bragantino', 'bragantino'],
+};
+
+interface TermosTime { frases: string[]; palavras: string[] }
+
+/** Frases compostas e palavras que identificam o time (aceita siglas de 3+ letras como PSV). */
+function palavrasDoTime(nomes: (string | undefined)[]): TermosTime {
+  const frases = new Set<string>();
+  const palavras = new Set<string>();
   for (const n of nomes) {
     if (!n) continue;
-    for (const p of sem(n).split(/[^a-z0-9]+/)) {
-      if (p.length >= 4 && !GENERICAS.has(p)) set.add(p);
+    const limpo = sem(n).replace(/[^a-z0-9]+/g, ' ').trim();
+    if (!limpo) continue;
+    for (const alias of APELIDOS_TIME[limpo] ?? []) frases.add(alias);
+    const partes = limpo.split(' ').filter(Boolean);
+    if (partes.length >= 2) frases.add(limpo);
+    for (const p of partes) {
+      if (p.length >= 3 && !GENERICAS.has(p)) palavras.add(p);
     }
   }
-  return [...set];
+  return { frases: [...frases], palavras: [...palavras] };
 }
 
-/** Título de transmissão ao vivo, não reprise nem resumo. */
+/** Título de transmissão ao vivo, não reprise, resumo nem chamada futura. */
 function aoVivo(titulo: string): boolean {
   const t = sem(titulo);
-  if (/^(vt|reprise|compacto)\b/.test(t)) return false;
+  if (/^(vt|reprise|compacto|hoje a partir|dia \d|pre[- ]?jogo)\b/.test(t)) return false;
   return !/(melhores momentos|highlights|reprise|compacto|gols da rodada|resenha|mesa[- ]redonda)/.test(t);
 }
 
-/** Lê a grade de um canal: dias em "domingo, 15/11" e horários de Brasília. */
-function lerGrade(html: string, agora: number): Programa[] {
-  const limpo = html.replace(/<!--[\s\S]*?-->/g, '');
-  const re = /<li class="subheader[^"]*">([^<]*)<\/li>|<div class=.lileft time.>\s*(\d{1,2}):(\d{2})\s*<\/div>\s*<div class="licontent">\s*<h2>([^<]*)<\/h2>/g;
-  const anoAgora = new Date(agora + BRT).getUTCFullYear();
-  const progs: Programa[] = [];
-  let dia = -1;
-  let mes = -1;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(limpo))) {
-    if (m[1] !== undefined) {
-      const d = /(\d{1,2})\/(\d{1,2})/.exec(m[1]);
-      if (d) { dia = +d[1]; mes = +d[2] - 1; }
-      continue;
-    }
-    if (dia < 0) continue;
-    let ano = anoAgora;
-    // Grade de 31/12 para 01/01: o mês que "voltou" é do ano seguinte.
-    if (mes === 0 && new Date(agora + BRT).getUTCMonth() === 11) ano += 1;
-    const inicio = Date.UTC(ano, mes, dia, +m[2], +m[3]) - BRT;
-    progs.push({ inicio, titulo: m[4].replace(/&amp;/g, '&').trim() });
-  }
-  return progs;
-}
-
 /**
- * A grade central (epg.json do endereço de canais, montado no Mac às 11h e às
- * 18h): o meuguia não responde às Functions do Cloudflare, então ler a página
- * daqui deixava todos os jogos sem canal. Chaves `m` = código do meuguia.
+ * Lê uma única vez o epg-esportes.json (~40 KB, fallback para epg-leve.json):
+ * evita 18 downloads paralelos do epg.json de 2 MB que estouravam a Function.
  */
-let central: { em: number; m: Record<string, [number, number, string, string?][]> } | null = null;
-async function gradeCentral(agora: number): Promise<Record<string, [number, number, string, string?][]> | null> {
-  if (central && agora - central.em < 10 * 60_000) return central.m;
-  try {
-    const r = await fetch('https://canais-saimo.pages.dev/epg.json');
-    if (!r.ok) return null;
-    const d = (await r.json()) as { m?: Record<string, [number, number, string, string?][]> };
-    if (!d?.m) return null;
-    central = { em: agora, m: d.m };
-    return d.m;
-  } catch {
+interface EpgCentral {
+  em: number;
+  g: Record<string, [number, number, string, string?][]>;
+  m: Record<string, [number, number, string, string?][]>;
+}
+let central: EpgCentral | null = null;
+let centralEmVoo: Promise<EpgCentral | null> | null = null;
+
+async function gradeCentral(agora: number): Promise<EpgCentral | null> {
+  if (central && agora - central.em < 10 * 60_000) return central;
+  if (centralEmVoo) return centralEmVoo;
+  centralEmVoo = (async () => {
+    for (const url of [
+      'https://canais-saimo.pages.dev/epg-esportes.json',
+      'https://canais-saimo.pages.dev/epg-leve.json',
+    ]) {
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 5000);
+        const r = await fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(t));
+        if (!r.ok) continue;
+        const d = (await r.json()) as { g?: EpgCentral['g']; m?: EpgCentral['m'] };
+        if (d?.m || d?.g) {
+          central = { em: Date.now(), g: d.g ?? {}, m: d.m ?? {} };
+          return central;
+        }
+      } catch { /* tenta próximo */ }
+    }
     return null;
-  }
+  })().finally(() => { centralEmVoo = null; });
+  return centralEmVoo;
 }
 
-async function grade(codigo: string, agora: number): Promise<Programa[]> {
-  const m = await gradeCentral(agora);
-  if (m && m[codigo]) {
-    return m[codigo].map(([ini, , titulo]) => ({ inicio: ini * 1000, titulo })).filter((p) => aoVivo(p.titulo));
-  }
-  const url = `https://meuguia.tv/programacao/canal/${codigo}`;
-  const chave = new Request(`https://saimo-cache.invalid/grade/${codigo}`);
-  let cache: Cache | undefined;
-  try {
-    cache = (globalThis as unknown as { caches?: { default: Cache } }).caches?.default;
-    const salvo = cache ? await cache.match(chave) : undefined;
-    if (salvo) return (await salvo.json()) as Programa[];
-  } catch { /* sem cache segue para a rede */ }
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 6000);
-  try {
-    const r = await fetch(url, { signal: ctrl.signal, headers: { 'User-Agent': 'Mozilla/5.0' } });
-    if (!r.ok) return [];
-    const progs = lerGrade(await r.text(), agora).filter(p => aoVivo(p.titulo));
-    try {
-      if (cache) await cache.put(chave, new Response(JSON.stringify(progs), {
-        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' },
-      }));
-    } catch { /* cache é só atalho */ }
-    return progs;
-  } catch {
-    return [];
-  } finally {
-    clearTimeout(t);
-  }
+function casouTime(tituloLimpo: string, termos: TermosTime): boolean {
+  if (!termos.frases.length && !termos.palavras.length) return false;
+  if (termos.frases.some(f => tituloLimpo.includes(f))) return true;
+  return termos.palavras.some(w =>
+    w.length <= 3 ? new RegExp(`\\b${w}\\b`).test(tituloLimpo) : tituloLimpo.includes(w),
+  );
 }
 
 interface Comp {
@@ -182,21 +194,27 @@ interface Comp {
   team?: { name?: string; displayName?: string; shortDisplayName?: string; location?: string; logo?: string };
 }
 
-function canaisConfirmados(casa: string[], fora: string[], inicio: number, grades: Map<string, Programa[]>): string[] {
-  if (!casa.length || !fora.length) return [];
+function canaisConfirmados(
+  casa: TermosTime,
+  fora: TermosTime,
+  inicio: number,
+  grades: Map<string[], Programa[]>,
+): string[] {
   const achados: string[] = [];
-  for (const [nome, progs] of grades) {
+  for (const [slugs, progs] of grades) {
     const bate = progs.some(p => {
       if (Math.abs(p.inicio - inicio) > JANELA) return false;
-      const t = sem(p.titulo);
-      return casa.some(w => t.includes(w)) && fora.some(w => t.includes(w));
+      const t = sem(p.titulo).replace(/[^a-z0-9]+/g, ' ').trim();
+      return casouTime(t, casa) && casouTime(t, fora);
     });
-    if (bate) achados.push(slugCanal(nome));
+    if (bate) {
+      for (const s of slugs) if (!achados.includes(s)) achados.push(s);
+    }
   }
   return achados;
 }
 
-async function liga(item: Liga, grades: Map<string, Programa[]>): Promise<unknown[]> {
+async function liga(item: Liga, grades: Map<string[], Programa[]>): Promise<unknown[]> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 7000);
   try {
@@ -262,9 +280,16 @@ export const onRequestGet: PagesFunction = async (ctx) => {
 
 async function montarAgenda(): Promise<Response> {
   const agora = Date.now();
-  const listas = await Promise.all(GRADES.map(([codigo]) => grade(codigo, agora)));
-  const grades = new Map<string, Programa[]>();
-  GRADES.forEach(([, nome], i) => grades.set(nome, listas[i]));
+  const doc = await gradeCentral(agora);
+  const grades = new Map<string[], Programa[]>();
+  const mapear = (lista?: [number, number, string, string?][]) =>
+    (lista ?? [])
+      .map(([ini, , titulo]) => ({ inicio: ini * 1000, titulo }))
+      .filter((p) => aoVivo(p.titulo));
+  if (doc) {
+    for (const [codigo, slugs] of GRADES_M) grades.set(slugs, mapear(doc.m[codigo]));
+    for (const [chave, slugs] of GRADES_G) grades.set(slugs, mapear(doc.g[chave]));
+  }
   const jogos = (await Promise.all(LIGAS.map(l => liga(l, grades)))).flat() as { time_start: string }[];
   jogos.sort((a, b) => a.time_start.localeCompare(b.time_start));
   return new Response(JSON.stringify(jogos), {
