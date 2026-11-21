@@ -69,6 +69,14 @@ export class HomeScreen {
         this.enter();
       }
     });
+    const recarregarHome = () => {
+      this.isLoaded = false;
+      if (!this.element.classList.contains('hidden')) {
+        this.enter();
+      }
+    };
+    State.on('minhas-listas-mudou', recarregarHome);
+    State.on('listas-mudaram', recarregarHome);
   }
 
   private boasVindas: HTMLElement;

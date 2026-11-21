@@ -13,7 +13,7 @@ export class PlayerFactory {
   static create(videoElement: HTMLVideoElement, events: PlayerEvents): TVPlayerInstance {
     if (Platform.isTizen && (window as any).webapis?.avplay) {
       console.info('[SaimoTV] Usando player de hardware Tizen AVPlay');
-      return new TizenAVPlayer(events);
+      return new TizenAVPlayer(videoElement, events);
     } else if (Platform.isWebOS) {
       console.info('[SaimoTV] Usando player acelerado LG webOS');
       return new WebOSPlayer(videoElement, events);

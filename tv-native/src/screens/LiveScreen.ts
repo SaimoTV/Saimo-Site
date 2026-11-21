@@ -26,6 +26,7 @@ export class LiveScreen {
   private numericBuffer = '';
   private numericTimer: any = null;
   private isTuning = false;
+  private tuneSeq = 0;
   /** Fontes já tentadas no canal atual; acabadas, avisa em vez de rodar em círculo. */
   private tentadas = new Set<number>();
   /** Vigia: fonte que não anda em PRAZO_FONTE ms desce para a seguinte. */
@@ -73,6 +74,13 @@ export class LiveScreen {
     State.on('player-erro', () => {
       if (State.currentScreen === 'live' && !this.player2 && State.currentChannel) this.fonteFalhou();
     });
+    const atualizarCanais = () => {
+      if (State.currentScreen !== 'live') return;
+      if (this.drawer.isOpen()) this.drawer.open(State.channels, State.currentChannel);
+      if (!State.currentChannel && State.channels.length > 0) this.tuneDefaultChannel();
+    };
+    State.on('listas-mudaram', atualizarCanais);
+    State.on('minhas-listas-mudou', atualizarCanais);
   }
 
   getElement(): HTMLElement {
@@ -93,6 +101,8 @@ export class LiveScreen {
       if (State.channels.length === 0) {
         Api.fetchChannels().then((c) => {
           State.channels = c;
+          if (State.currentScreen !== 'live') return;
+          if (this.drawer.isOpen()) this.drawer.open(State.channels, State.currentChannel);
           if (!State.currentChannel && c.length > 0) {
             this.tuneDefaultChannel();
           }
@@ -260,6 +270,7 @@ export class LiveScreen {
     if (manual) Storage.setFonteCanal(channel.name, idx);
 
     this.isTuning = true;
+    const seq = ++this.tuneSeq;
     State.currentChannel = channel;
     State.currentVariantIndex = idx;
 
@@ -288,11 +299,13 @@ export class LiveScreen {
         isLive: true,
       });
     } catch (e) {
+      if (seq !== this.tuneSeq) return;
+      this.isTuning = false;
       console.warn(`[LiveScreen] Falha ao sintonizar ${channel.name}. Tentando próxima variante...`, e);
       this.fonteFalhou();
-    } finally {
-      this.isTuning = false;
+      return;
     }
+    if (seq === this.tuneSeq) this.isTuning = false;
   }
 
   /**

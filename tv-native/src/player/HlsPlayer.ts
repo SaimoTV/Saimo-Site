@@ -4,12 +4,26 @@
  */
 
 import Hls from 'hls.js';
-import { TVPlayerInstance, PlaybackSource, PlayerEvents, AudioTrack, SubtitleTrack } from './TVPlayer';
+import {
+  TVPlayerInstance, PlaybackSource, PlayerEvents, AudioTrack, SubtitleTrack,
+  ehMidiaProgressiva, configurarXhrHeaders,
+} from './TVPlayer';
+
+const PLAYLIST_FATAL = new Set<string>([
+  Hls.ErrorDetails.MANIFEST_LOAD_ERROR,
+  Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT,
+  Hls.ErrorDetails.MANIFEST_PARSING_ERROR,
+  Hls.ErrorDetails.LEVEL_LOAD_ERROR,
+  Hls.ErrorDetails.LEVEL_EMPTY_ERROR,
+]);
 
 export class HlsPlayer implements TVPlayerInstance {
   private video: HTMLVideoElement;
   private hls: Hls | null = null;
   private events: PlayerEvents;
+  private playGen = 0;
+  private currentSource: PlaybackSource | null = null;
+  private triedDirectFallback = false;
 
   constructor(videoElement: HTMLVideoElement, events: PlayerEvents) {
     this.video = videoElement;
@@ -38,33 +52,49 @@ export class HlsPlayer implements TVPlayerInstance {
       // Com o hls.js no comando, ele mesmo se recupera dos erros de mídia e
       // avisa os fatais pelo evento dele. Repassar este derrubava a fonte que
       // estava tocando (a troca de fonte sem motivo).
-      if (this.hls) return;
+      if (this.hls || !this.currentSource) return;
       this.events.onError?.('Erro no elemento de vídeo');
+    });
+  }
+
+  private playDirect(source: PlaybackSource, gen: number): Promise<void> {
+    this.destroyHls();
+    this.video.src = source.url;
+    this.video.load();
+    return this.video.play().catch((e: any) => {
+      if (gen !== this.playGen) return;
+      if (e?.name === 'AbortError') return;
+      this.events.onError?.(e?.message || 'Erro ao tocar vídeo direto');
     });
   }
 
   async play(source: PlaybackSource): Promise<void> {
     this.stop();
+    const gen = ++this.playGen;
+    this.currentSource = source;
+    this.triedDirectFallback = false;
 
-    const isHls =
-      source.url.includes('.m3u8') ||
-      source.url.includes('.txt') ||
-      source.url.includes('workers.dev');
-
-    if (isHls && Hls.isSupported()) {
-      this.hls = new Hls({
+    if (!ehMidiaProgressiva(source.url) && Hls.isSupported()) {
+      let retries = 0;
+      const hls = new Hls({
         enableWorker: false, // Em TVs antigas web workers podem causar overhead de memória
         lowLatencyMode: Boolean(source.isLive),
         backBufferLength: source.isLive ? 15 : 60,
         maxBufferSize: 30 * 1000 * 1000,
         maxBufferLength: 20,
+        xhrSetup: configurarXhrHeaders(source.headers),
       });
+      this.hls = hls;
 
-      this.hls.loadSource(source.url);
-      this.hls.attachMedia(this.video);
+      hls.loadSource(source.url);
+      hls.attachMedia(this.video);
 
-      this.hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
-        this.video.play().catch(() => {});
+      hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
+        if (gen !== this.playGen) return;
+        this.video.play().catch((e: any) => {
+          if (gen !== this.playGen || e?.name === 'AbortError') return;
+          this.events.onError?.(e?.message || 'Falha ao reproduzir HLS');
+        });
         const audioTracks: AudioTrack[] = (data.audioTracks || []).map((t, idx) => ({
           index: idx,
           name: t.name || `Áudio ${idx + 1}`,
@@ -78,32 +108,37 @@ export class HlsPlayer implements TVPlayerInstance {
         this.events.onTracksReady?.(audioTracks, subTracks);
       });
 
-      this.hls.on(Hls.Events.ERROR, (_, errData) => {
-        if (errData.fatal) {
-          switch (errData.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              console.warn('[HlsPlayer] Erro fatal de rede, tentando recuperar...');
-              this.hls?.startLoad();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              console.warn('[HlsPlayer] Erro fatal de mídia, recuperando...');
-              this.hls?.recoverMediaError();
-              break;
-            default:
-              this.events.onError?.(`Erro HLS fatal: ${errData.details}`);
-              this.stop();
-              break;
-          }
+      hls.on(Hls.Events.ERROR, (_, errData) => {
+        if (gen !== this.playGen || !errData.fatal) return;
+        // Stream sem extensão (rádio AAC/MP3, TS cru): se não é claramente HLS, tenta <video> direto uma vez.
+        const urlLower = source.url.toLowerCase();
+        const explicitHls = urlLower.includes('.m3u8') || urlLower.includes('.txt') || urlLower.includes('cloudfront-net.lat');
+        if (errData.details === Hls.ErrorDetails.MANIFEST_PARSING_ERROR && !explicitHls && !this.triedDirectFallback) {
+          this.triedDirectFallback = true;
+          void this.playDirect(source, gen);
+          return;
+        }
+        if (PLAYLIST_FATAL.has(errData.details) || retries >= 3) {
+          const msg = `Erro HLS fatal: ${errData.details}`;
+          this.destroyHls();
+          this.events.onError?.(msg);
+          return;
+        }
+        retries++;
+        if (errData.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          console.warn('[HlsPlayer] Erro fatal de rede, tentando recuperar...');
+          this.hls?.startLoad();
+        } else if (errData.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          console.warn('[HlsPlayer] Erro fatal de mídia, recuperando...');
+          this.hls?.recoverMediaError();
+        } else {
+          const msg = `Erro HLS fatal: ${errData.details}`;
+          this.destroyHls();
+          this.events.onError?.(msg);
         }
       });
     } else {
-      // Reprodução HTML5 direta (MP4 progressivo)
-      this.video.src = source.url;
-      try {
-        await this.video.play();
-      } catch (e: any) {
-        this.events.onError?.(e.message || 'Erro ao tocar vídeo direto');
-      }
+      await this.playDirect(source, gen);
     }
   }
 
@@ -119,11 +154,19 @@ export class HlsPlayer implements TVPlayerInstance {
     this.video.currentTime = Math.max(0, Math.min(seconds, this.video.duration || seconds));
   }
 
-  stop() {
+  private destroyHls() {
     if (this.hls) {
-      this.hls.destroy();
+      try {
+        this.hls.destroy();
+      } catch {}
       this.hls = null;
     }
+  }
+
+  stop() {
+    this.playGen++;
+    this.currentSource = null;
+    this.destroyHls();
     this.video.pause();
     this.video.removeAttribute('src');
     this.video.load();

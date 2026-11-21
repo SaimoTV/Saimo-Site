@@ -47,8 +47,8 @@ export function ehAppDaTv(): boolean {
   const w = janela();
   if (!w) return false;
   if (w.__SAIMO_TV__ === 'tizen' || w.__SAIMO_TV__ === 'webos') return true;
-  const ua = navigator.userAgent;
-  return /Tizen/i.test(ua) || !!w.tizen || /Web0S|webOS/i.test(ua) || !!w.webOS;
+  if (w.tizen || w.webOS || w.PalmSystem) return true;
+  return typeof location !== 'undefined' && location.protocol === 'file:' && marcaTv() !== null;
 }
 
 /** Teclas do controle remoto → ação. Os números são das duas marcas (Samsung e LG). */

@@ -192,7 +192,7 @@ export function buildAttempts(sources: ChannelSource[]): Attempt[] {
       // separada depende dela) mas nunca é tentada; fonte com cabeçalho obrigatório
       // ou CDN sem CORS para origens externas (mais.uol.com.br) não abre no navegador
       // e fica de fora: o canal aparece como "só no aplicativo".
-      if (!exigeCabecalho(source) && !source.url.includes('mais.uol.com.br')) {
+      if (!direta && !exigeCabecalho(source) && !source.url.includes('mais.uol.com.br')) {
         out.push({ source, url: source.url, viaProxy: false });
       }
       continue;

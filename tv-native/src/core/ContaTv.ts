@@ -11,10 +11,13 @@
 import type { Adaptador, DadosDoPerfil } from '../../../src/conta/conta';
 import { gravarNoPerfil, lerDoPerfil } from '../../../src/perfis/perfis';
 import type { VODProgress } from './Storage';
+import { Storage as TvStorage } from './Storage';
+import { Api } from './Api';
 import { MinhasListas } from './MinhasListas';
 import { Addons } from './Addons';
 import { Platform } from './Platform';
 import { State } from './State';
+import { normalizarEndereco } from '../../../src/utils/enderecoLista';
 
 type Obj = Record<string, any>;
 
@@ -22,6 +25,11 @@ const C_PROGRESSO = 'saimo_tv_vod_progress';
 const C_FAV_VOD = 'saimo_tv_fav_vod';
 const C_FAV_CANAIS = 'saimo_tv_fav_channels';
 const C_LISTAS = 'saimo_tv_minhas_listas';
+const C_LINKS_EM = 'saimo_tv_links_em';
+
+function lerLinksEm(): number {
+  try { return Number(localStorage.getItem(C_LINKS_EM)) || 0; } catch { return 0; }
+}
 
 const txt = (v: unknown) => (typeof v === 'string' ? v : '');
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : Number(v) || 0);
@@ -84,11 +92,42 @@ function juntarNoPerfil(id: string, chegou: Partial<DadosDoPerfil>): void {
 }
 
 function listas(): Obj {
-  // Esta TV não tem os dois endereços do site: vão vazios e com `em` 0, que nunca vencem os de outro aparelho.
-  return { minhas: MinhasListas.listas().filter((l) => !!l.link).map((l) => ({ nome: l.nome, link: l.link })) };
+  const prefs = TvStorage.getPrefs();
+  return {
+    canais: (prefs.urlCanais || '').trim(),
+    filmes: (prefs.urlFilmes || '').trim(),
+    em: lerLinksEm(),
+    minhas: MinhasListas.listas().filter((l) => !!l.link).map((l) => ({ nome: l.nome, link: l.link })),
+  };
 }
 
 async function aplicarListas(l: Obj): Promise<void> {
+  const em = num(l.em);
+  const local = lerLinksEm();
+  const lerUrl = (v: unknown): string | null => (typeof v === 'string' ? normalizarEndereco(v) ?? '' : null);
+  const canais = lerUrl(l.canais);
+  const filmes = lerUrl(l.filmes);
+  let linksMudaram = false;
+  if (canais !== null && filmes !== null) {
+    const prefs = TvStorage.getPrefs();
+    let c = (prefs.urlCanais || '').trim();
+    let f = (prefs.urlFilmes || '').trim();
+    if (em > local) {
+      c = canais;
+      f = filmes;
+    } else if (local === 0) {
+      if (canais && !c) c = canais;
+      if (filmes && !f) f = filmes;
+    }
+    const quando = em > local ? em : (c || f ? Date.now() : 0);
+    if (c !== (prefs.urlCanais || '').trim() || f !== (prefs.urlFilmes || '').trim()) {
+      TvStorage.savePrefs({ urlCanais: c, urlFilmes: f });
+      if (quando) localStorage.setItem(C_LINKS_EM, String(quando));
+      linksMudaram = true;
+    } else if (quando > local) {
+      localStorage.setItem(C_LINKS_EM, String(quando));
+    }
+  }
   const minhas: Obj[] = Array.isArray(l.minhas) ? l.minhas : [];
   let novas = 0;
   for (const m of minhas) {
@@ -96,7 +135,12 @@ async function aplicarListas(l: Obj): Promise<void> {
     if (!/^https?:\/\//i.test(link) || MinhasListas.listas().some((x) => x.link === link)) continue;
     try { await MinhasListas.adicionar(link, txt(m.nome)); novas++; } catch { /* fora do ar ou no limite: segue */ }
   }
-  if (novas) State.emit('minhas-listas-mudou');
+  if (linksMudaram || novas) {
+    Api.invalidateDestaquesCache();
+    await Api.fetchChannels(true).then((ch) => { State.channels = ch; }).catch(() => {});
+    if (novas) State.emit('minhas-listas-mudou');
+    if (linksMudaram) State.emit('listas-mudaram');
+  }
 }
 
 function nomeDoAparelho(): string {
@@ -104,7 +148,7 @@ function nomeDoAparelho(): string {
 }
 
 function aoMudarLocal(f: () => void): void {
-  const chaves = new Set([C_PROGRESSO, C_FAV_VOD, C_FAV_CANAIS, C_LISTAS, 'saimo-perfis', 'saimo-perfis-removidos', 'saimo_addons_v1', 'saimo_debrid_v1']);
+  const chaves = new Set([C_PROGRESSO, C_FAV_VOD, C_FAV_CANAIS, C_LISTAS, C_LINKS_EM, 'saimo-perfis', 'saimo-perfis-removidos', 'saimo_addons_v1', 'saimo_debrid_v1']);
   const proto = Storage.prototype;
   const set = proto.setItem;
   proto.setItem = function (this: Storage, k: string, v: string) {

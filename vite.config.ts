@@ -99,6 +99,8 @@ export default defineConfig(({ mode }) => mode === 'tv' ? configTv : {
   plugins: [react(), proxyDev()],
   css: { postcss: { plugins: [temaCss()] } },
   build: {
+    target: 'chrome68',
+    cssTarget: 'chrome61',
     rollupOptions: {
       output: {
         manualChunks(id) {

@@ -88,6 +88,7 @@ export class MinhasListasScreen {
     const nf = f ? normalizarEndereco(f) : '';
     if ((c && !nc) || (f && !nf)) { this.aviso.textContent = 'Esse endereço não parece válido'; return; }
     Storage.savePrefs({ urlCanais: nc || '', urlFilmes: nf || '' });
+    try { localStorage.setItem('saimo_tv_links_em', String(Date.now())); } catch {}
     this.aviso.textContent = 'Endereços salvos. Recarregando…';
     // Recarrega: todas as telas leem a lista de novo, sem restos da anterior.
     window.setTimeout(() => window.location.reload(), 600);
