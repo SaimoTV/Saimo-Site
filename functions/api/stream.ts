@@ -215,17 +215,12 @@ async function buscarAddon(url: string, timeoutMs: number = 5000, customAgent?: 
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const sep = url.includes('?') ? '&' : '?';
-    const fetchUrl = `${url}${sep}_cf=${Date.now()}`;
     const baseHeaders: Record<string, string> = {
       'User-Agent': customAgent || (url.includes('froststream') ? AGENTE_FROST : AGENTE),
       'Accept': 'application/json',
-      'Cache-Control': 'no-cache',
-      'Pragma': 'no-cache',
     };
-    if (clientIp) {
+    if (clientIp && !url.includes('fenixhub.online')) {
       baseHeaders['X-Forwarded-For'] = clientIp;
-      baseHeaders['CF-Connecting-IP'] = clientIp;
     }
     // Os provedores limitam os IPs da Cloudflare (429): o que já responderam fica
     // guardado 1 h, e cada título deixa de gastar uma consulta por pessoa.
@@ -235,7 +230,7 @@ async function buscarAddon(url: string, timeoutMs: number = 5000, customAgent?: 
       const text = await guardado.text();
       return { streams: (JSON.parse(text) as { streams?: StreamItem[] }).streams || [], status: 200, raw: 'cache' };
     }
-    const res = await fetch(fetchUrl, {
+    const res = await fetch(url, {
       headers: baseHeaders,
       cache: 'no-store',
       signal: ctrl.signal,
@@ -255,6 +250,228 @@ async function buscarAddon(url: string, timeoutMs: number = 5000, customAgent?: 
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function buscarFenixComFallbackAnime(
+  urlPrincipal: string,
+  urlAnime: string,
+  timeoutMs: number = 5000,
+  clientIp?: string,
+): Promise<AddonResult> {
+  const primeiro = await buscarAddon(urlPrincipal, timeoutMs, undefined, clientIp);
+  if (primeiro.streams.length > 0 || primeiro.status === 429) {
+    return primeiro;
+  }
+  const segundo = await buscarAddon(urlAnime, timeoutMs, undefined, clientIp);
+  if (segundo.streams.length > 0 || segundo.status === 429) {
+    return segundo;
+  }
+  return primeiro.status ? primeiro : segundo;
+}
+
+const ANIMESFHD_BASE = 'https://animesfhd.net/stremio';
+const TMDB_PUBLIC_KEY = '15d2ea6d0dc1d476efbca3eba2b9bbfb';
+
+function normTituloAnime(s: string): string {
+  return s
+    .replace(/\s*\((?:dublado|legendado|dub|leg|tv|movie|filme|\d{4})\)\s*/gi, ' ')
+    .replace(/\s*[—\-–]\s*\d+ª\s*temporada\s*/gi, ' ')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+async function buscarJsonCacheado<T = any>(url: string, cacheTtl: number, timeoutMs: number = 4500): Promise<T | null> {
+  const chave = new Request(url);
+  try {
+    const hit = await caches.default.match(chave);
+    if (hit) return (await hit.json()) as T;
+  } catch {}
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': AGENTE, 'Accept': 'application/json' },
+      cache: 'no-store',
+      signal: ctrl.signal,
+    });
+    if (!res.ok) return null;
+    const text = await res.text();
+    const data = JSON.parse(text) as T;
+    if (text.length > 25) {
+      await caches.default.put(
+        chave,
+        new Response(text, { headers: { 'Cache-Control': `public, max-age=${cacheTtl}` } }),
+      );
+    }
+    return data;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function buscarAnimesFHD(
+  cleanId: string,
+  isSerie: boolean,
+  season: string,
+  episode: string,
+  versao: string,
+  debugObj?: any,
+): Promise<string | null> {
+  if (!/^\d+$/.test(cleanId)) return null;
+  const endpointTipo = isSerie ? 'tv' : 'movie';
+  const ptData = await buscarJsonCacheado<any>(
+    `https://api.themoviedb.org/3/${endpointTipo}/${cleanId}?api_key=${TMDB_PUBLIC_KEY}&language=pt-BR&include_image_language=en,ja,pt,null&append_to_response=images,alternative_titles`,
+    86400,
+    4000,
+  );
+  if (!ptData) return null;
+  const origLang = String(ptData.original_language || '').toLowerCase();
+  const ehAnimacao = Array.isArray(ptData.genres) && ptData.genres.some((g: any) => Number(g?.id) === 16);
+  if (origLang !== 'ja' && !ehAnimacao) {
+    if (debugObj) debugObj.skipped = `not-anime:${origLang}`;
+    return null;
+  }
+
+  const posterPrincipal: string = ptData.poster_path || '';
+  const backdropPrincipal: string = ptData.backdrop_path || '';
+  const posterPaths = new Set<string>();
+  const backdropPaths = new Set<string>();
+  if (posterPrincipal) posterPaths.add(posterPrincipal);
+  if (backdropPrincipal) backdropPaths.add(backdropPrincipal);
+  for (const p of ptData.images?.posters || []) {
+    if (p?.file_path) posterPaths.add(String(p.file_path));
+  }
+  for (const b of ptData.images?.backdrops || []) {
+    if (b?.file_path) backdropPaths.add(String(b.file_path));
+  }
+
+  const candidatosBusca: string[] = [];
+  const altList = ptData.alternative_titles?.results || ptData.alternative_titles?.titles || [];
+  const rawNames = [
+    ptData.name,
+    ptData.title,
+    ptData.original_name,
+    ptData.original_title,
+    ...altList.map((a: any) => a?.title),
+  ];
+  for (const cand of rawNames) {
+    if (typeof cand !== 'string' || !/[a-zA-Z0-9]{2,}/.test(cand)) continue;
+    const limpo = cand.trim();
+    if (!candidatosBusca.includes(limpo)) candidatosBusca.push(limpo);
+    if (limpo.includes(':')) {
+      const curto = limpo.split(':')[0].trim();
+      if (curto.length >= 4 && !candidatosBusca.includes(curto)) candidatosBusca.push(curto);
+    }
+  }
+  if (candidatosBusca.length < 2) {
+    const enData = await buscarJsonCacheado<any>(
+      `https://api.themoviedb.org/3/${endpointTipo}/${cleanId}?api_key=${TMDB_PUBLIC_KEY}&language=en-US`,
+      86400,
+      3500,
+    );
+    const enNome = enData?.name || enData?.title;
+    if (typeof enNome === 'string' && /[a-zA-Z0-9]{2,}/.test(enNome) && !candidatosBusca.includes(enNome.trim())) {
+      candidatosBusca.push(enNome.trim());
+    }
+  }
+  const titulosAlvo = new Set(candidatosBusca.map(normTituloAnime).filter(t => t.length >= 2));
+  const tipoAfhd = isSerie ? 'series' : 'movie';
+  const catAfhd = isSerie ? 'afhd-populares' : 'afhd-filmes';
+
+  const achados: Array<{ id: string; name: string; score: number }> = [];
+  const vistos = new Set<string>();
+  const termosConsulta = candidatosBusca.slice(0, 3);
+  const cats = await Promise.all(
+    termosConsulta.map(termo =>
+      buscarJsonCacheado<{ metas?: Array<{ id: string; name?: string; poster?: string; background?: string }> }>(
+        `${ANIMESFHD_BASE}/catalog/${tipoAfhd}/${catAfhd}/search=${encodeURIComponent(termo)}.json`,
+        3600,
+        4500,
+      ),
+    ),
+  );
+  for (const cat of cats) {
+    for (const m of cat?.metas || []) {
+      if (!m?.id || vistos.has(m.id)) continue;
+      let score = 0;
+      const posterFile = m.poster ? `/${m.poster.split('/').pop() || ''}` : '';
+      const bgFile = m.background ? `/${m.background.split('/').pop() || ''}` : '';
+      if (posterPrincipal && posterFile === posterPrincipal) score += 120;
+      else if (posterFile && posterPaths.has(posterFile)) score += 100;
+      else if (backdropPrincipal && bgFile === backdropPrincipal) score += 90;
+      else if (bgFile && backdropPaths.has(bgFile)) score += 75;
+      const nomeNorm = normTituloAnime(m.name || '');
+      if (nomeNorm && titulosAlvo.has(nomeNorm)) score += 50;
+      if (score === 0) continue;
+      const ehDubMeta = /\bdublado\b/i.test(m.name || '');
+      if (versao === 'dub' && ehDubMeta) score += 15;
+      else if (versao === 'leg' && !ehDubMeta) score += 5;
+      vistos.add(m.id);
+      achados.push({ id: m.id, name: m.name || '', score });
+    }
+  }
+
+  achados.sort((a, b) => b.score - a.score);
+  if (debugObj) debugObj.matches = achados.slice(0, 4);
+  if (achados.length === 0) return null;
+
+  const sNum = parseInt(season, 10) || 1;
+  const eNum = parseInt(episode, 10) || 1;
+  let absEp = eNum;
+  if (isSerie && sNum > 1 && Array.isArray(ptData.seasons)) {
+    let soma = 0;
+    for (const sn of ptData.seasons) {
+      const n = Number(sn?.season_number || 0);
+      if (n > 0 && n < sNum) soma += Number(sn?.episode_count || 0);
+    }
+    if (soma > 0) absEp = soma + eNum;
+  }
+
+  for (const cand of achados.slice(0, 2)) {
+    let streamTargetId = cand.id;
+    if (isSerie) {
+      const meta = await buscarJsonCacheado<{ meta?: { videos?: Array<{ id: string; season?: number; episode?: number }> } }>(
+        `${ANIMESFHD_BASE}/meta/series/${encodeURIComponent(cand.id)}.json`,
+        3600,
+        4500,
+      );
+      const vids = meta?.meta?.videos || [];
+      const epMatch =
+        vids.find(v => Number(v.season || 1) === sNum && Number(v.episode) === eNum) ||
+        (sNum > 1 ? vids.find(v => Number(v.episode) === absEp) : undefined);
+      if (!epMatch?.id) continue;
+      streamTargetId = epMatch.id;
+    }
+
+    const stRes = await buscarJsonCacheado<{ streams?: StreamItem[] }>(
+      `${ANIMESFHD_BASE}/stream/${tipoAfhd}/${encodeURIComponent(streamTargetId)}.json`,
+      1800,
+      4500,
+    );
+    const brutos = (stRes?.streams || []).filter(st => !!st.url && !SERVIDORES_MORTOS.some(h => st.url!.includes(h)));
+    if (brutos.length === 0) continue;
+
+    // Prioriza versão pedida e streams MP4 diretos (s5/s13) antes de playlist HLS (.m3u8)
+    const peso = (st: StreamItem): number => {
+      let p = classificar(st) === versao ? 0 : 10;
+      const u = st.url || '';
+      if (u.includes('playlist=.m3u8') || u.includes('.m3u8')) p += 4;
+      else if (u.includes('/api/v/s5') || u.includes('/api/v/s13')) p += 0;
+      else p += 2;
+      return p;
+    };
+    const ordenadosAf = [...brutos].sort((a, b) => peso(a) - peso(b));
+    if (debugObj) debugObj.streams = ordenadosAf.map(s => ({ title: s.title, url: s.url }));
+    const resultadosAf = await Promise.all(ordenadosAf.slice(0, 4).map(st => respondeVideo(normalizar(st.url!))));
+    const valido = resultadosAf.find((u): u is string => !!u);
+    if (valido) return valido;
+  }
+  return null;
 }
 
 // O catálogo de apoio (fichas e fontes) fica num endereço de configuração do
@@ -480,6 +697,23 @@ const SERVIDORES_MORTOS = [
   '146.0.32.89',
   'governosptx.org',
   'desativado.invalid',
+  'acaidopt.org',
+  'corruptx.org',
+  'fenixbot.squareweb.app',
+  'play.betteranime.net',
+  'lightspeedst.net',
+  '1a-1791.com',
+  'aniplay.online',
+  'fontez22.ddns.net',
+  'wtvplus.co',
+  'vids.st',
+  'tityos.feralhosting.com',
+  'cdn3.playmycnvs.com',
+  's2.mywallpapers4k.com',
+  'cdn-s01.mywallpaper-4k-image.net',
+  'cdn-s01.pixel-sus-4k-image.com',
+  'llanfairpwllgwyngy.com',
+  'vz-38d44df0-6af.b-cdn.net',
 ];
 
 /** Aliases para títulos recém-lançados ou sequências que compartilham acervo nos provedores */
@@ -561,7 +795,7 @@ async function respondeVideo(url: string): Promise<string | null> {
       signal: ctrl.signal,
     });
     const finalUrl = normalizar(r.url || alvo);
-    if (finalUrl.includes('bloqueado.mp4') || finalUrl.includes('desativado.invalid')) return null;
+    if (finalUrl.includes('bloqueado.mp4') || finalUrl.includes('googlevideo.com') || SERVIDORES_MORTOS.some(h => finalUrl.includes(h))) return null;
     const cl = r.headers.get('content-length');
     if (cl === '0') return null;
     if (r.status >= 400 || !r.body) return null;
@@ -608,9 +842,21 @@ async function testarNixplay(url: string): Promise<string | null> {
       redirect: 'manual',
       signal: ctrl.signal,
     });
-    // Status 301, 302, 307 ou 308 com redirecionamento para CDN/R2 significa vídeo disponível!
+    // Status 301, 302, 307 ou 308: confere se o destino do redirect não é um servidor morto.
     if (r.status === 301 || r.status === 302 || r.status === 307 || r.status === 308) {
-      return url;
+      const loc = (r.headers.get('Location') || '').trim();
+      await r.body?.cancel().catch(() => {});
+      if (!loc) return null;
+      const locLow = loc.toLowerCase();
+      if (SERVIDORES_MORTOS.some(h => locLow.includes(h))) {
+        return null;
+      }
+      if (locLow.includes('.r2.cloudflarestorage.com/') || locLow.includes('hubby-dmca.com')) {
+        return url;
+      }
+      // Redirecionamentos de terceiros desconhecidos no NixPlay: valida antes de entregar.
+      const ok = await respondeVideo(loc);
+      return ok ? url : null;
     }
     // Caso responda 200/206 com corpo de vídeo direto
     if (r.status === 200 || r.status === 206) {
@@ -724,6 +970,9 @@ export const onRequestGet: PagesFunction<{ CATALOGO_FILMES?: string }> = async (
   const fenixUrl = isSerie
     ? `${FENIX_BASE}/stream/series/${prefixId}:${season}:${episode}.json`
     : `${FENIX_BASE}/stream/movie/${prefixId}.json`;
+  const fenixAnimeUrl = isSerie
+    ? `${FENIX_BASE}/stream/anime/${prefixId}:${season}:${episode}.json`
+    : `${FENIX_BASE}/stream/anime/${prefixId}.json`;
 
   const magnetUrl = isSerie
     ? `${MAGNET_BASE}/stream/series/${prefixId}:${season}:${episode}.json`
@@ -740,25 +989,31 @@ export const onRequestGet: PagesFunction<{ CATALOGO_FILMES?: string }> = async (
   // Busca em paralelo nas origens comuns (FenixFlix, Magnetflix, FrostStream, Hollymovies).
   let todos: StreamItem[] = [];
   const consultas: Promise<AddonResult>[] = [
-    buscarAddon(fenixUrl, 5000, undefined, clientIp),
-    buscarAddon(magnetUrl, 5000, undefined, clientIp),
-    buscarAddon(hollyUrl, 5000, undefined, clientIp),
+    buscarFenixComFallbackAnime(fenixUrl, fenixAnimeUrl, 5000, clientIp),
+    buscarAddon(magnetUrl, 4000, undefined, clientIp),
+    buscarAddon(hollyUrl, 4000, undefined, clientIp),
   ];
   if (frostUrl && !FILMES_INEDITOS.has(cleanId)) {
     consultas.push(buscarAddon(frostUrl, 5000, AGENTE_FROST, clientIp));
   }
-  if (imdbId && !cleanId.startsWith('tt')) {
-    const fenixImdb = isSerie
-      ? `${FENIX_BASE}/stream/series/${imdbId}:${season}:${episode}.json`
-      : `${FENIX_BASE}/stream/movie/${imdbId}.json`;
-    consultas.push(buscarAddon(fenixImdb, 5000, undefined, clientIp));
+  const fenixImdb = (imdbId && !cleanId.startsWith('tt'))
+    ? (isSerie ? `${FENIX_BASE}/stream/series/${imdbId}:${season}:${episode}.json` : `${FENIX_BASE}/stream/movie/${imdbId}.json`)
+    : null;
+  const fenixAnimeImdb = (imdbId && !cleanId.startsWith('tt'))
+    ? (isSerie ? `${FENIX_BASE}/stream/anime/${imdbId}:${season}:${episode}.json` : `${FENIX_BASE}/stream/anime/${imdbId}.json`)
+    : null;
+  if (fenixImdb && fenixAnimeImdb) {
+    consultas.push(buscarFenixComFallbackAnime(fenixImdb, fenixAnimeImdb, 5000, clientIp));
   }
   const aliasId = TMDB_ALIASES[cleanId];
   if (aliasId) {
     const aliasFenix = isSerie
       ? `${FENIX_BASE}/stream/series/tmdb:${aliasId}:${season}:${episode}.json`
       : `${FENIX_BASE}/stream/movie/tmdb:${aliasId}.json`;
-    consultas.push(buscarAddon(aliasFenix, 5000, undefined, clientIp));
+    const aliasFenixAnime = isSerie
+      ? `${FENIX_BASE}/stream/anime/tmdb:${aliasId}:${season}:${episode}.json`
+      : `${FENIX_BASE}/stream/anime/tmdb:${aliasId}.json`;
+    consultas.push(buscarFenixComFallbackAnime(aliasFenix, aliasFenixAnime, 5000, clientIp));
   }
   const resultados = await Promise.all(consultas);
   todos = resultados.flatMap(r => r.streams).filter(st => !!st.url);
@@ -830,13 +1085,27 @@ export const onRequestGet: PagesFunction<{ CATALOGO_FILMES?: string }> = async (
   if (!escolhido) {
     const doCatalogo = await buscarNoCatalogo(cleanId, isSerie, season, episode, versao);
     if (doCatalogo) {
-      const resp = await respondeVideo(normalizar(doCatalogo));
-      escolhido = resp || normalizar(doCatalogo);
+      const limpo = normalizar(doCatalogo);
+      const resp = await respondeVideo(limpo);
+      escolhido = resp || (limpo.includes('nixplay.lat') ? '' : limpo);
     }
   }
 
   if (escolhido && escolhido.includes('embedplayer2.xyz')) {
     escolhido = escolhido.replace(/\/master\.(?:m3u8|txt)(?:\?[^"'\s]*)?/, '/master.txt');
+  }
+
+  let animesFhdDebug: any = {};
+  if (!escolhido) {
+    try {
+      const afhdUrl = await buscarAnimesFHD(cleanId, isSerie, season, episode, versao, animesFhdDebug);
+      animesFhdDebug.url = afhdUrl;
+      if (afhdUrl) {
+        escolhido = afhdUrl;
+      }
+    } catch (e: any) {
+      animesFhdDebug.error = e?.message || String(e);
+    }
   }
 
   let redeflixDebug: any = {};
@@ -863,8 +1132,9 @@ export const onRequestGet: PagesFunction<{ CATALOGO_FILMES?: string }> = async (
       escolhido,
       ehUsoUnico,
       ehFallback: false,
+      animesFhdDebug,
       redeflixDebug,
-      urlsConsultadas: { fenixUrl, magnetUrl, hollyUrl, frostUrl, fenixImdb: (imdbId && !cleanId.startsWith('tt')) ? `${FENIX_BASE}/stream/movie/${imdbId}.json` : null },
+      urlsConsultadas: { fenixUrl, fenixAnimeUrl, magnetUrl, hollyUrl, frostUrl, fenixImdb, fenixAnimeImdb },
       resultadosAddons: resultados.map((r, i) => ({ status: r.status, err: r.err, count: r.streams.length, raw: r.raw })),
       testados,
       ordenadosCount: ordenados.length,
@@ -875,7 +1145,11 @@ export const onRequestGet: PagesFunction<{ CATALOGO_FILMES?: string }> = async (
 
   let ehFallback = false;
   if (!escolhido) {
-    const validos = ordenados.filter(st => !SERVIDORES_MORTOS.some(h => st.url!.includes(h)));
+    // Fontes do Catálogo Saimo (especialmente Nixplay) já passaram por respondeVideo acima;
+    // se falharam, não devem voltar como fallback sem verificação no lugar de 404.
+    const validos = ordenados.filter(
+      st => !SERVIDORES_MORTOS.some(h => st.url!.includes(h)) && !st.url!.includes('nixplay.lat'),
+    );
     if (validos.length === 0) {
       // Fallback para Nixplay dublado se o pedido foi legendado mas não havia cópia legendada em nenhum servidor
       if (/^\d+$/.test(cleanId) && versao === 'leg') {
