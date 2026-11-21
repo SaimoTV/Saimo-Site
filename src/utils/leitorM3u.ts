@@ -6,6 +6,8 @@
  * texto estranho vira lista vazia.
  */
 
+import { paisDoM3u } from './paises.ts';
+
 // ───────────────────────────── leitor ─────────────────────────────
 
 export interface FonteLida {
@@ -22,6 +24,13 @@ export interface CanalLido {
   grupo: string | null;
   logo: string | null;
   fontes: FonteLida[];
+  /** Só com `{ comPais: true }`: código de duas letras do país, ou `null`. */
+  pais?: string | null;
+}
+
+export interface OpcoesDoLeitor {
+  /** Guarda o país (`tvg-country` ou sufixo do `tvg-id`). Fora da especificação comum; desligado por padrão. */
+  comPais?: boolean;
 }
 
 const LIMITE_CANAIS = 20000;
@@ -66,22 +75,23 @@ interface Pendente {
   exibido: string;
   tvgName: string | null;
   tvgId: string | null;
+  tvgCountry: string | null;
   logo: string | null;
   grupo: string | null;
 }
 
-const SEM_DADOS: Pendente = { exibido: '', tvgName: null, tvgId: null, logo: null, grupo: null };
+const SEM_DADOS: Pendente = { exibido: '', tvgName: null, tvgId: null, tvgCountry: null, logo: null, grupo: null };
 
 /** Lê o texto de uma lista .m3u. Nunca lança: texto estranho vira lista vazia. */
-export function lerM3u(texto: string): CanalLido[] {
+export function lerM3u(texto: string, opcoes: OpcoesDoLeitor = {}): CanalLido[] {
   try {
-    return lerSemRede(texto);
+    return lerSemRede(texto, opcoes);
   } catch {
     return [];
   }
 }
 
-function lerSemRede(texto: string): CanalLido[] {
+function lerSemRede(texto: string, opcoes: OpcoesDoLeitor): CanalLido[] {
   const canais: CanalLido[] = [];
   const indice = new Map<string, CanalLido>();
   let pend: Pendente | null = null;
@@ -97,6 +107,7 @@ function lerSemRede(texto: string): CanalLido[] {
         exibido: nomeExibido(linha),
         tvgName: atributo(linha, 'tvg-name'),
         tvgId: atributo(linha, 'tvg-id'),
+        tvgCountry: opcoes.comPais ? atributo(linha, 'tvg-country') : null,
         logo: atributo(linha, 'tvg-logo'),
         grupo: atributo(linha, 'group-title'),
       };
@@ -171,8 +182,10 @@ function lerSemRede(texto: string): CanalLido[] {
       if (!existente.fontes.some((f) => f.url === url)) existente.fontes.push(fonte);
       existente.grupo = existente.grupo || grupo;
       existente.logo = existente.logo || logo;
+      if (opcoes.comPais) existente.pais = existente.pais || paisDoM3u(p.tvgCountry, p.tvgId);
     } else if (canais.length < LIMITE_CANAIS) {
       const canal: CanalLido = { nome, grupo, logo, fontes: [fonte] };
+      if (opcoes.comPais) canal.pais = paisDoM3u(p.tvgCountry, p.tvgId);
       indice.set(k, canal);
       canais.push(canal);
     }

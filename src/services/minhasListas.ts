@@ -67,7 +67,7 @@ export function lerListaBaixada(texto: string): CanalLido[] {
   if (!limpo.toUpperCase().startsWith('#EXTM3U') && !/#EXTINF/i.test(limpo)) {
     throw new ErroDeLista('Isso não parece uma lista .m3u');
   }
-  const canais = lerM3u(texto);
+  const canais = lerM3u(texto, { comPais: true });
   if (!canais.length) throw new ErroDeLista('Essa lista não tem canais');
   return canais;
 }
@@ -118,6 +118,8 @@ export interface MinhaLista {
   atualizadaEm: number;
   ativa: boolean;
   total: number;
+  /** Lida já guardando o país de cada canal; lista antiga sem isso é baixada de novo uma vez. */
+  comPais?: boolean;
 }
 
 const CHAVE = 'saimo-minhas-listas';
@@ -218,6 +220,7 @@ export async function adicionarLista(nome: string, link: string | null, canais: 
     atualizadaEm: Date.now(),
     ativa: true,
     total: canais.length,
+    comPais: true,
   };
   await gravarCanais(lista.id, canais);
   salvarListas([...atuais, lista]);
@@ -231,7 +234,7 @@ export async function atualizarLista(id: string): Promise<void> {
   if (!lista?.link) throw new ErroDeLista('Esta lista veio de um arquivo: escolha o arquivo de novo');
   const canais = await baixarLista(lista.link);
   await gravarCanais(id, canais);
-  salvarListas(listas().map((l) => (l.id === id ? { ...l, atualizadaEm: Date.now(), total: canais.length } : l)));
+  salvarListas(listas().map((l) => (l.id === id ? { ...l, atualizadaEm: Date.now(), total: canais.length, comPais: true } : l)));
 }
 
 export function definirAtiva(id: string, ativa: boolean): void {
@@ -253,7 +256,7 @@ export async function atualizarVencidas(): Promise<void> {
   atualizando = true;
   try {
     for (const l of listas()) {
-      if (l.link && l.ativa && Date.now() - l.atualizadaEm > DOZE_HORAS) {
+      if (l.link && l.ativa && (!l.comPais || Date.now() - l.atualizadaEm > DOZE_HORAS)) {
         try { await atualizarLista(l.id); } catch { /* mantém a que está guardada */ }
       }
     }
@@ -283,6 +286,8 @@ export function paraCanais(lista: MinhaLista, lidos: CanalLido[], desbloqueado: 
       url: sources[0]?.url ?? '',
       logo: c.logo ?? undefined,
       category: 'Minhas listas',
+      country: c.pais ?? undefined,
+      group: c.grupo ?? undefined,
       sources,
     });
   }

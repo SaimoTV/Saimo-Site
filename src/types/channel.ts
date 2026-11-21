@@ -25,6 +25,10 @@ export interface Channel {
   url: string;
   logo?: string;
   category?: string;
+  /** País do canal, código de duas letras ("BR"), quando a lista informa. */
+  country?: string;
+  /** `group-title` original do M3U, quando a seção do painel é outra ("Minhas listas"). */
+  group?: string;
   channelNumber?: number;
   /** Todas as fontes, na ordem de preferência. */
   sources?: ChannelSource[];
