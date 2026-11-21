@@ -14,6 +14,7 @@
 import type { Channel, ChannelSource } from '../types/channel';
 import { httpsFirst } from '../utils/sourceOrder';
 import { categoryOrder } from '../data/categorias';
+import { normalizarPais } from '../utils/paises';
 import { normalise } from '../utils/nomes';
 import { linkCanais } from './listas';
 import { peneirarCanais } from './fontesDesativadas';
@@ -28,6 +29,8 @@ interface ParsedChannel {
   name: string;
   logo?: string;
   group?: string;
+  /** Campo opcional `pais:` do catálogo (código de duas letras). */
+  country?: string;
   sources: ChannelSource[];
 }
 
@@ -65,6 +68,12 @@ export function parseCatalog(text: string): ParsedChannel[] {
       case 'categoria':
         if (current) current.group = value;
         break;
+      // País do canal, opcional ("pais: BR"), para o filtro de país e a grade.
+      case 'pais': {
+        const pais = normalizarPais(value);
+        if (current && pais) current.country = pais;
+        break;
+      }
       case 'fonte':
         if (current) current.sources.push({ url: value });
         break;
@@ -164,6 +173,7 @@ export function mergeCatalogs(base: ParsedChannel[], published: ParsedChannel[])
     return {
       ...channel,
       group: channel.group || vindas.group,
+      country: channel.country || vindas.country,
       logo: channel.logo || vindas.logo,
       sources: novas.length ? [...channel.sources, ...novas] : channel.sources,
     };
@@ -246,6 +256,7 @@ export function toChannels(parsed: ParsedChannel[]): Channel[] {
       url: sources[0].url,
       logo: c.logo,
       category: c.category,
+      country: c.country,
       channelNumber: index + 1,
       sources,
     };

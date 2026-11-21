@@ -633,3 +633,18 @@
   letter-spacing: 0.4px;
 }
 
+
+/* Filtro de lugar (continente e país), abaixo das pílulas de categoria */
+.painel-filtro-lugar {
+  display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 2px 10px;
+}
+.painel-filtro-lugar select {
+  flex: 1 1 120px; min-width: 0; padding: 6px 8px; border-radius: 9px; font-size: 0.8rem;
+  background: rgba(255, 255, 255, 0.07); color: #fff; border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.painel-filtro-lugar select option { background: #14162a; }
+.painel-link-grade {
+  padding: 6px 10px; border-radius: 9px; font-size: 0.78rem; font-weight: 600; white-space: nowrap;
+  background: rgba(79, 243, 224, 0.12); color: #4ff3e0; border: 1px solid rgba(79, 243, 224, 0.3);
+}
+.painel-link-grade:hover { background: rgba(79, 243, 224, 0.2); }

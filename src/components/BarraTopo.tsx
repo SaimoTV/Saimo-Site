@@ -32,6 +32,7 @@ const ABAS: Aba[] = [
   { rota: '/busca', rotulo: 'Buscar', icone: <svg viewBox="0 0 24 24" {...tr}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg> },
   { rota: '/home', rotulo: 'Início', icone: <svg viewBox="0 0 24 24" {...tr}><path d="M3 11 12 3l9 8" /><path d="M5 10v10h14V10" /></svg> },
   { rota: '/tv', rotulo: 'Ao vivo', prefixos: ['/tv/'], icone: <svg viewBox="0 0 24 24" {...tr}><rect x="2" y="4" width="20" height="14" rx="2" /><path d="M8 21h8M12 18v3" /></svg> },
+  { rota: '/grade', rotulo: 'Países', icone: <svg viewBox="0 0 24 24" {...tr}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></svg> },
   { rota: '/eventos', rotulo: 'Eventos', icone: <svg viewBox="0 0 24 24" {...tr}><circle cx="12" cy="12" r="9" /><path d="m12 7 4 3-1.5 5h-5L8 10z" /></svg> },
   { rota: '/movies', rotulo: 'On Demand', icone: <svg viewBox="0 0 24 24" {...tr}><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M7 3v18M17 3v18M3 8h4M3 16h4M17 8h4M17 16h4" /></svg> },
   { rota: '/favoritos', rotulo: 'Favoritos', icone: <svg viewBox="0 0 24 24" {...tr}><path d="M12 21s-8-4.9-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6.1-8 11-8 11z" /></svg> },

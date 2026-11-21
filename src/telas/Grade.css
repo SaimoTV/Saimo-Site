@@ -1,0 +1,113 @@
+/* Países e categorias (/grade): controles, matriz, mapa e canais escolhidos. */
+
+.grade-controles {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 14px;
+  margin: 0.4rem 0 1.2rem;
+}
+.grade-visao { display: inline-flex; padding: 3px; border-radius: 12px; background: rgba(255, 255, 255, 0.07); }
+.grade-visao button {
+  padding: 7px 16px; border-radius: 9px; font-size: 0.85rem; font-weight: 700;
+  color: rgba(255, 255, 255, 0.7); background: transparent; border: 0;
+}
+.grade-visao button.on { background: linear-gradient(135deg, rgba(79, 243, 224, 0.3), rgba(163, 92, 240, 0.35)); color: #fff; }
+
+.grade-campo { display: flex; flex-direction: column; gap: 4px; font-size: 0.72rem; color: rgba(255, 255, 255, 0.55); }
+.grade-campo select, .grade-busca {
+  min-width: 140px; padding: 7px 10px; border-radius: 10px; font-size: 0.85rem;
+  background: rgba(255, 255, 255, 0.07); color: #fff; border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.grade-campo select option { background: #14162a; }
+.grade-busca { min-width: 180px; }
+.grade-inverter, .grade-limpar, .grade-mais {
+  padding: 7px 14px; border-radius: 10px; font-size: 0.85rem; font-weight: 600;
+  background: rgba(255, 255, 255, 0.07); color: #fff; border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.grade-inverter:hover, .grade-limpar:hover, .grade-mais:hover { background: rgba(255, 255, 255, 0.14); }
+
+/* ---------- Matriz ---------- */
+.grade-matriz-rolagem {
+  max-height: 68vh; overflow: auto; border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.02);
+}
+.grade-matriz { border-collapse: separate; border-spacing: 2px; font-size: 0.8rem; }
+.grade-matriz th, .grade-matriz td { padding: 0; text-align: center; white-space: nowrap; }
+.grade-matriz thead th {
+  position: sticky; top: 0; z-index: 2; background: #10121f;
+  height: 120px; vertical-align: bottom;
+}
+.grade-matriz thead th button {
+  writing-mode: vertical-rl; transform: rotate(180deg);
+  padding: 8px 4px; max-height: 116px; overflow: hidden; text-overflow: ellipsis;
+  color: rgba(255, 255, 255, 0.75); background: none; border: 0; font-size: 0.78rem; font-weight: 600;
+}
+.grade-matriz tbody th, .grade-matriz tfoot th {
+  position: sticky; left: 0; z-index: 1; background: #10121f; text-align: left;
+}
+.grade-matriz tbody th button {
+  display: block; width: 100%; max-width: 190px; padding: 0 10px; height: 28px;
+  overflow: hidden; text-overflow: ellipsis; text-align: left;
+  color: rgba(255, 255, 255, 0.85); background: none; border: 0; font-size: 0.8rem;
+}
+.grade-matriz th button:hover, .grade-matriz th.on button { color: #4ff3e0; }
+.grade-matriz th.on { box-shadow: inset 0 0 0 1px rgba(79, 243, 224, 0.5); }
+.grade-canto { left: 0; z-index: 3 !important; font-size: 0.7rem; color: rgba(255, 255, 255, 0.45); font-weight: 600; padding: 0 10px 8px !important; text-align: left !important; }
+.grade-celula {
+  width: 44px; height: 28px; border-radius: 4px; border: 0; font-size: 0.76rem; font-weight: 700;
+  font-variant-numeric: tabular-nums; cursor: pointer;
+}
+.grade-celula:hover { outline: 2px solid rgba(255, 255, 255, 0.85); outline-offset: -1px; }
+.grade-celula.on { outline: 2px solid #4ff3e0; outline-offset: 1px; }
+.grade-vazia { width: 44px; height: 28px; background: rgba(255, 255, 255, 0.025); border-radius: 4px; }
+.grade-total { min-width: 52px; padding: 0 8px !important; color: rgba(255, 255, 255, 0.6); font-variant-numeric: tabular-nums; font-weight: 600; }
+.grade-matriz tfoot th, .grade-matriz tfoot td { position: sticky; bottom: 0; background: #10121f; height: 28px; }
+.grade-matriz tfoot th { z-index: 2; padding: 0 10px; color: rgba(255, 255, 255, 0.6); font-weight: 600; }
+
+/* ---------- Canais escolhidos ---------- */
+.grade-escolhidos { margin-top: 1.4rem; }
+.grade-escolhidos-topo { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.grade-escolhidos-topo .grade-titulo span { font-size: 0.85rem; font-weight: 500; color: rgba(255, 255, 255, 0.55); margin-left: 6px; }
+.grade-escolhidos .pilulas small { opacity: 0.6; margin-left: 4px; }
+.grade-mais { display: block; margin: 1.2rem auto 0; }
+.grade-carregando { padding: 3rem; text-align: center; color: rgba(255, 255, 255, 0.55); }
+
+/* ---------- Mapa ---------- */
+.mapa-canais { position: relative; }
+.mapa-svg {
+  display: block; width: 100%; height: auto; border-radius: 14px; cursor: grab;
+  border: 1px solid rgba(255, 255, 255, 0.08); touch-action: none; user-select: none;
+}
+.mapa-svg:active { cursor: grabbing; }
+.mapa-mar { fill: #0d0f1c; }
+.mapa-pais { fill: #1b1e2e; stroke: #0a0b14; }
+.mapa-pais.tem { fill: #252a40; cursor: pointer; }
+.mapa-pais.tem:hover { fill: #2f3654; }
+.mapa-pais.on { fill: #1c5cab; }
+.mapa-bolinha { cursor: pointer; outline: none; }
+.mapa-alvo { fill: transparent; }
+.mapa-disco { fill: #3987e5; stroke: #0a0b14; fill-opacity: 0.92; }
+.mapa-bolinha.grupo .mapa-disco { fill: #256abf; stroke: #9ec5f4; }
+.mapa-bolinha:hover .mapa-disco, .mapa-bolinha:focus-visible .mapa-disco { fill: #5598e7; }
+.mapa-bolinha.on .mapa-disco { fill: #4ff3e0; }
+.mapa-numero { fill: #fff; font-weight: 800; text-anchor: middle; pointer-events: none; font-variant-numeric: tabular-nums; }
+.mapa-bolinha.on .mapa-numero { fill: #0a0b14; }
+.mapa-botoes { position: absolute; top: 10px; right: 10px; z-index: 2; display: flex; flex-direction: column; gap: 6px; }
+.mapa-botoes button {
+  width: 36px; height: 36px; border-radius: 10px; font-size: 1.1rem; font-weight: 700;
+  background: rgba(16, 18, 31, 0.9); color: #fff; border: 1px solid rgba(255, 255, 255, 0.16);
+}
+.mapa-botoes button:hover { background: rgba(40, 44, 70, 0.95); }
+.mapa-dica {
+  position: absolute; z-index: 3; pointer-events: none; transform: translate(12px, -50%);
+  display: flex; flex-direction: column; gap: 2px; max-width: 260px;
+  padding: 8px 11px; border-radius: 10px; font-size: 0.8rem;
+  background: rgba(16, 18, 31, 0.96); border: 1px solid rgba(255, 255, 255, 0.16); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+.mapa-dica span { color: rgba(255, 255, 255, 0.8); font-variant-numeric: tabular-nums; }
+.mapa-dica em { color: rgba(255, 255, 255, 0.5); font-style: normal; font-size: 0.72rem; }
+.mapa-legenda { margin-top: 0.6rem; font-size: 0.78rem; color: rgba(255, 255, 255, 0.5); }
+
+@media (max-width: 768px) {
+  .grade-campo select, .grade-busca { min-width: 0; width: 100%; }
+  .grade-campo, .grade-busca { flex: 1 1 140px; }
+  .grade-matriz tbody th button { max-width: 120px; }
+}

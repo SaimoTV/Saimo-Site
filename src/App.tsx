@@ -6,6 +6,7 @@ import { Inicio } from './telas/Inicio';
 import { Eventos } from './telas/Eventos';
 import { Radios } from './telas/Radios';
 import { Favoritos } from './telas/Favoritos';
+import { Grade } from './telas/Grade';
 import { Busca } from './telas/Busca';
 import { parar as pararRadio } from './services/radioPlayer';
 import { Ajustes } from './telas/Ajustes';
@@ -665,6 +666,7 @@ function AppLayout() {
       <Route path="/busca" element={<Busca key={chave} />} />
       <Route path="/eventos" element={<Eventos />} />
       <Route path="/favoritos" element={<Favoritos key={chave} />} />
+      <Route path="/grade" element={<Grade key={chave} />} />
       <Route path="/radios" element={<Radios key={chave} />} />
       <Route path="/ajustes" element={<Ajustes />} />
       <Route path="/conectar" element={<Suspense fallback={null}><Conectar /></Suspense>} />

@@ -1,8 +1,10 @@
 import { useState, useMemo, useRef, useEffect, useCallback, memo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { Channel } from '../types/channel';
 import { categoryOrder } from '../data/categorias';
 import { ChannelIcon } from './ChannelIcon';
 import { getCurrentProgram, onEPGUpdate } from '../services/epgService';
+import { CONTINENTES, contarPaises, continenteDoCanal, continenteDoPais, paisDoCanal } from '../utils/paises';
 import './PainelDeCanais.css';
 
 interface PainelDeCanaisProps {
@@ -119,6 +121,9 @@ export const PainelDeCanais = memo(function PainelDeCanais({
 }: PainelDeCanaisProps) {
   const [busca, setBusca] = useState('');
   const [categoriaAtiva, setCategoriaAtiva] = useState<string>('Todos');
+  const navigate = useNavigate();
+  const [continenteAtivo, setContinenteAtivo] = useState('');
+  const [paisAtivo, setPaisAtivo] = useState('');
   const [menuContexto, setMenuContexto] = useState<{ x: number; y: number; channel: Channel } | null>(null);
 
   const listaRef = useRef<HTMLDivElement>(null);
@@ -191,9 +196,24 @@ export const PainelDeCanais = memo(function PainelDeCanais({
     return ['Todos', 'Favoritos', ...ordenadas, ...extras];
   }, [channels]);
 
+  // Continentes e países presentes; os países ficam só os do continente escolhido.
+  const paises = useMemo(() => contarPaises(channels), [channels]);
+  const continentes = useMemo(() => {
+    const presentes = new Set(paises.map((p) => continenteDoPais(p.codigo)));
+    return CONTINENTES.filter((c) => presentes.has(c));
+  }, [paises]);
+  const paisesDoContinente = continenteAtivo
+    ? paises.filter((p) => continenteDoPais(p.codigo) === continenteAtivo)
+    : paises;
+  // Só vale filtrar por lugar quando há mais de um país nas listas.
+  const temPaises = paises.length > 1;
+
   // Canais filtrados e agrupados
   const canaisFiltrados = useMemo(() => {
     let result = channels;
+
+    if (paisAtivo) result = result.filter((ch) => paisDoCanal(ch) === paisAtivo);
+    else if (continenteAtivo) result = result.filter((ch) => continenteDoCanal(ch) === continenteAtivo);
 
     if (categoriaAtiva === 'Favoritos') {
       result = result.filter((ch) => favorites.includes(ch.id));
@@ -209,7 +229,7 @@ export const PainelDeCanais = memo(function PainelDeCanais({
     }
 
     return result;
-  }, [channels, categoriaAtiva, busca, favorites]);
+  }, [channels, categoriaAtiva, busca, favorites, paisAtivo, continenteAtivo]);
 
   const CHUNK_SIZE = 40;
 
@@ -224,7 +244,7 @@ export const PainelDeCanais = memo(function PainelDeCanais({
 
   // Reseta ou ajusta limite ao mudar categoria ou busca
   useEffect(() => {
-    if (activeChannelId && categoriaAtiva === 'Todos' && !busca.trim()) {
+    if (activeChannelId && categoriaAtiva === 'Todos' && !busca.trim() && !paisAtivo && !continenteAtivo) {
       const idx = channels.findIndex((c) => c.id === activeChannelId);
       if (idx >= 0) {
         setRenderLimit(Math.min(channels.length, Math.max(CHUNK_SIZE, idx + 15)));
@@ -232,7 +252,7 @@ export const PainelDeCanais = memo(function PainelDeCanais({
       }
     }
     setRenderLimit(CHUNK_SIZE);
-  }, [categoriaAtiva, busca, activeChannelId, channels]);
+  }, [categoriaAtiva, busca, activeChannelId, channels, paisAtivo, continenteAtivo]);
 
   const carregarMais = useCallback(() => {
     setRenderLimit((prev) => {
@@ -422,6 +442,34 @@ export const PainelDeCanais = memo(function PainelDeCanais({
           );
         })}
       </div>
+
+      {/* Filtro de lugar: continente e país, somado ao de categoria */}
+      {temPaises && (
+        <div className="painel-filtro-lugar">
+          <select
+            value={continenteAtivo}
+            onChange={(e) => { setContinenteAtivo(e.target.value); setPaisAtivo(''); }}
+            aria-label="Filtrar por continente"
+          >
+            <option value="">Todos os continentes</option>
+            {continentes.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={paisAtivo} onChange={(e) => setPaisAtivo(e.target.value)} aria-label="Filtrar por país">
+            <option value="">Todos os países</option>
+            {paisesDoContinente.map((p) => (
+              <option key={p.codigo} value={p.codigo}>{p.nome} ({p.total})</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="painel-link-grade"
+            onClick={() => navigate('/grade')}
+            title="Ver os canais por país e categoria, em grade ou no mapa"
+          >
+            Grade e mapa
+          </button>
+        </div>
+      )}
 
       {/* Lista de Canais com grupos */}
       <div className="painel-lista-rolagem" ref={listaRef} onScroll={handleScroll}>
