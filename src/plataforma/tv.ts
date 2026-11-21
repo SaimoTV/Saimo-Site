@@ -92,9 +92,9 @@ export function setaPelaMidia(key: 'ArrowLeft' | 'ArrowRight'): void {
 
 function aoApertar(e: KeyboardEvent): void {
   const codigo = e.keyCode;
-  if (e.isTrusted && (codigo === 37 || codigo === 39)) ultimaSeta = Date.now();
-  // Já é a tecla traduzida por nós: deixa seguir.
-  if (!e.isTrusted) return;
+  if (e.isTrusted !== false && (codigo === 37 || codigo === 39)) ultimaSeta = Date.now();
+  // Já é a tecla traduzida por nós: deixa seguir (apenas eventos sintéticos conhecidos têm isTrusted === false).
+  if (e.isTrusted === false) return;
   const certa = POR_CODIGO[codigo];
   if (certa && e.key !== certa) {
     e.preventDefault();

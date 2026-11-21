@@ -17,7 +17,7 @@ import { iniciarVigiaAoVivo, type VigiaAoVivoHandle, type LatenciaInfo } from '.
 import * as telemetria from '../services/telemetria';
 import './VideoPlayer.css';
 import './AvisoApp.css';
-import { ehAppDaTv, ehTv, setaPelaMidia } from '../plataforma/tv';
+import { ehAppDaTv } from '../plataforma/tv';
 import { alternarTelaCheia, elementoEmTelaCheia, EVENTOS_TELA_CHEIA, soltarOrientacao } from '../utils/telaCheia';
 import { LogoCarregando } from './LogoCarregando';
 
@@ -62,9 +62,6 @@ function dicaAppLiberada(): boolean {
 function fecharDicaApp(): void {
   try { localStorage.setItem(CHAVE_DICA_APP, String(Date.now())); } catch { /* sem armazenamento */ }
 }
-
-const voltarPelaMidia = () => setaPelaMidia('ArrowLeft');
-const avancarPelaMidia = () => setaPelaMidia('ArrowRight');
 
 export const VideoPlayer = memo(function VideoPlayer({
   channel,
@@ -889,9 +886,6 @@ export const VideoPlayer = memo(function VideoPlayer({
     aoTocar: retomar,
     // Pausar pelos fones ou pela tela de bloqueio também não para o ao vivo.
     aoPausar: retomar,
-    // LG: as setas do controle podem chegar só como "voltar/avançar" de mídia;
-    // no ao vivo elas fazem o que a seta faz (abrir a lista de canais).
-    ...(ehTv() ? { aoVoltar: voltarPelaMidia, aoAvancar: avancarPelaMidia, midiaNaTv: true } : {}),
   });
 
   const toggleMute = useCallback(() => {
