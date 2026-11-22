@@ -19,6 +19,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react';
+import { ImagemLazy } from './ImagemLazy';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import type { Movie, MovieSource, SeriesEpisodeInfo } from '../types/movie';
@@ -1767,7 +1768,7 @@ export function VodCatalog({
                   >
                     <div className="vod-card-secao-colagem">
                       {colagens.filmes.map((c, i) => (
-                        <img key={i} src={c} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                        <ImagemLazy key={i} src={c} alt="" referrerPolicy="no-referrer" />
                       ))}
                     </div>
                     <div className="vod-card-secao-veu" />
@@ -1793,7 +1794,7 @@ export function VodCatalog({
                   >
                     <div className="vod-card-secao-colagem">
                       {colagens.series.map((c, i) => (
-                        <img key={i} src={c} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                        <ImagemLazy key={i} src={c} alt="" referrerPolicy="no-referrer" />
                       ))}
                     </div>
                     <div className="vod-card-secao-veu" />
@@ -1820,7 +1821,7 @@ export function VodCatalog({
                   >
                     <div className="vod-card-secao-colagem">
                       {colagens.animes.map((c, i) => (
-                        <img key={i} src={c} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                        <ImagemLazy key={i} src={c} alt="" referrerPolicy="no-referrer" />
                       ))}
                     </div>
                     <div className="vod-card-secao-veu" />
@@ -1846,7 +1847,7 @@ export function VodCatalog({
                   >
                     <div className="vod-card-secao-colagem">
                       {colagens.doramas.map((c, i) => (
-                        <img key={i} src={c} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                        <ImagemLazy key={i} src={c} alt="" referrerPolicy="no-referrer" />
                       ))}
                     </div>
                     <div className="vod-card-secao-veu" />
@@ -1873,7 +1874,7 @@ export function VodCatalog({
                     >
                       <div className="vod-card-secao-colagem">
                         {colagens.novelas.map((c, i) => (
-                          <img key={i} src={c} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                          <ImagemLazy key={i} src={c} alt="" referrerPolicy="no-referrer" />
                         ))}
                       </div>
                       <div className="vod-card-secao-veu" />
@@ -1901,7 +1902,7 @@ export function VodCatalog({
                     >
                       <div className="vod-card-secao-colagem">
                         {colagens.novelinhas.map((c, i) => (
-                          <img key={i} src={c} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                          <ImagemLazy key={i} src={c} alt="" referrerPolicy="no-referrer" />
                         ))}
                       </div>
                       <div className="vod-card-secao-veu" />
@@ -1929,7 +1930,7 @@ export function VodCatalog({
                     >
                       <div className="vod-card-secao-colagem">
                         {colagens.kids.map((c, i) => (
-                          <img key={i} src={c} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                          <ImagemLazy key={i} src={c} alt="" referrerPolicy="no-referrer" />
                         ))}
                       </div>
                       <div className="vod-card-secao-veu" />
@@ -2255,7 +2256,7 @@ export function VodCatalog({
                 >
                   <div className="vod-card-poster-thumb">
                     {capaSrc ? (
-                      <img src={capaSrc} alt={item.rotulo} loading="lazy" referrerPolicy="no-referrer" />
+                      <ImagemLazy src={capaSrc} alt={item.rotulo} referrerPolicy="no-referrer" />
                     ) : (
                       <span className="vod-poster-letra">{item.titulo.charAt(0)}</span>
                     )}
@@ -2852,7 +2853,7 @@ function CarrosselFileira({
               >
                 <div className="vod-card-poster-thumb">
                   {item.capa ? (
-                    <img src={item.capa} alt={item.titulo} loading="lazy" decoding="async" referrerPolicy="no-referrer" />
+                    <ImagemLazy src={item.capa} alt={item.titulo} referrerPolicy="no-referrer" />
                   ) : (
                     <span className="vod-poster-letra">{item.titulo.charAt(0)}</span>
                   )}

@@ -17,7 +17,7 @@ import { iniciarVigiaAoVivo, type VigiaAoVivoHandle, type LatenciaInfo } from '.
 import * as telemetria from '../services/telemetria';
 import './VideoPlayer.css';
 import './AvisoApp.css';
-import { ehAppDaTv } from '../plataforma/tv';
+import { ehAppDaTv, ehTv } from '../plataforma/tv';
 import { BotaoModoTela } from './BotaoModoTela';
 import { useModoTela } from '../hooks/useModoTela';
 import { classeDoModo } from '../utils/modoTela';
@@ -235,6 +235,26 @@ export const VideoPlayer = memo(function VideoPlayer({
   }, []);
 
   const [reloadTick, setReloadTick] = useState(0);
+  /**
+   * TV: o app foi para trás (menu da TV, outro app). A TV suspende o app mas o
+   * vídeo seguia segurando o decodificador e a memória: ao voltar, o canal ficava
+   * preto e tudo mais lento a cada ida e volta. Ao sair, solta tudo; ao voltar,
+   * abre o canal de novo.
+   */
+  const [suspenso, setSuspenso] = useState(false);
+  useEffect(() => {
+    if (!ehTv()) return;
+    const aoMudar = () => {
+      const escondido = document.visibilityState === 'hidden';
+      if (escondido) {
+        const v = videoRef.current;
+        if (v) { try { v.pause(); } catch { /* segue */ } }
+      }
+      setSuspenso(escondido);
+    };
+    document.addEventListener('visibilitychange', aoMudar);
+    return () => document.removeEventListener('visibilitychange', aoMudar);
+  }, []);
   // Extensão de captura detectada: refaz o carregamento, a limpeza derruba o
   // player (que senão voltaria a pedir os segmentos) e a trava não deixa recomeçar.
   useEffect(() => aoBloquearExtensao(() => setReloadTick((t) => t + 1)), []);
@@ -323,6 +343,8 @@ export const VideoPlayer = memo(function VideoPlayer({
    */
   useEffect(() => {
     if (!channel || !videoRef.current) return;
+    // App da TV atrás de outro (menu da TV, outro app): nada tocando, decodificador livre.
+    if (suspenso) return;
 
     const video = videoRef.current;
 
@@ -677,9 +699,9 @@ export const VideoPlayer = memo(function VideoPlayer({
       window.clearInterval(timerLatencia);
       video.removeEventListener('timeupdate', marcarAvanco);
       limpar();
-      if (nativo) { video.removeAttribute('src'); video.load(); }
+      if (nativo || document.visibilityState === 'hidden') { video.removeAttribute('src'); video.load(); }
     };
-  }, [channel, attempts, sourceIndex, reloadTick, semCaminhoNoSite, soNoApp, tentavel]);
+  }, [channel, attempts, sourceIndex, reloadTick, semCaminhoNoSite, soNoApp, tentavel, suspenso]);
 
   // Volume sync
   useEffect(() => {
