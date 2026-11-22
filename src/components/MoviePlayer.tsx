@@ -1,4 +1,7 @@
 import { ehAppDaTv, ehTv, setaRecente } from '../plataforma/tv';
+import { BotaoModoTela } from './BotaoModoTela';
+import { useModoTela } from '../hooks/useModoTela';
+import { classeDoModo, gravarModoTela, type ModoTela } from '../utils/modoTela';
 import { useRef, useEffect, useState, useCallback, memo, useMemo } from 'react';
 import { rota } from '../utils/rotas';
 import { useMediaSession } from '../hooks/useMediaSession';
@@ -185,7 +188,7 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
 
   const [trechos, setTrechos] = useState<Trecho[]>([]);
   const [trechoPulado, setTrechoPulado] = useState<Trecho | null>(null);
-  const [aspectRatio, setAspectRatio] = useState<'auto' | '16:9' | '4:3' | '21:9'>('auto');
+  const modoTela = useModoTela();
   const [videoResolution, setVideoResolution] = useState<string | null>(null);
   const [qualityLevels, setQualityLevels] = useState<Array<{ id: number; label: string }>>([]);
   const [selectedQuality, setSelectedQuality] = useState(-1);
@@ -1246,8 +1249,24 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
     irPara(e.clientX);
   }, [irPara]);
 
+  // Tecla do controle durante um "arraste": a pessoa está no controle, não no ponteiro.
+  useEffect(() => {
+    if (!arrastando) return;
+    const parar = () => setArrastando(false);
+    window.addEventListener('keydown', parar, true);
+    return () => window.removeEventListener('keydown', parar, true);
+  }, [arrastando]);
+
   const aoArrastarBarra = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (!arrastando) return;
+    // Só arrasta com o botão segurado. Na LG o "soltar" do Magic Remote às vezes
+    // não chega (o ponteiro some ao usar as setas): o arraste ficava preso e
+    // qualquer movimento do ponteiro levava o filme para a posição dele.
+    if (!(e.buttons & 1)) {
+      setArrastando(false);
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+      return;
+    }
     e.stopPropagation();
     irPara(e.clientX);
   }, [arrastando, irPara]);
@@ -1338,7 +1357,7 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
         <video
           ref={videoRef}
           data-monitor="1"
-          className={`movie-video aspect-${aspectRatio}`}
+          className={`movie-video ${classeDoModo(modoTela)}`}
           playsInline
           autoPlay
           onClick={(e) => e.stopPropagation()}
@@ -2049,7 +2068,8 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
             onPointerDown={aoPegarBarra}
             onPointerMove={aoArrastarBarra}
             onPointerUp={aoSoltarBarra}
-            onPointerCancel={aoSoltarBarra}
+            onPointerCancel={() => setArrastando(false)}
+            onLostPointerCapture={() => setArrastando(false)}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="progress-buffered" style={{ width: `${buffered}%` }} />
@@ -2395,15 +2415,16 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
                     <div className="settings-section">
                       <label>Proporção</label>
                       <select 
-                        value={aspectRatio}
-                        onChange={(e) => setAspectRatio(e.target.value as typeof aspectRatio)}
+                        value={modoTela}
+                        onChange={(e) => gravarModoTela(e.target.value as ModoTela)}
                         data-focusable="true"
                         data-nav-group="settings-menu"
                       >
-                        <option value="auto">Auto</option>
+                        <option value="ajustar">Ajustar (imagem inteira)</option>
+                        <option value="zoom">Zoom (sem faixas)</option>
+                        <option value="esticar">Esticar (preencher)</option>
                         <option value="16:9">16:9</option>
                         <option value="4:3">4:3</option>
-                        <option value="21:9">21:9 (Cinema)</option>
                       </select>
                     </div>
                     <div className="settings-section">
@@ -2435,6 +2456,9 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
                   </div>
                 )}
               </div>
+
+              {/* Modo de tela: ajustar, zoom, esticar, 16:9, 4:3 */}
+              <BotaoModoTela />
 
               {/* Picture-in-Picture */}
               {document.pictureInPictureEnabled && (

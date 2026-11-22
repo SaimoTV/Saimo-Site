@@ -18,6 +18,9 @@ import * as telemetria from '../services/telemetria';
 import './VideoPlayer.css';
 import './AvisoApp.css';
 import { ehAppDaTv } from '../plataforma/tv';
+import { BotaoModoTela } from './BotaoModoTela';
+import { useModoTela } from '../hooks/useModoTela';
+import { classeDoModo } from '../utils/modoTela';
 import { alternarTelaCheia, elementoEmTelaCheia, EVENTOS_TELA_CHEIA, soltarOrientacao } from '../utils/telaCheia';
 import { LogoCarregando } from './LogoCarregando';
 
@@ -133,7 +136,7 @@ export const VideoPlayer = memo(function VideoPlayer({
   const [error, setError] = useState<string | null>(null);
   const [showControls, setShowControls] = useState(true);
   const [videoResolution, setVideoResolution] = useState<string | null>(null);
-  const aspectRatio = 'auto';
+  const modoTela = useModoTela();
   const [audioTracks, setAudioTracks] = useState<Array<{ id: number; label: string }>>([]);
   const [selectedAudio, setSelectedAudio] = useState(-1);
   const [showAudioMenu, setShowAudioMenu] = useState(false);
@@ -1115,7 +1118,7 @@ export const VideoPlayer = memo(function VideoPlayer({
           <video
             ref={videoRef}
             data-monitor="1"
-            className={`video-element aspect-${aspectRatio} ${isMirrored ? 'mirrored' : ''}`}
+            className={`video-element ${classeDoModo(modoTela)} ${isMirrored ? 'mirrored' : ''}`}
             playsInline
             onClick={handleVideoClick}
             onDoubleClick={handleVideoDoubleClick}
@@ -1287,6 +1290,9 @@ export const VideoPlayer = memo(function VideoPlayer({
                   <span className="pulse-indicator" aria-hidden="true" />
                 </button>
               )}
+
+              {/* Modo de tela: ajustar, zoom, esticar, 16:9, 4:3 */}
+              <BotaoModoTela aoUsar={resetControlsTimeout} />
 
               {/* Canal anterior */}
               {onPrevChannel && (

@@ -182,3 +182,19 @@ html[data-animacoes='reduzidas'] *::after {
 @media (prefers-reduced-motion: reduce) {
   .tela { animation: none; }
 }
+
+/* Modo de tela do vídeo (utils/modoTela.ts), filme e ao vivo. */
+video.tela-ajustar { object-fit: contain !important; }
+video.tela-zoom { object-fit: cover !important; }
+video.tela-esticar { object-fit: fill !important; }
+video.tela-16x9,
+video.tela-4x3 {
+  object-fit: fill !important;
+  width: auto !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  margin: 0 auto;
+  display: block;
+}
+video.tela-16x9 { aspect-ratio: 16 / 9; }
+video.tela-4x3 { aspect-ratio: 4 / 3; }
