@@ -1,5 +1,6 @@
 import { ehAppDaTv, ehTv, setaRecente } from '../plataforma/tv';
 import { BotaoModoTela } from './BotaoModoTela';
+import { useDpad } from '../contexts/dpadContexto';
 import { useModoTela } from '../hooks/useModoTela';
 import { classeDoModo, gravarModoTela, type ModoTela } from '../utils/modoTela';
 import { useRef, useEffect, useState, useCallback, memo, useMemo } from 'react';
@@ -63,15 +64,18 @@ function guardarPonto(video: HTMLVideoElement, movie: Movie): void {
 }
 
 /** Pula para um ponto do vídeo; ignora valor não finito (duração ainda desconhecida em TV). */
-/** Quando o app pediu um pulo por último (ms): o resto é pulo que a TV fez sozinha. */
-let ultimoPuloDoApp = 0;
 /** Última seta lateral apertada (ms) e o último ponto bom do vídeo (para desfazer pulo da TV). */
 let setaLateralEm = 0;
 let pontoBom = 0;
+/** A barra de progresso estava em foco quando a última seta lateral foi apertada. */
+let barraEmFocoNaSeta = false;
+function barraEmFoco(): boolean {
+  const f = document.querySelector('.movie-player .dpad-focused');
+  return !!f && f.classList.contains('progress-container');
+}
 
 function posicionar(video: HTMLVideoElement, segundos: number): void {
   if (!Number.isFinite(segundos)) return;
-  ultimoPuloDoApp = Date.now();
   video.currentTime = Math.max(0, segundos);
 }
 
@@ -834,7 +838,9 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
       if (isPlaying) {
         controlsTimeoutRef.current = window.setTimeout(() => {
           setShowControls(false);
-        }, 3000);
+          // TV: controles escondidos, o foco volta para a barra (setas = tempo).
+          if (ehTv()) window.dispatchEvent(new CustomEvent('saimo-focar-barra'));
+        }, ehTv() ? 5000 : 3000);
       }
     };
 
@@ -843,11 +849,21 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
       container.addEventListener('mousemove', resetControlsTimeout);
       container.addEventListener('touchstart', resetControlsTimeout);
     }
+    // TV: qualquer tecla do controle mostra os controles.
+    const naTv = ehTv();
+    if (naTv) {
+      window.addEventListener('keydown', resetControlsTimeout, true);
+      window.addEventListener('saimo-mostrar-controles', resetControlsTimeout);
+    }
 
     return () => {
       if (container) {
         container.removeEventListener('mousemove', resetControlsTimeout);
         container.removeEventListener('touchstart', resetControlsTimeout);
+      }
+      if (naTv) {
+        window.removeEventListener('keydown', resetControlsTimeout, true);
+        window.removeEventListener('saimo-mostrar-controles', resetControlsTimeout);
       }
       if (controlsTimeoutRef.current) {
         clearTimeout(controlsTimeoutRef.current);
@@ -1171,22 +1187,24 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
     setTrechoPulado(trechoAtual);
   }, [trechoAtual]);
 
-  // TV (LG): o sistema pode mexer no tempo do vídeo sozinho quando a seta é
-  // apertada, mesmo com o foco nos botões de baixo, sem passar pelo app. Na TV
-  // o tempo só muda pelo app (barra de progresso em foco, botões −10/+10,
-  // arrastar): um pulo que o app não pediu, logo depois de uma seta, é desfeito.
+  // TV: o tempo só muda pelas setas com a BARRA em foco. Qualquer pulo logo
+  // depois de uma seta lateral, com o foco em outro lugar (botões de baixo), é
+  // desfeito, venha de onde vier (sistema da LG, ponteiro, o próprio app).
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !ehTv()) return;
     const aoTeclar = (e: KeyboardEvent) => {
-      if (e.keyCode === 37 || e.keyCode === 39 || e.key === 'ArrowLeft' || e.key === 'ArrowRight') setaLateralEm = Date.now();
+      if (e.keyCode === 37 || e.keyCode === 39 || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        setaLateralEm = Date.now();
+        barraEmFocoNaSeta = barraEmFoco();
+      }
     };
     const aoAndar = () => { if (!video.seeking) pontoBom = video.currentTime; };
     const aoPular = () => {
-      const doApp = Date.now() - ultimoPuloDoApp < 1500;
-      if (doApp || (!setaRecente(1500) && Date.now() - setaLateralEm > 1500)) return;
+      if (Date.now() - setaLateralEm > 1500 && !setaRecente(1500)) return;
+      if (barraEmFocoNaSeta) return;
       if (Math.abs(video.currentTime - pontoBom) < 2) return;
-      posicionar(video, pontoBom);
+      video.currentTime = pontoBom;
     };
     window.addEventListener('keydown', aoTeclar, true);
     video.addEventListener('timeupdate', aoAndar);
@@ -1197,6 +1215,59 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
       video.removeEventListener('seeking', aoPular);
     };
   });
+
+  // TV: foco do player feito à mão (o genérico não pegava a barra fina na LG).
+  // Abre com a barra em foco (setas: voltar/avançar); seta para baixo vai aos
+  // botões (setas laterais andam entre eles); seta para cima volta à barra.
+  const { setFocus: focarDpad } = useDpad();
+  useEffect(() => {
+    if (!ehTv()) return;
+    const barra = () => progressRef.current;
+    const focoAtual = () => document.querySelector<HTMLElement>('.movie-player .dpad-focused');
+    const primeiroBotao = () => Array.from(document.querySelectorAll<HTMLElement>('.movie-player .controls-row .control-btn'))
+      .find((b) => b.getClientRects().length > 0) ?? null;
+    // Ao abrir, a barra.
+    const t = window.setTimeout(() => { const b = barra(); if (b && !focoAtual()) focarDpad(b); }, 600);
+    const aoTeclar = (e: KeyboardEvent) => {
+      const b = barra();
+      if (!b) return;
+      const foco = focoAtual();
+      const naBarra = !foco || foco === b;
+      const nosBotoes = !!foco && !!foco.closest('.controls-row');
+      if (!naBarra && !nosBotoes) return; // um menu aberto: o D-pad cuida
+      const k = e.key === 'Left' ? 'ArrowLeft' : e.key === 'Right' ? 'ArrowRight' : e.key === 'Up' ? 'ArrowUp' : e.key === 'Down' ? 'ArrowDown' : e.key;
+      const parar = () => { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); };
+      if (naBarra) {
+        if (k === 'ArrowLeft' || k === 'ArrowRight') {
+          parar();
+          if (foco !== b) focarDpad(b);
+          barraEmFocoNaSeta = true;
+          const v = videoRef.current;
+          if (v && Number.isFinite(v.duration)) {
+            const novo = Math.max(0, Math.min(v.duration - 1, v.currentTime + (k === 'ArrowLeft' ? -10 : 10)));
+            pontoBom = novo;
+            posicionar(v, novo);
+          }
+          window.dispatchEvent(new CustomEvent('saimo-mostrar-controles'));
+        } else if (k === 'ArrowDown') {
+          const p = primeiroBotao();
+          if (p) { parar(); focarDpad(p); window.dispatchEvent(new CustomEvent('saimo-mostrar-controles')); }
+        }
+      } else if (nosBotoes && k === 'ArrowUp') {
+        parar();
+        focarDpad(b);
+        window.dispatchEvent(new CustomEvent('saimo-mostrar-controles'));
+      }
+    };
+    const aoEsconder = () => { const b = barra(); if (b) focarDpad(b, false); };
+    window.addEventListener('keydown', aoTeclar, true);
+    window.addEventListener('saimo-focar-barra', aoEsconder);
+    return () => {
+      window.clearTimeout(t);
+      window.removeEventListener('keydown', aoTeclar, true);
+      window.removeEventListener('saimo-focar-barra', aoEsconder);
+    };
+  }, [focarDpad]);
 
   useMediaSession({
     titulo: movie?.name,
