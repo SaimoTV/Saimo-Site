@@ -110,7 +110,22 @@ function rolarAteVer(el: HTMLElement): void {
     else if (r.right > c.right - margem) p.scrollBy({ left: r.right - c.right + margem, behavior: suave });
     break;
   }
-  // Na vertical: a página (ou o painel que rola) leva a fileira para perto do meio.
+  // Na vertical: o painel que rola mais próximo (lista de episódios numa janela,
+  // por exemplo) e depois a página. Antes só se olhava a janela inteira: o
+  // episódio saía da área visível do painel sem sair da tela e nada rolava.
+  for (let p = el.parentElement; p && p !== document.body && p !== document.documentElement; p = p.parentElement) {
+    if (p.scrollHeight <= p.clientHeight + 1) continue;
+    const oy = window.getComputedStyle(p).overflowY;
+    if (oy !== 'auto' && oy !== 'scroll') continue;
+    const r = el.getBoundingClientRect();
+    const c = p.getBoundingClientRect();
+    const margem = Math.min(80, c.height * 0.15);
+    if (r.top < c.top + margem || r.bottom > c.bottom - margem) {
+      const alvo = r.top - c.top - (c.height - r.height) / 2;
+      p.scrollBy({ top: alvo, behavior: suave });
+    }
+    break;
+  }
   const r = el.getBoundingClientRect();
   if (r.top < 120 || r.bottom > window.innerHeight - 60) {
     el.scrollIntoView({ behavior: suave, block: 'center', inline: 'nearest' });

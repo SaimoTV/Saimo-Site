@@ -19,7 +19,15 @@ type JanelaTv = Window & {
 };
 
 function janela(): JanelaTv | null {
-  return typeof window === 'undefined' ? null : (window as JanelaTv);
+  if (typeof window === 'undefined') return null;
+  const w = window as JanelaTv;
+  // Só no `vite` (desenvolvimento): `?tv=webos` ou `?tv=tizen` abre o site como a TV,
+  // para testar o controle remoto no navegador. Não existe no pacote publicado.
+  if (import.meta.env.DEV && !w.__SAIMO_TV__) {
+    const pedido = new URLSearchParams(window.location.search).get('tv');
+    if (pedido === 'webos' || pedido === 'tizen') w.__SAIMO_TV__ = pedido;
+  }
+  return w;
 }
 
 /** Qual TV é esta. O carregador do pacote grava `__SAIMO_TV__`; o resto é detecção. */
