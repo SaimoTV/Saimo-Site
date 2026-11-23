@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { definirNotificarNoSistema, notificarNoSistema } from '../services/novosEpisodios';
 import { aoMudarAssistidos, duracaoLegivel, estatisticas, limparAssistidos } from '../services/assistidos';
-import { DESTAQUES, FUNDOS, aoMudarTema, definirTema, temaAtual, type Animacoes, type Fundo } from '../plataforma/tema';
+import { DESTAQUES, FUNDOS, TAMANHOS, aoMudarTema, definirTema, temaAtual, type Animacoes, type Fundo } from '../plataforma/tema';
 import {
   OPCOES, aoMudarEstiloDeLegenda, definirEstiloDeLegenda, estiloAtual, cssDaLegenda, type EstiloDeLegenda,
 } from '../plataforma/legendaEstilo';
@@ -46,7 +46,15 @@ export function AparenciaAjustes() {
   return (
     <section className="ajustes-bloco" id="aparencia">
       <h2>Aparência</h2>
-      <p>Cor de destaque, fundo e animações. Vale neste navegador, para todos os perfis.</p>
+      <p>Tamanho, cor de destaque, fundo e animações. Vale neste aparelho, para todos os perfis.</p>
+      <p>Tamanho do texto e das telas</p>
+      <div className="pilulas" role="radiogroup" aria-label="Tamanho do texto">
+        {TAMANHOS.map((x) => (
+          <button key={x.id} role="radio" aria-checked={t.tamanho === x.id} className={t.tamanho === x.id ? 'on' : ''}
+            onClick={() => definirTema({ tamanho: x.id })}>{x.nome}</button>
+        ))}
+      </div>
+      <p>Cor de destaque</p>
       <div className="tema-amostras" role="radiogroup" aria-label="Cor de destaque">
         {DESTAQUES.map((d) => (
           <button key={d.id} type="button" role="radio" aria-checked={t.destaque === d.id}

@@ -198,3 +198,11 @@ video.tela-4x3 {
 }
 video.tela-16x9 { aspect-ratio: 16 / 9; }
 video.tela-4x3 { aspect-ratio: 4 / 3; }
+
+/* Acessibilidade (Ajustes > Aparência e acessibilidade > Tamanho do texto):
+   o conteúdo das telas cresce e se rearruma; o menu do topo e o player ficam
+   como estão, para sempre caberem. */
+html[data-tamanho='grande'] .tela > :not(.barra-topo),
+html[data-tamanho='grande'] .vod-catalog > :not(.vod-fundo-destaque) { zoom: 1.15; }
+html[data-tamanho='muito-grande'] .tela > :not(.barra-topo),
+html[data-tamanho='muito-grande'] .vod-catalog > :not(.vod-fundo-destaque) { zoom: 1.3; }

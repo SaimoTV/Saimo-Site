@@ -31,9 +31,17 @@ export const FUNDOS: { id: Fundo; nome: string; cor: string }[] = [
 
 export type Animacoes = 'suaves' | 'reduzidas';
 
-export interface Tema { destaque: string; fundo: Fundo; animacoes: Animacoes }
+/** Acessibilidade: o conteúdo das telas maior (o menu do topo fica igual, para sempre caber). */
+export type Tamanho = 'normal' | 'grande' | 'muito-grande';
+export const TAMANHOS: { id: Tamanho; nome: string }[] = [
+  { id: 'normal', nome: 'Normal' },
+  { id: 'grande', nome: 'Grande' },
+  { id: 'muito-grande', nome: 'Muito grande' },
+];
 
-const PADRAO: Tema = { destaque: 'oceano', fundo: 'escuro', animacoes: 'suaves' };
+export interface Tema { destaque: string; fundo: Fundo; animacoes: Animacoes; tamanho: Tamanho }
+
+const PADRAO: Tema = { destaque: 'oceano', fundo: 'escuro', animacoes: 'suaves', tamanho: 'normal' };
 
 export function temaAtual(): Tema {
   try {
@@ -42,6 +50,7 @@ export function temaAtual(): Tema {
       destaque: DESTAQUES.some((d) => d.id === t.destaque) ? t.destaque : PADRAO.destaque,
       fundo: FUNDOS.some((f) => f.id === t.fundo) ? t.fundo : PADRAO.fundo,
       animacoes: t.animacoes === 'reduzidas' ? 'reduzidas' : 'suaves',
+      tamanho: TAMANHOS.some((x) => x.id === t.tamanho) ? t.tamanho : PADRAO.tamanho,
     };
   } catch {
     return PADRAO;
@@ -75,6 +84,7 @@ export function aplicarTema(): void {
   }
   if (t.fundo !== 'escuro') raiz.style.setProperty('--saimo-fundo', FUNDOS.find((f) => f.id === t.fundo)!.cor);
   raiz.dataset.animacoes = t.animacoes;
+  if (t.tamanho === 'normal') delete raiz.dataset.tamanho; else raiz.dataset.tamanho = t.tamanho;
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', t.fundo === 'escuro' ? '#0a0a0a' : FUNDOS.find((f) => f.id === t.fundo)!.cor);
 }

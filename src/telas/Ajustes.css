@@ -73,3 +73,25 @@
   box-shadow: 0 0 0 2px rgba(79, 227, 208, 0.35);
   background: rgba(79, 227, 208, 0.07);
 }
+
+/* Grupos: a tela abre com a lista deles; cada um tem a própria página. */
+.ajustes-grupos { display: flex; flex-direction: column; gap: 10px; margin: 1rem 0 2rem; }
+.ajustes-grupo-botao {
+  display: flex; align-items: center; gap: 18px; width: 100%; padding: 16px 20px; border-radius: 18px; text-align: left;
+  background: rgba(12, 14, 26, 0.35); border: 1px solid rgba(255, 255, 255, 0.12); color: inherit; cursor: pointer;
+  font: inherit;
+}
+.ajustes-grupo-botao:hover, .ajustes-grupo-botao:focus-visible { background: rgba(255, 255, 255, 0.12); }
+.ajustes-grupo-icone { font-size: 28px; color: var(--saimo-acento, #4fe3d0); }
+.ajustes-grupo-texto { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.ajustes-grupo-texto strong { font-size: 1.05rem; }
+.ajustes-grupo-texto span { font-size: 0.86rem; color: rgba(255, 255, 255, 0.6); }
+.ajustes-grupo-seta { font-size: 24px; opacity: 0.5; }
+.ajustes-grupo-topo { display: flex; align-items: center; gap: 12px; }
+.ajustes-grupo-topo .tela-titulo { margin: 0; }
+.ajustes-voltar {
+  display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; font-size: 24px; color: inherit;
+  background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.12); cursor: pointer;
+}
+.ajustes-voltar:hover, .ajustes-voltar:focus-visible { background: rgba(255, 255, 255, 0.18); }
+.ajustes-grupo-botao.destaque { border-color: var(--saimo-acento, #4fe3d0); }
