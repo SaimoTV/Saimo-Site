@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  aoMudarConta, apagarConta, aprovarTv, cadastrar, codigoDoQr, entrarComSenha, estadoConta, sair, sincronizar, trocarSenha,
+  aoMudarConta, apagarConta, aprovarTv, cadastrar, codigoDoQr, definirSenha, entrarComSenha, estadoConta, pedirCodigo, sair, sincronizar, trocarSenha,
 } from './conta';
 import { EntrarComQrOuEmail } from './EntrarComQr';
 import './conta.css';
@@ -36,6 +36,7 @@ export function EntrarComEmail({ texto }: { texto?: string }) {
   const [senha, setSenha] = useState('');
   const [ocupado, setOcupado] = useState(false);
   const [aviso, setAviso] = useState('');
+  const [recuperando, setRecuperando] = useState(false);
 
   const emailOk = email.includes('@');
   const pronto = emailOk && (criando ? senha.length >= 8 : senha.length > 0);
@@ -67,8 +68,61 @@ export function EntrarComEmail({ texto }: { texto?: string }) {
           {criando ? 'Já tenho conta: entrar' : 'Não tenho conta: criar'}
         </button>
       </div>
-      {!criando && <p className="conta-dica">Esqueceu a senha? Num aparelho onde a conta já está aberta, use Trocar a senha.</p>}
+      {!criando && (
+        <div className="conta-linha">
+          <button type="button" className="ajustes-botao" onClick={() => setRecuperando(true)} data-testid="conta-esqueci">Esqueci a senha</button>
+        </div>
+      )}
+      {recuperando && <RecuperarSenha emailInicial={email} aoFechar={() => setRecuperando(false)} />}
       {aviso && <p className="conta-erro">{aviso}</p>}
+    </div>
+  );
+}
+
+/**
+ * Esqueci a senha: o código vai ao e-mail da conta e, com ele, a pessoa cria
+ * uma senha nova e já entra. Os outros aparelhos saem (quem sabia a antiga).
+ */
+function RecuperarSenha({ emailInicial, aoFechar }: { emailInicial: string; aoFechar: () => void }) {
+  const [email, setEmail] = useState(emailInicial);
+  const [enviado, setEnviado] = useState(false);
+  const [codigo, setCodigo] = useState('');
+  const [senha, setSenha] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+  const [aviso, setAviso] = useState('');
+  const pedir = async () => {
+    setOcupado(true); setAviso('');
+    try { await pedirCodigo(email); setEnviado(true); setAviso('Enviamos um código de 6 números para o seu e-mail (veja também o spam).'); }
+    catch (e) { setAviso(e instanceof Error ? e.message : 'Não deu certo'); }
+    finally { setOcupado(false); }
+  };
+  const trocar = async () => {
+    setOcupado(true); setAviso('');
+    try { await definirSenha(email, codigo, senha); aoFechar(); }
+    catch (e) { setAviso(e instanceof Error ? e.message : 'Não deu certo'); }
+    finally { setOcupado(false); }
+  };
+  return (
+    <div className="conta-caixa" data-testid="conta-recuperar">
+      <p><strong>Criar uma senha nova</strong></p>
+      {!enviado ? (
+        <form className="conta-linha" onSubmit={(e) => { e.preventDefault(); if (email.includes('@') && !ocupado) void pedir(); }}>
+          <input className="conta-campo" type="email" autoComplete="email" placeholder="E-mail da conta" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <button className="ajustes-botao destaque" disabled={ocupado || !email.includes('@')}>{ocupado ? 'Enviando…' : 'Enviar código'}</button>
+        </form>
+      ) : (
+        <form className="conta-linha" onSubmit={(e) => { e.preventDefault(); if (codigo.length >= 6 && senha.length >= 8 && !ocupado) void trocar(); }}>
+          <input className="conta-campo" inputMode="numeric" autoComplete="one-time-code" placeholder="Código do e-mail" value={codigo}
+            onChange={(e) => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 6))} />
+          <input className="conta-campo" type="password" autoComplete="new-password" placeholder="Senha nova (8 ou mais)" value={senha} onChange={(e) => setSenha(e.target.value)} />
+          <button className="ajustes-botao destaque" disabled={ocupado || codigo.length < 6 || senha.length < 8}>{ocupado ? 'Um momento…' : 'Salvar e entrar'}</button>
+        </form>
+      )}
+      <div className="conta-linha">
+        {enviado && <button type="button" className="ajustes-botao" disabled={ocupado} onClick={() => void pedir()}>Mandar outro código</button>}
+        <button type="button" className="ajustes-botao" onClick={aoFechar}>Cancelar</button>
+      </div>
+      {aviso && <p className="conta-dica">{aviso}</p>}
     </div>
   );
 }
