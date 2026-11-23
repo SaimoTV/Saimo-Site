@@ -55,6 +55,10 @@ lidos na hora; o [`versao.json`](https://github.com/SaimoTV/saimo-downloads/rele
 
 ---
 
+## Ajustes e acessibilidade
+
+`src/telas/Ajustes.tsx` abre com os grupos (Conta Saimo, Listas e conteúdo, Reprodução, Legendas, Aparência e acessibilidade, Perfis e dados, Mais, Controle parental); cada grupo é `/ajustes#grupo` (`#addons` e `#minhas-listas` caem em Listas). A Conta é um grupo: o QR só consulta o servidor com ela aberta. Acessibilidade (`AcessibilidadeAjustes` em `AjustesExtras.tsx`, `plataforma/tema.ts`, regras no fim de `index.css`): tamanho (zoom do conteúdo, 115/130/150%), negrito, alto contraste, foco reforçado e mais espaço no texto, com prévia; só Aplicar marca o `<html data-…>`.
+
 ## Estrutura do Projeto
 
 | Pasta | Descrição |
