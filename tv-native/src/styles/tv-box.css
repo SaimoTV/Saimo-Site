@@ -429,3 +429,6 @@ html.tizen.tizen-mse-ativo, html.tizen.tizen-mse-ativo body, html.tizen.tizen-ms
 .tv-ator-dados { font-size: 24px; color: #4fe3d0; margin-top: 10px; }
 .tv-ator-bio { font-size: 26px; line-height: 38px; color: rgba(255,255,255,.85); margin-top: 16px; max-height: 190px; overflow: hidden; }
 .tv-ator-estado { font-size: 28px; color: rgba(255,255,255,.75); margin: 40px 0; }
+
+/* Legenda sem texto não deixa a tarja preta (uma linha fina onde ficaria a barra de progresso) */
+#tv-sub-overlay:empty { display: none !important; }
