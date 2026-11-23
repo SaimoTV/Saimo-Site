@@ -57,7 +57,7 @@ lidos na hora; o [`versao.json`](https://github.com/SaimoTV/saimo-downloads/rele
 
 ## Ajustes e acessibilidade
 
-`src/telas/Ajustes.tsx` abre com os grupos (Conta Saimo, Listas e conteúdo, Reprodução, Legendas, Aparência e acessibilidade, Perfis e dados, Mais, Controle parental); cada grupo é `/ajustes#grupo` (`#addons` e `#minhas-listas` caem em Listas). A Conta é um grupo: o QR só consulta o servidor com ela aberta. Acessibilidade (`AcessibilidadeAjustes` em `AjustesExtras.tsx`, `plataforma/tema.ts`, regras no fim de `index.css`): tamanho (zoom do conteúdo, 115/130/150%), negrito, alto contraste, foco reforçado e mais espaço no texto, com prévia; só Aplicar marca o `<html data-…>`.
+`src/telas/Ajustes.tsx` abre com os grupos (Conta Saimo, Listas e conteúdo, Reprodução, Legendas, Aparência e acessibilidade, Perfis e dados, Mais, Controle parental); cada grupo é `/ajustes#grupo` (`#addons` e `#minhas-listas` caem em Listas). A Conta é um grupo: o QR só consulta o servidor com ela aberta. Acessibilidade (`AcessibilidadeAjustes` em `AjustesExtras.tsx`, `plataforma/tema.ts`, regras no fim de `index.css`): tamanho (zoom do conteúdo, 115/130/150%), negrito, alto contraste, foco reforçado e mais espaço no texto, com prévia (o menu do topo cresce junto, conforme a largura da janela); só Aplicar marca o `<html data-…>`.
 
 ## Estrutura do Projeto
 
@@ -170,3 +170,7 @@ Custo e remoções (3.3.3): o QR para de perguntar quando o código vence ("Gera
 ## Licença
 
 Código aberto sob a licença MIT (arquivo `LICENSE`). Bibliotecas de terceiros seguem as licenças delas.
+
+## TVs LG e Samsung (tv-native)
+
+Os pacotes `.ipk` (LG) e `.wgt` (Samsung) vêm de `tv-native/` (não do bundle do site): `scripts/montar_tv.sh`. Têm Ajustes por grupos, Acessibilidade com prévia (o menu do topo cresce junto), Saimo Connect (o celular abre a TV e a controla), Conta Saimo com "Esqueci a senha" (código por e-mail) e perfis.
