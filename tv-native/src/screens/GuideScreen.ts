@@ -8,6 +8,10 @@ import { State } from '../core/State';
 import { Api, Channel, EpgProgram } from '../core/Api';
 import { SpatialNav } from '../core/SpatialNav';
 
+function esc(t: string): string {
+  return String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+}
+
 export class GuideScreen {
   private element: HTMLElement;
   private channelListEl: HTMLElement;
@@ -112,8 +116,8 @@ export class GuideScreen {
     header.textContent = `Programação de ${channel.name}`;
     this.programmesContainer.appendChild(header);
 
-    const epg = Api.getNowNext(channel.name);
-    const hasEpg = Boolean(epg.current || epg.next);
+    const grade = Api.getGrade(channel.name);
+    const hasEpg = grade.length > 0;
 
     if (!hasEpg) {
       const empty = document.createElement('div');
@@ -124,7 +128,7 @@ export class GuideScreen {
           <span class="tv-guide-prog-title">Transmissão ao Vivo</span>
           <span class="tv-guide-prog-time">NO AR</span>
         </div>
-        <div style="font-size:16px; opacity:0.7;">Grade em tempo real disponível na sintonização.</div>
+        <div style="font-size:16px; opacity:0.7;">Este canal não tem guia de programação publicado.</div>
       `;
       empty.addEventListener('click', () => {
         State.setScreen('live', { channel });
@@ -133,49 +137,25 @@ export class GuideScreen {
       return;
     }
 
-    if (epg.current) {
-      const curItem = document.createElement('div');
-      curItem.className = 'tv-guide-prog-item live nav-focusable';
-      curItem.setAttribute('data-nav', 'true');
-
-      const start = epg.current.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const stop = epg.current.stop.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-      curItem.innerHTML = `
+    const hora = (d: Date) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const agora = Date.now();
+    grade.forEach((p) => {
+      const noAr = p.start.getTime() <= agora;
+      const item = document.createElement('div');
+      item.className = 'tv-guide-prog-item nav-focusable' + (noAr ? ' live' : '');
+      item.setAttribute('data-nav', 'true');
+      item.innerHTML = `
         <div class="tv-guide-prog-header">
-          <span class="tv-guide-prog-title">${epg.current.title}</span>
-          <span class="tv-guide-prog-time">● AO VIVO (${start} - ${stop})</span>
+          <span class="tv-guide-prog-title">${esc(p.title)}</span>
+          <span class="tv-guide-prog-time">${noAr ? '● AO VIVO · ' : ''}${hora(p.start)} - ${hora(p.stop)}</span>
         </div>
-        <div style="font-size:15px; opacity:0.8;">Faltam ${epg.current.remainingMin} minutos</div>
-        <div class="tv-card-progress" style="position:relative; margin-top:8px; border-radius:3px;">
-          <div class="tv-card-progress-bar" style="width: ${Math.round(epg.current.progress * 100)}%;"></div>
-        </div>
+        ${noAr
+          ? `<div style="font-size:15px; opacity:0.8;">Faltam ${p.remainingMin} minutos</div>
+             <div class="tv-card-progress" style="position:relative; margin-top:8px; border-radius:3px;"><div class="tv-card-progress-bar" style="width: ${Math.round(p.progress * 100)}%;"></div></div>`
+          : `<div style="font-size:15px; opacity:0.7;">Duração: ${p.durationMin} min</div>`}
       `;
-
-      curItem.addEventListener('click', () => {
-        State.setScreen('live', { channel });
-      });
-
-      this.programmesContainer.appendChild(curItem);
-    }
-
-    if (epg.next) {
-      const nextItem = document.createElement('div');
-      nextItem.className = 'tv-guide-prog-item nav-focusable';
-      nextItem.setAttribute('data-nav', 'true');
-
-      const start = epg.next.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const stop = epg.next.stop.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-      nextItem.innerHTML = `
-        <div class="tv-guide-prog-header">
-          <span class="tv-guide-prog-title">${epg.next.title}</span>
-          <span class="tv-guide-prog-time">A SEGUIR (${start} - ${stop})</span>
-        </div>
-        <div style="font-size:15px; opacity:0.7;">Duração: ${epg.next.durationMin} min</div>
-      `;
-
-      this.programmesContainer.appendChild(nextItem);
-    }
+      item.addEventListener('click', () => State.setScreen('live', { channel }));
+      this.programmesContainer.appendChild(item);
+    });
   }
 }

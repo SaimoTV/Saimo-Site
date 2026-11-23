@@ -432,3 +432,13 @@ html.tizen.tizen-mse-ativo, html.tizen.tizen-mse-ativo body, html.tizen.tizen-ms
 
 /* Legenda sem texto não deixa a tarja preta (uma linha fina onde ficaria a barra de progresso) */
 #tv-sub-overlay:empty { display: none !important; }
+
+/* Guia de programação: abaixo do menu e com rolagem */
+.tv-guide-layout { margin-top: 0; padding-top: calc(var(--m, 116px) + 10px); height: 1080px; box-sizing: border-box; }
+.tv-guide-channels, .tv-guide-programmes { overflow-y: auto; scrollbar-width: none; flex-wrap: nowrap; }
+.tv-guide-channels::-webkit-scrollbar, .tv-guide-programmes::-webkit-scrollbar { display: none; }
+.tv-guide-channels > *, .tv-guide-programmes > * { flex-shrink: 0; }
+.tv-guide-channel-item span { font-size: 24px !important; }
+.tv-guide-prog-title { font-size: 28px !important; }
+.tv-guide-prog-time { font-size: 22px !important; }
+.tv-guide-prog-item { font-size: 22px; }

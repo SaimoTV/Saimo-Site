@@ -453,6 +453,11 @@ export class LiveScreen {
       // PLAY / PAUSE: em transmissão ao vivo mantém o vídeo fluindo normalmente sem abrir nenhum modal
       e.preventDefault();
       e.stopPropagation();
+    } else if (key === 404 || key === 458 || key === 71) {
+      // Verde (ou GUIDE): o guia de programação completo
+      e.preventDefault();
+      e.stopPropagation();
+      State.setScreen('guide');
     } else if (key === 10182 || key === 403 || key === 82) {
       // Tecla Vermelha ou Menu de Ferramentas Samsung: abre seletor manual sob demanda explícita
       e.preventDefault();

@@ -290,9 +290,12 @@ export class Api {
   // ===== EPG (GUIA DE PROGRAMAÇÃO) =====
   // guia.txt diz o código de cada canal no meuguia.tv; a página do canal traz a programação.
   private static epgCarregando = false;
+  private static epgAtualizadoEm = 0;
 
   static async fetchEPG(): Promise<void> {
     if (this.epgCarregando) return;
+    // Guia já lido há menos de 2 h: não baixa de novo (o servidor refaz às 11h e às 18h).
+    if (this.epgCache.size > 0 && Date.now() - this.epgAtualizadoEm < 2 * 3600000) return;
     this.epgCarregando = true;
     try {
       const res = await fetch(`${this.getBaseUrl('canais')}guia.txt`);
@@ -323,6 +326,7 @@ export class Api {
               const lista = converter(central.m[l[2]]);
               if (lista.length) this.epgCache.set(l[1], lista);
             }
+            this.epgAtualizadoEm = Date.now();
             return;
           }
         }
@@ -337,6 +341,7 @@ export class Api {
       };
       // Poucas ao mesmo tempo: TV fraca e rede de casa.
       await Promise.all([trabalhador(), trabalhador(), trabalhador(), trabalhador()]);
+      this.epgAtualizadoEm = Date.now();
     } catch { /* sem guia */ } finally {
       this.epgCarregando = false;
     }
@@ -367,6 +372,22 @@ export class Api {
       const stop = i + 1 < lista.length ? lista[i + 1].start : p.start + 3600000;
       return { title: p.title, start: new Date(p.start), stop: new Date(stop), durationMin: Math.round((stop - p.start) / 60000), remainingMin: 0, progress: 0 };
     }).filter((p) => p.stop.getTime() > agora).slice(0, 12);
+  }
+
+  /** Programação do canal daqui para a frente (a que está no ar e as seguintes). */
+  static getGrade(channelName: string): EpgProgram[] {
+    const list = this.epgCache.get(channelName) ?? this.epgCache.get(normalise(channelName));
+    if (!list || list.length === 0) return [];
+    const now = Date.now();
+    return [...list]
+      .sort((a, b) => a.start.getTime() - b.start.getTime())
+      .filter((p) => p.stop.getTime() > now)
+      .map((p) => {
+        const total = p.stop.getTime() - p.start.getTime();
+        p.remainingMin = Math.max(0, Math.round((p.stop.getTime() - now) / 60000));
+        p.progress = Math.max(0, Math.min(1, (now - p.start.getTime()) / total));
+        return p;
+      });
   }
 
   static getNowNext(channelName: string): { current?: EpgProgram; next?: EpgProgram } {

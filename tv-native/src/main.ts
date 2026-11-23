@@ -197,6 +197,8 @@ class SaimoTVApp {
         State.emit('perfis-voltar');
       } else if (current === 'ficha') {
         State.setScreen(State.previousScreen === 'player' ? 'home' : State.previousScreen);
+      } else if (current === 'guide') {
+        State.setScreen('live');
       } else if (current === 'ator') {
         State.setScreen('ficha');
       } else if (current === 'player') {

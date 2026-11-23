@@ -176,3 +176,5 @@ Código aberto sob a licença MIT (arquivo `LICENSE`). Bibliotecas de terceiros 
 Os pacotes `.ipk` (LG) e `.wgt` (Samsung) vêm de `tv-native/` (não do bundle do site): `scripts/montar_tv.sh`. Têm Ajustes por grupos, Acessibilidade com prévia (o menu do topo cresce junto), Saimo Connect (o celular abre a TV e a controla), Conta Saimo com "Esqueci a senha" (código por e-mail) e perfis.
 
 Ficha das TVs (`FichaScreen`): dados do TMDB (duração, direção, classificação...), temporadas numa fileira que rola, episódios com a imagem do próprio episódio e elenco que abre a tela do ator (`AtorScreen`: o que a pessoa tem no seu acervo, cruzando pelo id do TMDB).
+
+Guia de programação nas TVs: no Ao vivo, o botão verde (ou GUIDE) abre o guia completo do canal (o que está no ar e tudo o que vem depois, com rolagem); o guia é lido de `epg-leve.json` e só é baixado de novo depois de 2 h.

@@ -7,6 +7,7 @@
 import { Channel, Api } from '../core/Api';
 import { SpatialNav } from '../core/SpatialNav';
 import { Storage } from '../core/Storage';
+import { State } from '../core/State';
 
 const LINHAS = 3;
 const ORDEM = ['TV Aberta', 'Filmes e Séries', 'Esportes', 'Notícias', 'Infantil', 'Documentários', 'Pluto TV', '24 Horas', 'Variedades'];
@@ -46,7 +47,7 @@ export class ChannelDrawer {
       <div class="tv-painel-conta"><b id="pc-conta"></b><span id="pc-total"></span></div>
       <div class="tv-painel-chips"><div id="pc-chips"></div></div>
       <div class="tv-painel-lista" id="pc-lista"></div>
-      <div class="tv-painel-dica">OK assiste  ·  esquerda: seções  ·  direita: fontes  ·  vermelha: favorita</div>
+      <div class="tv-painel-dica">OK assiste  ·  esquerda: seções  ·  direita: fontes  ·  vermelha: favorita  ·  verde: guia</div>
       <div class="tv-painel-info" id="pc-info"></div>
     `;
     this.chipsEl = this.element.querySelector('#pc-chips')!;
@@ -173,6 +174,13 @@ export class ChannelDrawer {
       if (c) Storage.toggleFavoriteChannel(c.name);
       e.preventDefault();
       e.stopImmediatePropagation();
+      return;
+    }
+    // Verde (ou GUIDE): o guia de programação completo.
+    if (k === 404 || k === 458) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      State.setScreen('guide');
       return;
     }
     if (![37, 38, 39, 40, 13].includes(k)) return;
