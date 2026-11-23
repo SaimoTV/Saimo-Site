@@ -32,7 +32,7 @@ import { Avatar } from '../perfis/EscolhaPerfil';
 import { ControleParental } from '../perfis/ControleParental';
 import { PedirCodigo } from '../perfis/PedirCodigo';
 import { pedeCodigo } from '../perfis/perfis';
-import { AparenciaAjustes, EstatisticasPessoais, LegendasAjustes, NotificacoesAjustes } from './AjustesExtras';
+import { AcessibilidadeAjustes, AparenciaAjustes, EstatisticasPessoais, LegendasAjustes, NotificacoesAjustes } from './AjustesExtras';
 import { brilho as brilhoGuardado, definirBrilho, aoMudarBrilho } from '../plataforma/brilho';
 
 export type AoIniciar = 'inicio' | 'ultimo';
@@ -356,6 +356,7 @@ function AjustesConteudo() {
           </>)}
           {g.id === 'legendas' && <LegendasAjustes />}
           {g.id === 'aparencia' && (<>
+            <AcessibilidadeAjustes />
             <AparenciaAjustes />
                 <section className="ajustes-bloco">
                   <h2>Tela</h2>

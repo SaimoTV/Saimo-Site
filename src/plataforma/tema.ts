@@ -32,16 +32,37 @@ export const FUNDOS: { id: Fundo; nome: string; cor: string }[] = [
 export type Animacoes = 'suaves' | 'reduzidas';
 
 /** Acessibilidade: o conteúdo das telas maior (o menu do topo fica igual, para sempre caber). */
-export type Tamanho = 'normal' | 'grande' | 'muito-grande';
+export type Tamanho = 'normal' | 'grande' | 'muito-grande' | 'enorme';
 export const TAMANHOS: { id: Tamanho; nome: string }[] = [
   { id: 'normal', nome: 'Normal' },
   { id: 'grande', nome: 'Grande' },
   { id: 'muito-grande', nome: 'Muito grande' },
+  { id: 'enorme', nome: 'Enorme' },
 ];
 
-export interface Tema { destaque: string; fundo: Fundo; animacoes: Animacoes; tamanho: Tamanho }
+/** Acessibilidade: cada uma liga um `data-*` no <html> que o CSS (index.css) usa. */
+export interface Acessibilidade {
+  tamanho: Tamanho;
+  negrito: boolean;
+  contraste: boolean;
+  focoForte: boolean;
+  espacado: boolean;
+}
 
-const PADRAO: Tema = { destaque: 'oceano', fundo: 'escuro', animacoes: 'suaves', tamanho: 'normal' };
+export interface Tema extends Acessibilidade { destaque: string; fundo: Fundo; animacoes: Animacoes }
+
+const PADRAO: Tema = {
+  destaque: 'oceano', fundo: 'escuro', animacoes: 'suaves',
+  tamanho: 'normal', negrito: false, contraste: false, focoForte: false, espacado: false,
+};
+
+/** Escreve as escolhas de acessibilidade como atributos (no <html> ou numa prévia). */
+export function marcarAcessibilidade(el: HTMLElement, a: Acessibilidade): void {
+  if (a.tamanho === 'normal') delete el.dataset.tamanho; else el.dataset.tamanho = a.tamanho;
+  for (const [chave, ligado] of [['negrito', a.negrito], ['contraste', a.contraste], ['focoForte', a.focoForte], ['espacado', a.espacado]] as const) {
+    if (ligado) el.dataset[chave] = ''; else delete el.dataset[chave];
+  }
+}
 
 export function temaAtual(): Tema {
   try {
@@ -51,6 +72,10 @@ export function temaAtual(): Tema {
       fundo: FUNDOS.some((f) => f.id === t.fundo) ? t.fundo : PADRAO.fundo,
       animacoes: t.animacoes === 'reduzidas' ? 'reduzidas' : 'suaves',
       tamanho: TAMANHOS.some((x) => x.id === t.tamanho) ? t.tamanho : PADRAO.tamanho,
+      negrito: t.negrito === true,
+      contraste: t.contraste === true,
+      focoForte: t.focoForte === true,
+      espacado: t.espacado === true,
     };
   } catch {
     return PADRAO;
@@ -84,7 +109,7 @@ export function aplicarTema(): void {
   }
   if (t.fundo !== 'escuro') raiz.style.setProperty('--saimo-fundo', FUNDOS.find((f) => f.id === t.fundo)!.cor);
   raiz.dataset.animacoes = t.animacoes;
-  if (t.tamanho === 'normal') delete raiz.dataset.tamanho; else raiz.dataset.tamanho = t.tamanho;
+  marcarAcessibilidade(raiz, t);
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', t.fundo === 'escuro' ? '#0a0a0a' : FUNDOS.find((f) => f.id === t.fundo)!.cor);
 }

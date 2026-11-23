@@ -199,10 +199,42 @@ video.tela-4x3 {
 video.tela-16x9 { aspect-ratio: 16 / 9; }
 video.tela-4x3 { aspect-ratio: 4 / 3; }
 
-/* Acessibilidade (Ajustes > Aparência e acessibilidade > Tamanho do texto):
-   o conteúdo das telas cresce e se rearruma; o menu do topo e o player ficam
-   como estão, para sempre caberem. */
+/* Acessibilidade (Ajustes > Aparência e acessibilidade). Cada regra vale no
+   app inteiro (<html data-…>) e também na prévia dos Ajustes (.previa-acess
+   data-…), para a pessoa ver antes de aplicar. O menu do topo e o player não
+   crescem, para sempre caberem. */
 html[data-tamanho='grande'] .tela > :not(.barra-topo),
-html[data-tamanho='grande'] .vod-catalog > :not(.vod-fundo-destaque) { zoom: 1.15; }
+html[data-tamanho='grande'] .vod-catalog > :not(.vod-fundo-destaque),
+.previa-acess[data-tamanho='grande'] .previa-miolo { zoom: 1.15; }
 html[data-tamanho='muito-grande'] .tela > :not(.barra-topo),
-html[data-tamanho='muito-grande'] .vod-catalog > :not(.vod-fundo-destaque) { zoom: 1.3; }
+html[data-tamanho='muito-grande'] .vod-catalog > :not(.vod-fundo-destaque),
+.previa-acess[data-tamanho='muito-grande'] .previa-miolo { zoom: 1.3; }
+html[data-tamanho='enorme'] .tela > :not(.barra-topo),
+html[data-tamanho='enorme'] .vod-catalog > :not(.vod-fundo-destaque),
+.previa-acess[data-tamanho='enorme'] .previa-miolo { zoom: 1.5; }
+
+/* Texto em negrito: o texto corrido fica mais grosso (títulos já são). */
+html[data-negrito] :is(p, span, small, label, li, dd, dt, a, button, input, td),
+.previa-acess[data-negrito] :is(p, span, small, label, li, a, button) { font-weight: 650 !important; }
+
+/* Alto contraste: texto branco puro, fundos de cartão mais escuros, bordas visíveis. */
+html[data-contraste] :is(p, span, small, label, li, dd, dt, td, h1, h2, h3, h4),
+.previa-acess[data-contraste] :is(p, span, small, label, li, h1, h2, h3) { color: #fff !important; text-shadow: 0 1px 2px #000; }
+html[data-contraste] :is(.ajustes-bloco, .ajustes-grupo-botao, .vod-card-poster, .tela-vazio, button),
+.previa-acess[data-contraste] :is(.previa-cartao, button) { border-color: rgba(255, 255, 255, 0.75) !important; }
+html[data-contraste] :is(.ajustes-bloco, .ajustes-grupo-botao),
+.previa-acess[data-contraste] .previa-cartao { background: #000 !important; }
+html[data-contraste] .vod-fundo-destaque img { opacity: 0.25 !important; }
+
+/* Foco reforçado: onde o controle está fica impossível de perder. */
+html[data-foco-forte] :focus-visible,
+html[data-foco-forte] :focus,
+.previa-acess[data-foco-forte] .previa-focado {
+  outline: 5px solid #ffd400 !important; outline-offset: 4px !important; box-shadow: 0 0 0 9px rgba(0, 0, 0, 0.85) !important;
+}
+
+/* Mais espaço entre letras, palavras e linhas (ajuda na dislexia e na vista cansada). */
+html[data-espacado] :is(p, span, small, label, li, dd, a, button, h1, h2, h3),
+.previa-acess[data-espacado] :is(p, span, small, label, li, a, button, h1, h2, h3) {
+  letter-spacing: 0.04em !important; word-spacing: 0.12em !important; line-height: 1.65 !important;
+}

@@ -1,10 +1,10 @@
 /**
  * Seções dos Ajustes: estatísticas pessoais, aparência (tema) e legendas.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { definirNotificarNoSistema, notificarNoSistema } from '../services/novosEpisodios';
 import { aoMudarAssistidos, duracaoLegivel, estatisticas, limparAssistidos } from '../services/assistidos';
-import { DESTAQUES, FUNDOS, TAMANHOS, aoMudarTema, definirTema, temaAtual, type Animacoes, type Fundo } from '../plataforma/tema';
+import { DESTAQUES, FUNDOS, TAMANHOS, aoMudarTema, definirTema, marcarAcessibilidade, temaAtual, type Acessibilidade, type Animacoes, type Fundo } from '../plataforma/tema';
 import {
   OPCOES, aoMudarEstiloDeLegenda, definirEstiloDeLegenda, estiloAtual, cssDaLegenda, type EstiloDeLegenda,
 } from '../plataforma/legendaEstilo';
@@ -40,20 +40,81 @@ export function EstatisticasPessoais() {
   );
 }
 
+const OPCOES_ACESS: { chave: 'negrito' | 'contraste' | 'focoForte' | 'espacado'; nome: string; sobre: string }[] = [
+  { chave: 'negrito', nome: 'Texto em negrito', sobre: 'Letras mais grossas, mais fáceis de ler de longe' },
+  { chave: 'contraste', nome: 'Alto contraste', sobre: 'Texto branco puro, fundos mais escuros e bordas visíveis' },
+  { chave: 'focoForte', nome: 'Foco reforçado', sobre: 'Contorno amarelo grosso onde o controle está' },
+  { chave: 'espacado', nome: 'Mais espaço no texto', sobre: 'Mais espaço entre letras, palavras e linhas' },
+];
+
+const ACESS_PADRAO: Acessibilidade = { tamanho: 'normal', negrito: false, contraste: false, focoForte: false, espacado: false };
+
+function acessDe(t: Acessibilidade): Acessibilidade {
+  return { tamanho: t.tamanho, negrito: t.negrito, contraste: t.contraste, focoForte: t.focoForte, espacado: t.espacado };
+}
+
+/**
+ * Acessibilidade com prévia: as escolhas aparecem primeiro no quadro de
+ * exemplo; só "Aplicar" leva para o app inteiro. Vale neste aparelho, para
+ * todos os perfis.
+ */
+export function AcessibilidadeAjustes() {
+  const [aplicado, setAplicado] = useState(() => acessDe(temaAtual()));
+  const [rascunho, setRascunho] = useState(aplicado);
+  const previa = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (previa.current) marcarAcessibilidade(previa.current, rascunho); }, [rascunho]);
+  const mudou = JSON.stringify(rascunho) !== JSON.stringify(aplicado);
+  const padrao = JSON.stringify(rascunho) === JSON.stringify(ACESS_PADRAO);
+  const aplicar = () => { definirTema(rascunho); setAplicado(rascunho); };
+  return (
+    <section className="ajustes-bloco" id="acessibilidade">
+      <h2>Acessibilidade</h2>
+      <p>Escolha e veja no exemplo abaixo como fica. Nada muda no app até você tocar em Aplicar.</p>
+      <p>Tamanho do texto e das telas</p>
+      <div className="pilulas" role="radiogroup" aria-label="Tamanho do texto">
+        {TAMANHOS.map((x) => (
+          <button key={x.id} role="radio" aria-checked={rascunho.tamanho === x.id} className={rascunho.tamanho === x.id ? 'on' : ''}
+            onClick={() => setRascunho((r) => ({ ...r, tamanho: x.id }))}>{x.nome}</button>
+        ))}
+      </div>
+      <div className="acess-opcoes">
+        {OPCOES_ACESS.map((o) => (
+          <button key={o.chave} type="button" role="switch" aria-checked={rascunho[o.chave]}
+            className={`acess-opcao${rascunho[o.chave] ? ' on' : ''}`}
+            onClick={() => setRascunho((r) => ({ ...r, [o.chave]: !r[o.chave] }))}>
+            <span className="acess-chave" aria-hidden="true"><span /></span>
+            <span><strong>{o.nome}</strong><small>{o.sobre}</small></span>
+          </button>
+        ))}
+      </div>
+      <p>Prévia</p>
+      <div className="previa-acess" ref={previa} aria-label="Prévia de como o app vai ficar">
+        <div className="previa-miolo">
+          <h3>Filmes em alta</h3>
+          <div className="previa-cartoes">
+            <div className="previa-cartao previa-focado"><span className="previa-capa" /><span>A Odisseia</span><small>2026 · Aventura</small></div>
+            <div className="previa-cartao"><span className="previa-capa" /><span>Série do domingo</span><small>T2 · E5</small></div>
+          </div>
+          <p>OK abre · segure OK para favoritar · VOLTAR vai ao menu</p>
+        </div>
+      </div>
+      <div className="ajustes-botoes">
+        <button type="button" className="ajustes-botao destaque" disabled={!mudou} onClick={aplicar}>Aplicar</button>
+        <button type="button" className="ajustes-botao" disabled={!mudou} onClick={() => setRascunho(aplicado)}>Desfazer</button>
+        <button type="button" className="ajustes-botao" disabled={padrao} onClick={() => setRascunho(ACESS_PADRAO)}>Voltar ao padrão</button>
+      </div>
+      <p className="ajustes-dica">Animações: em Aparência, “Reduzidas” tira o movimento das telas. Legendas: no grupo Legendas.</p>
+    </section>
+  );
+}
+
 export function AparenciaAjustes() {
   const [t, setT] = useState(temaAtual);
   useEffect(() => aoMudarTema(() => setT(temaAtual())), []);
   return (
     <section className="ajustes-bloco" id="aparencia">
       <h2>Aparência</h2>
-      <p>Tamanho, cor de destaque, fundo e animações. Vale neste aparelho, para todos os perfis.</p>
-      <p>Tamanho do texto e das telas</p>
-      <div className="pilulas" role="radiogroup" aria-label="Tamanho do texto">
-        {TAMANHOS.map((x) => (
-          <button key={x.id} role="radio" aria-checked={t.tamanho === x.id} className={t.tamanho === x.id ? 'on' : ''}
-            onClick={() => definirTema({ tamanho: x.id })}>{x.nome}</button>
-        ))}
-      </div>
+      <p>Cor de destaque, fundo e animações. Vale neste aparelho, para todos os perfis.</p>
       <p>Cor de destaque</p>
       <div className="tema-amostras" role="radiogroup" aria-label="Cor de destaque">
         {DESTAQUES.map((d) => (

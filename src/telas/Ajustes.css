@@ -95,3 +95,26 @@
 }
 .ajustes-voltar:hover, .ajustes-voltar:focus-visible { background: rgba(255, 255, 255, 0.18); }
 .ajustes-grupo-botao.destaque { border-color: var(--saimo-acento, #4fe3d0); }
+
+/* Acessibilidade: chaves e prévia */
+.acess-opcoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin: 14px 0; }
+.acess-opcao {
+  display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 14px; text-align: left; cursor: pointer;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); color: inherit; font: inherit;
+}
+.acess-opcao strong { display: block; font-size: 0.95rem; }
+.acess-opcao small { display: block; margin-top: 2px; font-size: 0.8rem; color: rgba(255, 255, 255, 0.6); }
+.acess-chave { flex: 0 0 auto; width: 42px; height: 24px; border-radius: 12px; background: rgba(255, 255, 255, 0.2); position: relative; transition: background 0.15s; }
+.acess-chave span { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: left 0.15s; }
+.acess-opcao.on .acess-chave { background: var(--saimo-acento, #4fe3d0); }
+.acess-opcao.on .acess-chave span { left: 21px; }
+.previa-acess { border-radius: 16px; border: 1px dashed rgba(255, 255, 255, 0.3); background: rgba(0, 0, 0, 0.35); padding: 16px; overflow: hidden; }
+.previa-miolo h3 { margin: 0 0 10px; font-size: 1.05rem; }
+.previa-miolo p { margin: 12px 0 0 !important; font-size: 0.85rem; color: rgba(255, 255, 255, 0.6); }
+.previa-cartoes { display: flex; gap: 14px; }
+.previa-cartao { display: flex; flex-direction: column; gap: 4px; width: 150px; padding: 6px; border-radius: 12px; border: 1px solid transparent; }
+.previa-cartao > span:not(.previa-capa) { font-size: 0.9rem; }
+.previa-cartao small { font-size: 0.75rem; color: rgba(255, 255, 255, 0.6); }
+.previa-capa { display: block; height: 84px; border-radius: 8px; background: linear-gradient(135deg, var(--saimo-roxo, #8b5cf6), var(--saimo-acento, #4fe3d0)); }
+.previa-focado { outline: 3px solid var(--saimo-acento, #4fe3d0); outline-offset: 2px; }
+.ajustes-botao:disabled { opacity: 0.4; cursor: default; }
