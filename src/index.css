@@ -201,8 +201,7 @@ video.tela-4x3 { aspect-ratio: 4 / 3; }
 
 /* Acessibilidade (Ajustes > Aparência e acessibilidade). Cada regra vale no
    app inteiro (<html data-…>) e também na prévia dos Ajustes (.previa-acess
-   data-…), para a pessoa ver antes de aplicar. O menu do topo e o player não
-   crescem, para sempre caberem. */
+   data-…), para a pessoa ver antes de aplicar. O player não cresce, para sempre caber. */
 html[data-tamanho='grande'] .tela > :not(.barra-topo),
 html[data-tamanho='grande'] .vod-catalog > :not(.vod-fundo-destaque),
 .previa-acess[data-tamanho='grande'] .previa-miolo { zoom: 1.15; }
@@ -212,6 +211,24 @@ html[data-tamanho='muito-grande'] .vod-catalog > :not(.vod-fundo-destaque),
 html[data-tamanho='enorme'] .tela > :not(.barra-topo),
 html[data-tamanho='enorme'] .vod-catalog > :not(.vod-fundo-destaque),
 .previa-acess[data-tamanho='enorme'] .previa-miolo { zoom: 1.5; }
+
+/* O menu do topo cresce junto (zoom) enquanto a janela comporta: ele já ocupa ~1220 px,
+   então em janelas menores cresce menos (abaixo de 1440 px fica como está). */
+@media (min-width: 1440px) {
+html[data-tamanho='grande'] .barra-topo { zoom: 1.05; width: min(1240px, calc((100vw - 32px) / 1.05)); }
+html[data-tamanho='muito-grande'] .barra-topo { zoom: 1.1; width: min(1240px, calc((100vw - 32px) / 1.1)); }
+html[data-tamanho='enorme'] .barra-topo { zoom: 1.15; width: min(1240px, calc((100vw - 32px) / 1.15)); }
+}
+@media (min-width: 1600px) {
+html[data-tamanho='grande'] .barra-topo { zoom: 1.1; width: min(1240px, calc((100vw - 32px) / 1.1)); }
+html[data-tamanho='muito-grande'] .barra-topo { zoom: 1.2; width: min(1240px, calc((100vw - 32px) / 1.2)); }
+html[data-tamanho='enorme'] .barra-topo { zoom: 1.25; width: min(1240px, calc((100vw - 32px) / 1.25)); }
+}
+@media (min-width: 1900px) {
+html[data-tamanho='grande'] .barra-topo { zoom: 1.15; width: min(1240px, calc((100vw - 32px) / 1.15)); }
+html[data-tamanho='muito-grande'] .barra-topo { zoom: 1.3; width: min(1240px, calc((100vw - 32px) / 1.3)); }
+html[data-tamanho='enorme'] .barra-topo { zoom: 1.45; width: min(1240px, calc((100vw - 32px) / 1.45)); }
+}
 
 /* Texto em negrito: o texto corrido fica mais grosso (títulos já são). */
 html[data-negrito] :is(p, span, small, label, li, dd, dt, a, button, input, td),
