@@ -23,6 +23,7 @@ export class FichaScreen {
   private titleEl: HTMLElement;
   private badgesContainer: HTMLElement;
   private synopsisEl: HTMLElement;
+  private extrasEl: HTMLElement;
   private actionsContainer: HTMLElement;
   private seasonsContainer: HTMLElement;
   private episodesRail: Rail;
@@ -66,12 +67,16 @@ export class FichaScreen {
     this.actionsContainer = document.createElement('div');
     this.actionsContainer.className = 'tv-ficha-actions';
 
+    this.extrasEl = document.createElement('div');
+    this.extrasEl.className = 'tv-ficha-extras';
+
     const mainInfo = document.createElement('div');
     mainInfo.className = 'tv-ficha-main';
     mainInfo.appendChild(this.titleEl);
     mainInfo.appendChild(this.badgesContainer);
     mainInfo.appendChild(this.synopsisEl);
     mainInfo.appendChild(this.actionsContainer);
+    mainInfo.appendChild(this.extrasEl);
 
     topSection.appendChild(mainInfo);
     content.appendChild(topSection);
@@ -84,7 +89,8 @@ export class FichaScreen {
     this.seasonsContainer.style.margin = '20px 0 10px';
     content.appendChild(this.seasonsContainer);
 
-    this.episodesRail = new Rail('Episódios', true);
+    this.episodesRail = new Rail('Episódios', false);
+    this.episodesRail.getElement().classList.add('tv-rail-eps');
     this.episodesRail.getElement().style.display = 'none';
     content.appendChild(this.episodesRail.getElement());
 
@@ -157,7 +163,26 @@ export class FichaScreen {
     }
 
     this.renderBadges(item);
+    this.renderExtras(item);
     this.renderActionButtons(item);
+  }
+
+  /** Lista de dados do título (direção, duração, classificação, países...). */
+  private renderExtras(item: VODItem) {
+    this.extrasEl.innerHTML = '';
+    const linhas = (item.extras || []).slice();
+    if (item.tagline) linhas.unshift({ rotulo: '', valor: `“${item.tagline}”` });
+    for (const l of linhas) {
+      const d = document.createElement('div');
+      d.className = 'tv-ficha-extra' + (l.rotulo ? '' : ' frase');
+      if (l.rotulo) {
+        const r = document.createElement('b');
+        r.textContent = l.rotulo;
+        d.appendChild(r);
+      }
+      d.appendChild(document.createTextNode(l.valor));
+      this.extrasEl.appendChild(d);
+    }
   }
 
   private renderBadges(item: VODItem) {
@@ -193,6 +218,7 @@ export class FichaScreen {
       this.synopsisEl.textContent = item.overview;
     }
     this.renderBadges(item);
+    this.renderExtras(item);
 
     // 2. Resolve fontes reais de reprodução
     if (!item.isSeries) {
@@ -216,6 +242,8 @@ export class FichaScreen {
       if ((!item.seasons || item.seasons.length === 0) && Addons.hasEnabled()) {
         await Addons.resolveSeriesEpisodes(item);
       }
+      if (this.currentItem !== item) return;
+      await Api.fetchTMDBSeason(item, this.currentSeasonIdx);
       if (this.currentItem !== item) return;
       this.renderSeasonsAndEpisodes(item);
     }
@@ -333,6 +361,13 @@ export class FichaScreen {
         this.renderSeasonsAndEpisodes(item);
         // As abas são refeitas: o foco volta para a aba escolhida.
         SpatialNav.focus(this.seasonsContainer.querySelector<HTMLElement>(`#season-tab-${sIdx}`));
+        // As imagens e sinopses desta temporada chegam do TMDB e a lista é refeita.
+        void Api.fetchTMDBSeason(item, sIdx).then((novo) => {
+          if (!novo || this.currentItem !== item || this.currentSeasonIdx !== sIdx) return;
+          const f = SpatialNav.getCurrent()?.id;
+          this.renderSeasonsAndEpisodes(item);
+          if (f) { const el = document.getElementById(f); if (el) SpatialNav.focus(el); }
+        });
       });
 
       this.seasonsContainer.appendChild(tab);
@@ -342,8 +377,8 @@ export class FichaScreen {
     const episodeCards: CardModel[] = (currentSeason?.episodes || []).map((ep, epIdx) => ({
       id: `ep_${currentSeason.seasonNumber}_${ep.episodeNumber}`,
       title: `${ep.episodeNumber}. ${ep.title}`,
-      subtitle: ep.overview || `Temporada ${currentSeason.seasonNumber}`,
-      image: ep.thumb || item.poster,
+      subtitle: [ep.duracao, ep.data].filter(Boolean).join(' · ') || ep.overview || `Temporada ${currentSeason.seasonNumber}`,
+      image: ep.thumb || item.backdrop || item.poster,
       marcado: ehAssistido(item.title, currentSeason.seasonNumber, ep.episodeNumber),
       onMarcar: () => {
         if (ehAssistido(item.title, currentSeason.seasonNumber, ep.episodeNumber)) desmarcarAssistido(item.title, currentSeason.seasonNumber, ep.episodeNumber);

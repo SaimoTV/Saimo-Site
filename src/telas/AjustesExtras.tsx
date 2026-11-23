@@ -40,17 +40,19 @@ export function EstatisticasPessoais() {
   );
 }
 
-const OPCOES_ACESS: { chave: 'negrito' | 'contraste' | 'focoForte' | 'espacado'; nome: string; sobre: string }[] = [
+const OPCOES_ACESS: { chave: 'negrito' | 'contraste' | 'focoForte' | 'espacado' | 'legivel' | 'destacar'; nome: string; sobre: string }[] = [
   { chave: 'negrito', nome: 'Texto em negrito', sobre: 'Letras mais grossas, mais fáceis de ler de longe' },
   { chave: 'contraste', nome: 'Alto contraste', sobre: 'Texto branco puro, fundos mais escuros e bordas visíveis' },
   { chave: 'focoForte', nome: 'Foco reforçado', sobre: 'Contorno amarelo grosso onde o controle está' },
   { chave: 'espacado', nome: 'Mais espaço no texto', sobre: 'Mais espaço entre letras, palavras e linhas' },
+  { chave: 'legivel', nome: 'Fonte mais legível', sobre: 'Letras abertas e simples, sem estilo, como Verdana' },
+  { chave: 'destacar', nome: 'Destacar botões e links', sobre: 'Links sublinhados e botões com borda, para achar o que se clica' },
 ];
 
-const ACESS_PADRAO: Acessibilidade = { tamanho: 'normal', negrito: false, contraste: false, focoForte: false, espacado: false };
+const ACESS_PADRAO: Acessibilidade = { tamanho: 'normal', negrito: false, contraste: false, focoForte: false, espacado: false, legivel: false, destacar: false };
 
 function acessDe(t: Acessibilidade): Acessibilidade {
-  return { tamanho: t.tamanho, negrito: t.negrito, contraste: t.contraste, focoForte: t.focoForte, espacado: t.espacado };
+  return { tamanho: t.tamanho, negrito: t.negrito, contraste: t.contraste, focoForte: t.focoForte, espacado: t.espacado, legivel: t.legivel, destacar: t.destacar };
 }
 
 /**

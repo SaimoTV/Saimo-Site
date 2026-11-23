@@ -78,6 +78,9 @@ export interface VODItem {
   backdrop?: string;
   trailer?: string;
   cast?: { name: string; character: string; photo?: string }[];
+  /** Dados extras do TMDB para a ficha. */
+  extras?: { rotulo: string; valor: string }[];
+  tagline?: string;
   seasons?: {
     seasonNumber: number;
     episodes: {
@@ -86,6 +89,9 @@ export interface VODItem {
       sources: string[];
       thumb?: string;
       overview?: string;
+      duracao?: string;
+      data?: string;
+      temaDoTmdb?: boolean;
     }[];
   }[];
 }
@@ -916,7 +922,7 @@ export class Api {
 
     try {
       const type = item.isSeries ? 'tv' : 'movie';
-      const url = `${this.TMDB_BASE}/${type}/${item.tmdbId}?api_key=${this.TMDB_KEY}&language=pt-BR&append_to_response=credits,external_ids`;
+      const url = `${this.TMDB_BASE}/${type}/${item.tmdbId}?api_key=${this.TMDB_KEY}&language=pt-BR&append_to_response=credits,external_ids,${item.isSeries ? 'content_ratings' : 'release_dates'}`;
       const res = await fetch(url);
       if (!res.ok) return;
       const data = await res.json();
@@ -939,6 +945,61 @@ export class Api {
         item.genres = data.genres.map((g: any) => g.name);
       }
 
+      // Dados extras para a ficha: duração, país, direção, classificação...
+      const extras: { rotulo: string; valor: string }[] = [];
+      const add = (rotulo: string, valor: unknown) => {
+        const v = Array.isArray(valor) ? valor.filter(Boolean).join(', ') : valor == null ? '' : String(valor);
+        if (v.trim()) extras.push({ rotulo, valor: v.trim() });
+      };
+      const dataBr = (iso?: string) => {
+        const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+        return m ? `${m[3]}/${m[2]}/${m[1]}` : '';
+      };
+      const classif = (): string => {
+        try {
+          if (item.isSeries) {
+            const l = data.content_ratings?.results || [];
+            return (l.find((r: any) => r.iso_3166_1 === 'BR') || {}).rating || '';
+          }
+          const l = data.release_dates?.results || [];
+          const br = l.find((r: any) => r.iso_3166_1 === 'BR');
+          const c = (br?.release_dates || []).map((r: any) => r.certification).find((x: string) => x);
+          return c || '';
+        } catch { return ''; }
+      };
+      const dir = (data.credits?.crew || []).filter((c: any) => c.job === 'Director').map((c: any) => c.name);
+      const roteiro = (data.credits?.crew || []).filter((c: any) => ['Writer', 'Screenplay', 'Story'].indexOf(c.job) >= 0).map((c: any) => c.name);
+      if (data.tagline) item.tagline = data.tagline;
+      if (!item.isSeries) {
+        if (data.runtime) { item.duration = `${Math.floor(data.runtime / 60)}h ${data.runtime % 60}min`; add('Duração', item.duration); }
+        add('Lançamento', dataBr(data.release_date));
+        add('Direção', dir.slice(0, 3));
+        add('Roteiro', roteiro.filter((n: string, i: number, a: string[]) => a.indexOf(n) === i).slice(0, 3));
+      } else {
+        add('Criação', (data.created_by || []).map((c: any) => c.name).slice(0, 3));
+        add('Temporadas', data.number_of_seasons ? `${data.number_of_seasons} (${data.number_of_episodes || '?'} episódios)` : '');
+        const rt = (data.episode_run_time || [])[0];
+        if (rt) add('Duração do episódio', `${rt} min`);
+        add('Estreia', dataBr(data.first_air_date));
+        add('Situação', ({ 'Returning Series': 'Em exibição', Ended: 'Encerrada', Canceled: 'Cancelada', 'In Production': 'Em produção' } as any)[data.status] || data.status);
+        add('Emissora', (data.networks || []).map((n: any) => n.name).slice(0, 3));
+      }
+      const cl = classif();
+      add('Classificação', /^\d+$/.test(cl) ? `${cl} anos` : cl === 'L' ? 'Livre' : cl);
+      // Nomes em português quando a TV sabe (Intl.DisplayNames); senão, o do TMDB.
+      const nomeDe = (tipo: 'region' | 'language', cod: string, padrao: string): string => {
+        try {
+          const DN = (Intl as any).DisplayNames;
+          return DN ? new DN(['pt-BR'], { type: tipo }).of(cod) || padrao : padrao;
+        } catch { return padrao; }
+      };
+      add('Países', (data.production_countries || []).map((c: any) => nomeDe('region', c.iso_3166_1, c.name)).slice(0, 3));
+      add('Idioma original', data.original_language ? nomeDe('language', data.original_language, String(data.original_language).toUpperCase()) : '');
+      if (data.original_title && data.original_title !== item.title) add('Título original', data.original_title);
+      else if (data.original_name && data.original_name !== item.title) add('Título original', data.original_name);
+      add('Estúdios', (data.production_companies || []).map((c: any) => c.name).slice(0, 3));
+      item.extras = extras;
+
       if (data.credits?.cast && Array.isArray(data.credits.cast)) {
         item.cast = data.credits.cast.slice(0, 15).map((c: any) => ({
           name: c.name,
@@ -947,6 +1008,33 @@ export class Api {
         }));
       }
     } catch (e) {}
+  }
+
+  /** Imagens, títulos e sinopses reais dos episódios de uma temporada (TMDB). */
+  static async fetchTMDBSeason(item: VODItem, seasonIdx: number): Promise<boolean> {
+    const season = item.seasons?.[seasonIdx];
+    if (!item.tmdbId || !season) return false;
+    if (season.episodes.some((e) => e.temaDoTmdb)) return false;
+    try {
+      const url = `${this.TMDB_BASE}/tv/${item.tmdbId}/season/${season.seasonNumber}?api_key=${this.TMDB_KEY}&language=pt-BR`;
+      const res = await fetch(url);
+      if (!res.ok) return false;
+      const data = await res.json();
+      const porNumero = new Map<number, any>();
+      for (const e of data.episodes || []) porNumero.set(e.episode_number, e);
+      for (const ep of season.episodes) {
+        const t = porNumero.get(ep.episodeNumber);
+        ep.temaDoTmdb = true;
+        if (!t) continue;
+        if (t.still_path) ep.thumb = `https://image.tmdb.org/t/p/w300${t.still_path}`;
+        if (t.overview) ep.overview = t.overview;
+        if (t.runtime) ep.duracao = `${t.runtime} min`;
+        if (t.air_date) { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(t.air_date); if (m) ep.data = `${m[3]}/${m[2]}/${m[1]}`; }
+        // Título genérico ("Episódio 3") ou vazio: usa o do TMDB.
+        if (t.name && (!ep.title || /^epis[óo]dio\s*\d+$/i.test(ep.title.trim()))) ep.title = t.name;
+      }
+      return true;
+    } catch { return false; }
   }
 
   // ===== EVENTOS ESPORTIVOS =====

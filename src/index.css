@@ -212,23 +212,15 @@ html[data-tamanho='enorme'] .tela > :not(.barra-topo),
 html[data-tamanho='enorme'] .vod-catalog > :not(.vod-fundo-destaque),
 .previa-acess[data-tamanho='enorme'] .previa-miolo { zoom: 1.5; }
 
-/* O menu do topo cresce junto (zoom) enquanto a janela comporta: ele já ocupa ~1220 px,
-   então em janelas menores cresce menos (abaixo de 1440 px fica como está). */
-@media (min-width: 1440px) {
-html[data-tamanho='grande'] .barra-topo { zoom: 1.05; width: min(1240px, calc((100vw - 32px) / 1.05)); }
-html[data-tamanho='muito-grande'] .barra-topo { zoom: 1.1; width: min(1240px, calc((100vw - 32px) / 1.1)); }
-html[data-tamanho='enorme'] .barra-topo { zoom: 1.15; width: min(1240px, calc((100vw - 32px) / 1.15)); }
-}
-@media (min-width: 1600px) {
-html[data-tamanho='grande'] .barra-topo { zoom: 1.1; width: min(1240px, calc((100vw - 32px) / 1.1)); }
-html[data-tamanho='muito-grande'] .barra-topo { zoom: 1.2; width: min(1240px, calc((100vw - 32px) / 1.2)); }
-html[data-tamanho='enorme'] .barra-topo { zoom: 1.25; width: min(1240px, calc((100vw - 32px) / 1.25)); }
-}
-@media (min-width: 1900px) {
+/* O menu do topo cresce junto com o tamanho escolhido, em qualquer janela. Ele já
+   ocupa ~1220 px com os nomes: quando o aumento não deixa caber, as abas ficam só
+   com o ícone (o nome continua na dica ao passar o mouse). */
 html[data-tamanho='grande'] .barra-topo { zoom: 1.15; width: min(1240px, calc((100vw - 32px) / 1.15)); }
 html[data-tamanho='muito-grande'] .barra-topo { zoom: 1.3; width: min(1240px, calc((100vw - 32px) / 1.3)); }
 html[data-tamanho='enorme'] .barra-topo { zoom: 1.45; width: min(1240px, calc((100vw - 32px) / 1.45)); }
-}
+@media (max-width: 1440px) { html[data-tamanho='grande'] .barra-abas button > span:not(.barra-aba-dot) { display: none; } }
+@media (max-width: 1625px) { html[data-tamanho='muito-grande'] .barra-abas button > span:not(.barra-aba-dot) { display: none; } }
+@media (max-width: 1815px) { html[data-tamanho='enorme'] .barra-abas button > span:not(.barra-aba-dot) { display: none; } }
 
 /* Texto em negrito: o texto corrido fica mais grosso (títulos já são). */
 html[data-negrito] :is(p, span, small, label, li, dd, dt, a, button, input, td),
@@ -255,3 +247,12 @@ html[data-espacado] :is(p, span, small, label, li, dd, a, button, h1, h2, h3),
 .previa-acess[data-espacado] :is(p, span, small, label, li, a, button, h1, h2, h3) {
   letter-spacing: 0.04em !important; word-spacing: 0.12em !important; line-height: 1.65 !important;
 }
+
+/* Fonte mais legível: letras abertas e simples (Verdana/Tahoma), sem estilo. */
+html[data-legivel] body, html[data-legivel] :is(button, input, select, textarea, h1, h2, h3, h4, p, span, a, li, small, label),
+.previa-acess[data-legivel] :is(*) { font-family: Verdana, Tahoma, 'DejaVu Sans', Arial, sans-serif !important; }
+
+/* Destacar botões e links: sublinhado e borda visível em tudo que se clica. */
+html[data-destacar] a:not(.barra-logo) { text-decoration: underline !important; text-underline-offset: 3px; }
+html[data-destacar] button:not(.barra-logo):not(.vod-card), html[data-destacar] [role='button'] { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.55); }
+.previa-acess[data-destacar] button { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.55); }

@@ -10,11 +10,11 @@ function esc(t: string): string {
   return t.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 }
 
-const PADRAO: Acessibilidade = { tamanho: 'normal', negrito: false, contraste: false, focoForte: false, espacado: false };
+const PADRAO: Acessibilidade = { tamanho: 'normal', negrito: false, contraste: false, focoForte: false, espacado: false, legivel: false, destacar: false };
 
 function atual(): Acessibilidade {
   const t = temaAtual();
-  return { tamanho: t.tamanho, negrito: t.negrito, contraste: t.contraste, focoForte: t.focoForte, espacado: t.espacado };
+  return { tamanho: t.tamanho, negrito: t.negrito, contraste: t.contraste, focoForte: t.focoForte, espacado: t.espacado, legivel: t.legivel, destacar: t.destacar };
 }
 
 const igual = (a: Acessibilidade, b: Acessibilidade) => JSON.stringify(a) === JSON.stringify(b);
@@ -47,6 +47,8 @@ export function caixaDeAcessibilidade(fechar: () => void): HTMLElement {
     { id: 'contraste', titulo: 'Alto contraste', valor: () => (rascunho.contraste ? 'Ligado' : 'Desligado'), acao: () => { rascunho.contraste = !rascunho.contraste; } },
     { id: 'foco', titulo: 'Foco reforçado', valor: () => (rascunho.focoForte ? 'Ligado · contorno amarelo' : 'Desligado'), acao: () => { rascunho.focoForte = !rascunho.focoForte; } },
     { id: 'espaco', titulo: 'Mais espaço no texto', valor: () => (rascunho.espacado ? 'Ligado' : 'Desligado'), acao: () => { rascunho.espacado = !rascunho.espacado; } },
+    { id: 'legivel', titulo: 'Fonte mais legível', valor: () => (rascunho.legivel ? 'Ligado · letras simples' : 'Desligado'), acao: () => { rascunho.legivel = !rascunho.legivel; } },
+    { id: 'destacar', titulo: 'Destacar botões', valor: () => (rascunho.destacar ? 'Ligado · com borda' : 'Desligado'), acao: () => { rascunho.destacar = !rascunho.destacar; } },
     { id: 'aplicar', titulo: 'Aplicar', valor: () => (igual(rascunho, aplicado) ? 'Nada mudou ainda' : 'Leva estas escolhas para o app inteiro'),
       acao: () => { if (!igual(rascunho, aplicado)) { definirTema(rascunho); aplicado = { ...rascunho }; } } },
     { id: 'desfazer', titulo: 'Desfazer', valor: () => 'Volta ao que está aplicado', acao: () => { rascunho = { ...aplicado }; } },

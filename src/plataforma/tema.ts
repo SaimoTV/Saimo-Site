@@ -47,19 +47,21 @@ export interface Acessibilidade {
   contraste: boolean;
   focoForte: boolean;
   espacado: boolean;
+  legivel: boolean;
+  destacar: boolean;
 }
 
 export interface Tema extends Acessibilidade { destaque: string; fundo: Fundo; animacoes: Animacoes }
 
 const PADRAO: Tema = {
   destaque: 'oceano', fundo: 'escuro', animacoes: 'suaves',
-  tamanho: 'normal', negrito: false, contraste: false, focoForte: false, espacado: false,
+  tamanho: 'normal', negrito: false, contraste: false, focoForte: false, espacado: false, legivel: false, destacar: false,
 };
 
 /** Escreve as escolhas de acessibilidade como atributos (no <html> ou numa prévia). */
 export function marcarAcessibilidade(el: HTMLElement, a: Acessibilidade): void {
   if (a.tamanho === 'normal') delete el.dataset.tamanho; else el.dataset.tamanho = a.tamanho;
-  for (const [chave, ligado] of [['negrito', a.negrito], ['contraste', a.contraste], ['focoForte', a.focoForte], ['espacado', a.espacado]] as const) {
+  for (const [chave, ligado] of [['negrito', a.negrito], ['contraste', a.contraste], ['focoForte', a.focoForte], ['espacado', a.espacado], ['legivel', a.legivel], ['destacar', a.destacar]] as const) {
     if (ligado) el.dataset[chave] = ''; else delete el.dataset[chave];
   }
 }
@@ -76,6 +78,8 @@ export function temaAtual(): Tema {
       contraste: t.contraste === true,
       focoForte: t.focoForte === true,
       espacado: t.espacado === true,
+      legivel: t.legivel === true,
+      destacar: t.destacar === true,
     };
   } catch {
     return PADRAO;

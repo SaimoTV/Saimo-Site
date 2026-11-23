@@ -391,3 +391,18 @@ html.tizen.tizen-mse-ativo, html.tizen.tizen-mse-ativo body, html.tizen.tizen-ms
 .tv-card-placeholder { align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 96px; font-weight: 500; color: #4FE3D0; background: rgba(255,255,255,.06); }
 .tv-card-wide-inner { position: relative; }
 .tv-card-wide-inner .tv-card-placeholder { position: absolute; inset: 0; border-radius: 22px; font-size: 80px; }
+
+/* Ficha: o conteúdo rola (dados, temporadas, episódios, elenco, parecidos) */
+.tv-ficha-content { overflow-y: auto; overflow-x: hidden; height: 100%; scrollbar-width: none; padding-bottom: 120px; }
+.tv-ficha-content::-webkit-scrollbar { display: none; }
+.tv-ficha-synopsis { display: block; -webkit-line-clamp: unset; overflow: visible; max-width: 1250px; font-size: 28px; line-height: 40px; }
+.tv-ficha-extras { display: flex; flex-wrap: wrap; gap: 8px 36px; margin-top: 18px; max-width: 1250px; }
+.tv-ficha-extra { font-size: 24px; line-height: 32px; color: rgba(255,255,255,.85); }
+.tv-ficha-extra b { color: #4fe3d0; font-weight: 500; margin-right: 10px; }
+.tv-ficha-extra.frase { flex-basis: 100%; font-style: italic; color: rgba(255,255,255,.7); }
+/* Episódios: miniatura 16:9 do próprio episódio */
+.tv-rail-eps .tv-card-poster-wrap { width: 400px; height: 225px; }
+.tv-rail-eps .tv-card-poster-wrap .tv-card-img { object-fit: cover; }
+.tv-rail-eps .tv-card { width: 400px; }
+.tv-rail-eps .tv-card > .tv-card-title { font-size: 26px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+.tv-rail-eps .tv-card > .tv-card-subtitle { font-size: 22px; }

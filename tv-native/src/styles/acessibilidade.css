@@ -70,3 +70,11 @@ html[data-espacado] .tv-settings-item-title, html[data-espacado] .tv-settings-it
 .previa-acess[data-contraste] .previa-conteudo small { color: #fff !important; }
 .previa-acess[data-foco-forte] .tv-acess-cartao.foco { border-color: #ffd400; outline: 6px solid #ffd400; }
 .previa-acess[data-espacado] .previa-conteudo * { letter-spacing: .05em; word-spacing: .12em; }
+
+/* Fonte mais legível */
+html[data-legivel] body, html[data-legivel] * { font-family: Verdana, Tahoma, 'DejaVu Sans', Arial, sans-serif !important; }
+.previa-acess[data-legivel] .previa-conteudo * { font-family: Verdana, Tahoma, 'DejaVu Sans', Arial, sans-serif !important; }
+/* Destacar botões: borda visível em tudo que se escolhe */
+html[data-destacar] .tv-btn, html[data-destacar] .tv-settings-item, html[data-destacar] .tv-menu-tab { box-shadow: inset 0 0 0 3px rgba(255,255,255,.6); }
+html[data-destacar] .tv-card { outline: 3px solid rgba(255,255,255,.5); outline-offset: -3px; }
+.previa-acess[data-destacar] .tv-acess-cartao { border-color: rgba(255,255,255,.7); }
