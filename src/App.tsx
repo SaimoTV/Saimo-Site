@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, lazy, Suspense } from 'react';
+import { ConnectTv } from './connect/ConnectTv';
 import { HashRouter, BrowserRouter, Routes, Route, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { BarraTopo } from './components/BarraTopo';
 import { AdultModeContext, useAdultMode } from './contexts/adultoContexto';
@@ -818,6 +819,7 @@ function App() {
   return (
     <Roteador>
       <DpadNavigationProvider>
+        <ConnectTv />
         <AdultModeProvider>
           <svg width="0" height="0" style={{ position: 'absolute', pointerEvents: 'none' }} aria-hidden="true">
             <defs>
