@@ -70,10 +70,11 @@ export class OnDemandScreen {
     this.element.id = 'screen-ondemand';
 
     this.scrollContainer = document.createElement('div');
-    this.scrollContainer.className = 'tv-screen-scroll tv-scroll-v';
+    this.scrollContainer.className = 'tv-screen-scroll tv-scroll-v com-hero';
 
+    // O cabeçalho fica parado no topo; só as fileiras rolam por baixo dele (como na TV Box).
     this.heroBanner = new HeroBanner();
-    this.scrollContainer.appendChild(this.heroBanner.getElement());
+    this.element.appendChild(this.heroBanner.getElement());
 
     State.on('addons-changed', () => {
       Api.invalidateDestaquesCache();

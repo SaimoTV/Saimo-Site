@@ -98,17 +98,23 @@ export class LiveScreen {
         setTimeout(() => State.setScreen('minhas'), 0);
         return;
       }
-      if (State.channels.length === 0) {
-        Api.fetchChannels().then((c) => {
-          State.channels = c;
-          if (State.currentScreen !== 'live') return;
-          if (this.drawer.isOpen()) this.drawer.open(State.channels, State.currentChannel);
-          if (!State.currentChannel && c.length > 0) {
-            this.tuneDefaultChannel();
-          }
-        }).catch(() => {});
-      }
     }
+
+    // Sempre verifica por trás se há atualização das fontes dos canais publicada no servidor
+    Api.fetchChannels().then((c) => {
+      if (c.length === 0) return;
+      const tinhas = State.channels.length;
+      State.channels = c;
+      if (State.currentChannel) {
+        const atualizado = c.find((ch) => ch.name === State.currentChannel!.name);
+        if (atualizado) State.currentChannel = atualizado;
+      }
+      if (State.currentScreen !== 'live') return;
+      if (this.drawer.isOpen()) this.drawer.open(State.channels, State.currentChannel);
+      if (tinhas === 0 && !State.currentChannel) {
+        this.tuneDefaultChannel();
+      }
+    }).catch(() => {});
 
     if (State.channels.length > 0) {
       this.tuneDefaultChannel();

@@ -1217,30 +1217,53 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
   });
 
   // TV: foco do player feito à mão (o genérico não pegava a barra fina na LG).
-  // Abre com a barra em foco (setas: voltar/avançar); seta para baixo vai aos
-  // botões (setas laterais andam entre eles); seta para cima volta à barra.
+  // Seta para baixo foca primeiro na barra de progresso (setas: voltar/avançar);
+  // outra seta para baixo vai aos botões (setas laterais só andam entre eles, sem mexer no vídeo);
+  // seta para cima nos botões volta à barra de progresso.
   const { setFocus: focarDpad } = useDpad();
   useEffect(() => {
     if (!ehTv()) return;
     const barra = () => progressRef.current;
     const focoAtual = () => document.querySelector<HTMLElement>('.movie-player .dpad-focused');
-    const primeiroBotao = () => Array.from(document.querySelectorAll<HTMLElement>('.movie-player .controls-row .control-btn'))
+    const botoesVisiveis = () => Array.from(document.querySelectorAll<HTMLElement>('.movie-player .controls-row .control-btn'))
+      .filter((b) => b.getClientRects().length > 0 && window.getComputedStyle(b).display !== 'none');
+    const primeiroBotao = () => botoesVisiveis()[0] ?? null;
+    const botaoTopo = () => Array.from(document.querySelectorAll<HTMLElement>('.movie-player .controls-top [data-focusable="true"]'))
       .find((b) => b.getClientRects().length > 0) ?? null;
-    // Ao abrir, a barra.
-    const t = window.setTimeout(() => { const b = barra(); if (b && !focoAtual()) focarDpad(b); }, 600);
     const aoTeclar = (e: KeyboardEvent) => {
       const b = barra();
       if (!b) return;
+      if (document.querySelector('.movie-player .cast-modal-overlay, .movie-player .episode-browser-backdrop, .movie-player .settings-dropdown, .movie-player .external-dropdown')) {
+        return; // um menu aberto: o D-pad cuida
+      }
       const foco = focoAtual();
-      const naBarra = !foco || foco === b;
+      const semFoco = !foco;
+      const noTopo = !!foco && !!foco.closest('.controls-top');
+      const naBarra = foco === b;
       const nosBotoes = !!foco && !!foco.closest('.controls-row');
-      if (!naBarra && !nosBotoes) return; // um menu aberto: o D-pad cuida
+      if (!semFoco && !noTopo && !naBarra && !nosBotoes) return;
       const k = e.key === 'Left' ? 'ArrowLeft' : e.key === 'Right' ? 'ArrowRight' : e.key === 'Up' ? 'ArrowUp' : e.key === 'Down' ? 'ArrowDown' : e.key;
       const parar = () => { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); };
-      if (naBarra) {
+      if (semFoco || noTopo) {
+        if (k === 'ArrowDown') {
+          parar();
+          focarDpad(b);
+          window.dispatchEvent(new CustomEvent('saimo-mostrar-controles'));
+        } else if (semFoco && (k === 'ArrowLeft' || k === 'ArrowRight')) {
+          parar();
+          focarDpad(b);
+          barraEmFocoNaSeta = true;
+          const v = videoRef.current;
+          if (v && Number.isFinite(v.duration)) {
+            const novo = Math.max(0, Math.min(v.duration - 1, v.currentTime + (k === 'ArrowLeft' ? -10 : 10)));
+            pontoBom = novo;
+            posicionar(v, novo);
+          }
+          window.dispatchEvent(new CustomEvent('saimo-mostrar-controles'));
+        }
+      } else if (naBarra) {
         if (k === 'ArrowLeft' || k === 'ArrowRight') {
           parar();
-          if (foco !== b) focarDpad(b);
           barraEmFocoNaSeta = true;
           const v = videoRef.current;
           if (v && Number.isFinite(v.duration)) {
@@ -1252,18 +1275,34 @@ export const MoviePlayer = memo(function MoviePlayer({ movie, onBack, seriesInfo
         } else if (k === 'ArrowDown') {
           const p = primeiroBotao();
           if (p) { parar(); focarDpad(p); window.dispatchEvent(new CustomEvent('saimo-mostrar-controles')); }
+        } else if (k === 'ArrowUp') {
+          const topo = botaoTopo();
+          if (topo) { parar(); focarDpad(topo); window.dispatchEvent(new CustomEvent('saimo-mostrar-controles')); }
         }
-      } else if (nosBotoes && k === 'ArrowUp') {
-        parar();
-        focarDpad(b);
-        window.dispatchEvent(new CustomEvent('saimo-mostrar-controles'));
+      } else if (nosBotoes) {
+        if (k === 'ArrowUp') {
+          parar();
+          focarDpad(b);
+          window.dispatchEvent(new CustomEvent('saimo-mostrar-controles'));
+        } else if (k === 'ArrowLeft' || k === 'ArrowRight') {
+          parar();
+          barraEmFocoNaSeta = false;
+          const lista = botoesVisiveis();
+          const idx = foco ? lista.indexOf(foco) : -1;
+          if (idx >= 0) {
+            const prox = k === 'ArrowLeft' ? Math.max(0, idx - 1) : Math.min(lista.length - 1, idx + 1);
+            focarDpad(lista[prox]);
+          } else if (lista.length > 0) {
+            focarDpad(lista[0]);
+          }
+          window.dispatchEvent(new CustomEvent('saimo-mostrar-controles'));
+        }
       }
     };
-    const aoEsconder = () => { const b = barra(); if (b) focarDpad(b, false); };
+    const aoEsconder = () => { focarDpad(null, false); };
     window.addEventListener('keydown', aoTeclar, true);
     window.addEventListener('saimo-focar-barra', aoEsconder);
     return () => {
-      window.clearTimeout(t);
       window.removeEventListener('keydown', aoTeclar, true);
       window.removeEventListener('saimo-focar-barra', aoEsconder);
     };

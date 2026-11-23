@@ -5,6 +5,7 @@
 
 import { AudioTrack, SubtitleTrack } from '../player/TVPlayer';
 import { SpatialNav } from '../core/SpatialNav';
+import { icone } from './Icones';
 
 export class PlayerOSD {
   private element: HTMLElement;
@@ -12,6 +13,7 @@ export class PlayerOSD {
   private sourceTagEl: HTMLElement;
   private currentTimeEl: HTMLElement;
   private durationEl: HTMLElement;
+  private seekbarEl: HTMLElement;
   private seekbarFillEl: HTMLElement;
   private buttonsContainer: HTMLElement;
   private episodesDrawerEl: HTMLElement;
@@ -23,6 +25,12 @@ export class PlayerOSD {
   private onSelectSubtitleAction?: () => void;
   private onOpenSourcesAction?: () => void;
   private onSelectEpisodeAction?: (epIndex: number) => void;
+  private onTelaAction?: () => void;
+  private onVelocidadeAction?: () => void;
+  private onEpisodiosAction?: () => void;
+  private onProximoAction?: () => void;
+  /** Série: ganha os botões Episódios e Próximo. */
+  private serie = false;
 
   constructor(callbacks: {
     onSeek: (deltaSec: number) => void;
@@ -31,7 +39,15 @@ export class PlayerOSD {
     onSelectSubtitle: () => void;
     onOpenSources: () => void;
     onSelectEpisode?: (epIndex: number) => void;
+    onTela?: () => void;
+    onVelocidade?: () => void;
+    onEpisodios?: () => void;
+    onProximo?: () => void;
   }) {
+    this.onTelaAction = callbacks.onTela;
+    this.onVelocidadeAction = callbacks.onVelocidade;
+    this.onEpisodiosAction = callbacks.onEpisodios;
+    this.onProximoAction = callbacks.onProximo;
     this.onSeekAction = callbacks.onSeek;
     this.onTogglePlayAction = callbacks.onTogglePlay;
     this.onSelectAudioAction = callbacks.onSelectAudio;
@@ -50,7 +66,7 @@ export class PlayerOSD {
       </div>
       <div class="tv-osd-progress-line">
         <span class="tv-osd-time" id="osd-cur-time">00:00</span>
-        <div class="tv-osd-seekbar">
+        <div class="tv-osd-seekbar nav-focusable" id="osd-seekbar" data-nav="true" data-nav-up="none" data-nav-down="osd-btn-play" data-nav-left="none" data-nav-right="none" role="slider" aria-label="Barra de progresso">
           <div class="tv-osd-seekbar-fill" id="osd-seek-fill" style="width: 0%;"></div>
         </div>
         <span class="tv-osd-time" id="osd-duration">00:00</span>
@@ -63,9 +79,12 @@ export class PlayerOSD {
     this.sourceTagEl = this.element.querySelector('#osd-source-tag')!;
     this.currentTimeEl = this.element.querySelector('#osd-cur-time')!;
     this.durationEl = this.element.querySelector('#osd-duration')!;
+    this.seekbarEl = this.element.querySelector('#osd-seekbar')!;
     this.seekbarFillEl = this.element.querySelector('#osd-seek-fill')!;
     this.buttonsContainer = this.element.querySelector('#osd-buttons')!;
     this.episodesDrawerEl = this.element.querySelector('#osd-episodes-drawer')!;
+
+    this.seekbarEl.addEventListener('click', () => this.onTogglePlayAction?.());
 
     this.renderButtons();
   }
@@ -74,24 +93,85 @@ export class PlayerOSD {
     return this.element;
   }
 
+  getSeekbar(): HTMLElement {
+    return this.seekbarEl;
+  }
+
+  getButtons(): HTMLElement[] {
+    return Array.from(this.buttonsContainer.querySelectorAll<HTMLElement>('.tv-btn'));
+  }
+
+  focusSeekbar() {
+    SpatialNav.focus(this.seekbarEl, false);
+  }
+
+  focusFirstButton() {
+    const first = this.buttonsContainer.querySelector<HTMLElement>('.tv-btn');
+    if (first) SpatialNav.focus(first, false);
+  }
+
+  isSeekbarFocused(): boolean {
+    return SpatialNav.getCurrent() === this.seekbarEl;
+  }
+
+  isButtonFocused(): boolean {
+    const cur = SpatialNav.getCurrent();
+    return !!cur && this.buttonsContainer.contains(cur);
+  }
+
+  isFocusedWithin(): boolean {
+    const cur = SpatialNav.getCurrent();
+    return !!cur && this.element.contains(cur);
+  }
+
+  private jogando = true;
+
+  /** Série: mostra Episódios e Próximo; filme: esconde. */
+  setSerie(serie: boolean) {
+    if (this.serie === serie) return;
+    this.serie = serie;
+    this.renderButtons();
+  }
+
+  /** O primeiro botão vira Reproduzir quando está pausado. */
+  setPlaying(jogando: boolean) {
+    this.jogando = jogando;
+    const b = this.buttonsContainer.querySelector<HTMLElement>('#osd-btn-play');
+    if (b) b.innerHTML = this.rotuloPlay();
+  }
+
+  private rotuloPlay(): string {
+    return this.jogando ? `${icone('pause')}Pausar` : `${icone('play')}Reproduzir`;
+  }
+
   private renderButtons() {
     this.buttonsContainer.innerHTML = '';
 
-    const btns = [
-      { id: 'osd-btn-play', label: '⏯ Pausar', action: () => this.onTogglePlayAction?.() },
-      { id: 'osd-btn-rew', label: '⏪ -10s', action: () => this.onSeekAction?.(-10) },
-      { id: 'osd-btn-fwd', label: '⏩ +10s', action: () => this.onSeekAction?.(10) },
-      { id: 'osd-btn-audio', label: '🔊 Áudio', action: () => this.onSelectAudioAction?.() },
-      { id: 'osd-btn-sub', label: '💬 Legendas', action: () => this.onSelectSubtitleAction?.() },
-      { id: 'osd-btn-src', label: '🔄 Fontes', action: () => this.onOpenSourcesAction?.() },
+    const btns: { id: string; label: string; action: () => void }[] = [
+      { id: 'osd-btn-play', label: this.rotuloPlay(), action: () => this.onTogglePlayAction?.() },
+      { id: 'osd-btn-rew', label: `${icone('rew')}-10s`, action: () => this.onSeekAction?.(-10) },
+      { id: 'osd-btn-fwd', label: `${icone('ff')}+10s`, action: () => this.onSeekAction?.(10) },
+      { id: 'osd-btn-audio', label: `${icone('audio')}Áudio`, action: () => this.onSelectAudioAction?.() },
+      { id: 'osd-btn-sub', label: `${icone('subs')}Legendas`, action: () => this.onSelectSubtitleAction?.() },
+      { id: 'osd-btn-tela', label: `${icone('tela')}Tela`, action: () => this.onTelaAction?.() },
+      { id: 'osd-btn-vel', label: `${icone('speed')}Velocidade`, action: () => this.onVelocidadeAction?.() },
     ];
+    if (this.serie) {
+      btns.push({ id: 'osd-btn-eps', label: `${icone('episodes')}Episódios`, action: () => this.onEpisodiosAction?.() });
+      btns.push({ id: 'osd-btn-next', label: `${icone('next')}Próximo`, action: () => this.onProximoAction?.() });
+    }
+    btns.push({ id: 'osd-btn-src', label: `${icone('autorenew')}Fontes`, action: () => this.onOpenSourcesAction?.() });
 
-    btns.forEach((b) => {
+    btns.forEach((b, idx) => {
       const btn = document.createElement('div');
-      btn.className = 'tv-btn nav-focusable';
+      btn.className = 'tv-btn nav-focusable tv-osd-btn';
       btn.setAttribute('data-nav', 'true');
+      btn.setAttribute('data-nav-up', 'osd-seekbar');
+      btn.setAttribute('data-nav-down', 'none');
+      if (idx === 0) btn.setAttribute('data-nav-left', 'none');
+      if (idx === btns.length - 1) btn.setAttribute('data-nav-right', 'none');
       btn.id = b.id;
-      btn.textContent = b.label;
+      btn.innerHTML = b.label;
       btn.addEventListener('click', b.action);
       this.buttonsContainer.appendChild(btn);
     });
@@ -133,6 +213,9 @@ export class PlayerOSD {
 
   hide() {
     this.element.classList.add('hidden');
+    if (this.isFocusedWithin()) {
+      SpatialNav.limpar();
+    }
   }
 
   isVisible(): boolean {

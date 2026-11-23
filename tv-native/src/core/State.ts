@@ -51,6 +51,8 @@ export class State {
 
   static vodItems: VODItem[] = [];
   static currentVOD: VODItem | null = null;
+  /** Faixas de áudio do vídeo em reprodução (preenchidas pelo player). */
+  static faixasAudio: { index: number; name: string; language: string }[] = [];
   static currentSeasonIndex = 0;
   static currentEpisodeIndex = 0;
 

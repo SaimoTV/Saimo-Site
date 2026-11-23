@@ -6,7 +6,7 @@
  */
 import { SpatialNav } from '../core/SpatialNav';
 import { buildQrSvg } from '../../../src/utils/qrCode';
-import { cadastrar, conferirAprovacao, entrarComSenha, estadoConta, pedirCodigoDaTv, sair, sincronizar } from '../../../src/conta/conta';
+import { cadastrar, conferirAprovacao, definirSenha, entrarComSenha, estadoConta, pedirCodigo, pedirCodigoDaTv, sair, sincronizar } from '../../../src/conta/conta';
 
 function esc(t: string): string {
   return t.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
@@ -152,6 +152,7 @@ function caixaDeSenha(fechar: () => void, voltarAoQr?: () => void): HTMLElement 
     <div class="tv-perfis-acoes">
       <div class="tv-btn nav-focusable" data-nav="true" data-acao="entrar">Entrar</div>
       <div class="tv-btn nav-focusable" data-nav="true" data-acao="criar">Criar conta</div>
+      <div class="tv-btn nav-focusable" data-nav="true" data-acao="esqueci">Esqueci a senha</div>
       <div class="tv-btn nav-focusable" data-nav="true" data-acao="voltar">${voltarAoQr ? 'Voltar ao QR code' : 'Voltar'}</div>
     </div>`;
   const [email, senha] = Array.from(caixa.querySelectorAll<HTMLInputElement>('input'));
@@ -176,6 +177,62 @@ function caixaDeSenha(fechar: () => void, voltarAoQr?: () => void): HTMLElement 
   caixa.querySelector('[data-acao="entrar"]')!.addEventListener('click', () => entrar());
   caixa.querySelector('[data-acao="criar"]')!.addEventListener('click', () => entrar(true));
   caixa.querySelector('[data-acao="voltar"]')!.addEventListener('click', voltarAoQr || fechar);
+  caixa.querySelector('[data-acao="esqueci"]')!.addEventListener('click', () => {
+    const rec = caixaRecuperar(fechar, email.value.trim(), () => rec.replaceWith(caixaDeSenha(fechar, voltarAoQr)));
+    caixa.replaceWith(rec);
+  });
   setTimeout(() => SpatialNav.focus(email), 50);
+  return caixa;
+}
+
+/** Esqueci a senha: o código de 6 números chega no e-mail; com ele se escolhe uma senha nova. */
+function caixaRecuperar(fechar: () => void, emailInicial: string, voltar: () => void): HTMLElement {
+  const caixa = document.createElement('div');
+  caixa.className = 'tv-conta logada';
+  caixa.innerHTML = `
+    <div class="tv-perfis-titulo">Esqueci a senha</div>
+    <div class="tv-perfis-sub">Digite o e-mail da conta: enviamos um código de 6 números (veja também o spam). Com ele você escolhe uma senha nova.</div>
+    <input class="tv-campo tv-conta-campo nav-focusable" data-nav="true" type="email" placeholder="Seu e-mail" />
+    <input class="tv-campo tv-conta-campo nav-focusable" data-nav="true" type="text" inputmode="numeric" placeholder="Código do e-mail" style="display:none" />
+    <input class="tv-campo tv-conta-campo nav-focusable" data-nav="true" type="password" placeholder="Senha nova (8 ou mais)" style="display:none" />
+    <div class="tv-perfis-aviso"></div>
+    <div class="tv-perfis-acoes">
+      <div class="tv-btn nav-focusable" data-nav="true" data-acao="enviar">Enviar código</div>
+      <div class="tv-btn nav-focusable" data-nav="true" data-acao="salvar" style="display:none">Salvar senha</div>
+      <div class="tv-btn nav-focusable" data-nav="true" data-acao="voltar">Voltar</div>
+    </div>`;
+  const [email, codigo, senha] = Array.from(caixa.querySelectorAll<HTMLInputElement>('input'));
+  const aviso = caixa.querySelector<HTMLElement>('.tv-perfis-aviso')!;
+  const enviar = caixa.querySelector<HTMLElement>('[data-acao="enviar"]')!;
+  const salvar = caixa.querySelector<HTMLElement>('[data-acao="salvar"]')!;
+  email.value = emailInicial;
+  let ocupado = false;
+  [email, codigo, senha].forEach((c) => c.addEventListener('click', () => window.setTimeout(() => c.focus(), 30)));
+  enviar.addEventListener('click', () => {
+    if (ocupado) return;
+    if (!email.value.includes('@')) { aviso.textContent = 'Digite o e-mail da conta'; return; }
+    ocupado = true; aviso.textContent = 'Enviando…';
+    pedirCodigo(email.value)
+      .then(() => {
+        aviso.textContent = 'Enviamos o código: digite abaixo e escolha a senha nova.';
+        codigo.style.display = senha.style.display = salvar.style.display = '';
+        enviar.textContent = 'Enviar de novo';
+        SpatialNav.focus(codigo);
+      })
+      .catch((err) => { aviso.textContent = err instanceof Error ? err.message : 'Não deu certo'; })
+      .finally(() => { ocupado = false; });
+  });
+  salvar.addEventListener('click', () => {
+    if (ocupado) return;
+    if (codigo.value.trim().length < 6) { aviso.textContent = 'Digite o código de 6 números'; return; }
+    if (senha.value.length < 8) { aviso.textContent = 'A senha precisa ter 8 ou mais caracteres'; return; }
+    ocupado = true; aviso.textContent = 'Salvando…';
+    definirSenha(email.value, codigo.value, senha.value)
+      .then(() => fechar())
+      .catch((err) => { aviso.textContent = err instanceof Error ? err.message : 'Não deu certo'; })
+      .finally(() => { ocupado = false; });
+  });
+  caixa.querySelector('[data-acao="voltar"]')!.addEventListener('click', voltar);
+  setTimeout(() => SpatialNav.focus(email.value ? enviar : email), 50);
   return caixa;
 }

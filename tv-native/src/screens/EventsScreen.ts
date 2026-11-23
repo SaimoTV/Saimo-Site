@@ -17,8 +17,8 @@ export class EventsScreen {
     this.element.className = 'tv-screen tv-events-screen hidden';
     this.element.id = 'screen-events';
     const rolagem = document.createElement('div');
-    rolagem.className = 'tv-screen-scroll tv-scroll-v';
-    rolagem.appendChild(this.hero.getElement());
+    rolagem.className = 'tv-screen-scroll tv-scroll-v com-hero';
+    this.element.appendChild(this.hero.getElement());
     this.fileiras = document.createElement('div');
     rolagem.appendChild(this.fileiras);
     this.element.appendChild(rolagem);

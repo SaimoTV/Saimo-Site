@@ -1,0 +1,72 @@
+/*
+ * Acessibilidade na TV (Ajustes > Aparência e acessibilidade > Acessibilidade).
+ * O tema (src/plataforma/tema.ts) marca o <html> com data-tamanho, data-negrito,
+ * data-contraste, data-foco-forte e data-espacado.
+ *
+ * Tamanho: as telas (menos o player e o ao vivo, que têm vídeo por baixo) crescem
+ * com transform e ficam menores em layout na mesma proporção, para encher a tela
+ * 1920x1080. O menu do topo também cresce: dentro dos mesmos 116 px, e as abas
+ * que não estão em foco ficam só com o ícone para tudo caber.
+ */
+:root { --k: 1; --m: 116px; }
+html[data-tamanho='grande'] { --k: 1.15; }
+html[data-tamanho='muito-grande'] { --k: 1.3; }
+html[data-tamanho='enorme'] { --k: 1.45; }
+html[data-tamanho] { --m: calc(116px / var(--k)); }
+
+html[data-tamanho] .tv-screen:not(#screen-player):not(#screen-live) {
+  transform: scale(var(--k)); transform-origin: 0 0;
+  width: calc(1920px / var(--k)); height: calc(1080px / var(--k));
+}
+
+/* O cabeçalho (menu do topo) acompanha o tamanho */
+html[data-tamanho] .tv-menu-tab { height: calc(64px * var(--k)); padding: 0 calc(18px * var(--k)); font-size: calc(30px * var(--k)); }
+html[data-tamanho] .tv-menu-tab .tv-icone { width: calc(36px * var(--k)); height: calc(36px * var(--k)); }
+html[data-tamanho] .tv-menu-tab:not(.active):not(.nav-focused):not(.destaque):not(.tv-menu-perfil) > span { display: none; }
+html[data-tamanho] .tv-menu-clock { font-size: calc(36px * var(--k)); }
+html[data-tamanho] .tv-menu-logo img { width: calc(56px * var(--k)); height: calc(56px * var(--k)); }
+html[data-tamanho] .tv-menu-global { padding-left: 40px; padding-right: 40px; }
+
+/* Texto em negrito */
+html[data-negrito] body, html[data-negrito] .tv-card-title, html[data-negrito] .tv-card-subtitle,
+html[data-negrito] .tv-hero-meta, html[data-negrito] .tv-hero-synopsis,
+html[data-negrito] .tv-settings-item-title, html[data-negrito] .tv-settings-item-value,
+html[data-negrito] .tv-ficha-synopsis, html[data-negrito] .tv-btn { font-weight: 700 !important; }
+
+/* Alto contraste: texto branco puro, cartões escuros com borda */
+html[data-contraste] .tv-card-subtitle, html[data-contraste] .tv-hero-synopsis, html[data-contraste] .tv-settings-item-value,
+html[data-contraste] .tv-perfis-sub, html[data-contraste] .tv-ficha-synopsis { color: #fff !important; }
+html[data-contraste] .tv-card-poster-wrap, html[data-contraste] .tv-card-wide-inner { background: #000 !important; border: 2px solid #fff; }
+html[data-contraste] .tv-settings-item, html[data-contraste] .tv-btn { border: 2px solid rgba(255,255,255,.8) !important; }
+html[data-contraste] body, html[data-contraste] html { background-color: #000 !important; background-image: none !important; }
+html[data-contraste] .tv-hero-bg { opacity: .08 !important; }
+
+/* Foco reforçado: amarelo grosso, impossível de perder */
+html[data-foco-forte] .nav-focused { border-color: #ffd400 !important; outline: 6px solid #ffd400; outline-offset: 2px; background: rgba(255,212,0,.22) !important; }
+html[data-foco-forte] .tv-menu-tab.nav-focused, html[data-foco-forte] .tv-btn.nav-focused, html[data-foco-forte] .tv-settings-item.nav-focused { background: #fff !important; }
+
+/* Mais espaço no texto */
+html[data-espacado] .tv-card-title, html[data-espacado] .tv-card-subtitle, html[data-espacado] .tv-hero-synopsis,
+html[data-espacado] .tv-settings-item-title, html[data-espacado] .tv-settings-item-value, html[data-espacado] .tv-ficha-synopsis {
+  letter-spacing: .05em; word-spacing: .12em;
+}
+
+/* Tela de Acessibilidade e prévia */
+.tv-acess { display: flex; gap: 60px; padding: 130px 90px 40px; height: 100%; box-sizing: border-box; }
+.tv-acess-opcoes { width: 860px; display: flex; flex-direction: column; gap: 8px; }
+.tv-acess-previa { flex: 1; align-self: flex-start; margin-top: 60px; padding: 30px; border-radius: 26px; border: 3px dashed rgba(255,255,255,.35); background: rgba(0,0,0,.35); overflow: hidden; }
+.tv-acess-previa h3 { margin: 0 0 18px; font-size: 40px; font-weight: 500; }
+.tv-acess-cartoes { display: flex; gap: 26px; }
+.tv-acess-cartao { width: 240px; padding: 8px; border-radius: 18px; border: 4px solid transparent; }
+.tv-acess-cartao.foco { border-color: #4FE3D0; }
+.tv-acess-capa { width: 224px; height: 130px; border-radius: 12px; background: linear-gradient(135deg, #8b5cf6, #4fe3d0); }
+.tv-acess-cartao b { display: block; margin-top: 10px; font-size: 26px; font-weight: 500; }
+.tv-acess-cartao small { display: block; font-size: 22px; color: #A8B4C0; }
+.tv-acess-dica { margin-top: 18px; font-size: 24px; color: #A8B4C0; }
+.previa-acess[data-tamanho='grande'] .previa-conteudo { zoom: 1.15; }
+.previa-acess[data-tamanho='muito-grande'] .previa-conteudo { zoom: 1.3; }
+.previa-acess[data-tamanho='enorme'] .previa-conteudo { zoom: 1.45; }
+.previa-acess[data-negrito] .previa-conteudo * { font-weight: 700 !important; }
+.previa-acess[data-contraste] .previa-conteudo small { color: #fff !important; }
+.previa-acess[data-foco-forte] .tv-acess-cartao.foco { border-color: #ffd400; outline: 6px solid #ffd400; }
+.previa-acess[data-espacado] .previa-conteudo * { letter-spacing: .05em; word-spacing: .12em; }

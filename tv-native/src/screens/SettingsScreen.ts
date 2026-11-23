@@ -18,8 +18,10 @@ import { conferirSenha, senhaEhPadrao, trocarSenha } from '../../../src/perfis/p
 import { brilho, definirBrilho } from '../../../src/plataforma/brilho';
 import { ehKids } from '../../../src/perfis/kids';
 import { caixaDaConta, resumoDaConta } from './ContaTela';
+import { caixaDeAcessibilidade } from './AcessibilidadeTela';
+import { Platform as PlataformaTv } from '../core/Platform';
 import { estadoConta } from '../../../src/conta/conta';
-import { DESTAQUES, FUNDOS, definirTema, temaAtual } from '../../../src/plataforma/tema';
+import { DESTAQUES, FUNDOS, TAMANHOS, definirTema, temaAtual } from '../../../src/plataforma/tema';
 import { OPCOES, definirEstiloDeLegenda, estiloAtual, type EstiloDeLegenda } from '../../../src/plataforma/legendaEstilo';
 import { resumoNovosEpisodios, dispensarNovosEpisodios } from '../core/NovosEpisodios';
 import { duracaoLegivel, estatisticas, limparAssistidos } from '../../../src/services/assistidos';
@@ -37,6 +39,9 @@ function rotuloDe<T extends string>(lista: readonly (readonly [T, string])[], va
 export class SettingsScreen {
   private element: HTMLElement;
   private listContainer: HTMLElement;
+  /** O grupo aberto dos Ajustes (null = a lista de grupos). */
+  private grupo: string | null = null;
+  private posGrupo = 0;
 
   constructor() {
     this.element = document.createElement('div');
@@ -52,6 +57,35 @@ export class SettingsScreen {
         this.renderSettings();
       }
     });
+
+    // VOLTAR dentro de um grupo volta à lista de grupos (e não ao menu).
+    window.addEventListener('keydown', (e) => {
+      if (this.element.classList.contains('hidden') || this.grupo === null || this.caixa || this.element.querySelector('.tv-conta, .tv-acess')) return;
+      if (!PlataformaTv.isBackKey(e.keyCode)) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      this.fecharGrupo();
+    }, true);
+  }
+
+  private fecharGrupo() {
+    this.grupo = null;
+    this.renderSettings();
+    setTimeout(() => {
+      const itens = this.listContainer.querySelectorAll<HTMLElement>('.tv-settings-item');
+      const alvo = itens[Math.min(this.posGrupo, itens.length - 1)];
+      if (alvo) SpatialNav.focus(alvo);
+    }, 50);
+  }
+
+  private abrirGrupo(id: string, posicao: number) {
+    this.posGrupo = posicao;
+    this.grupo = id;
+    this.renderSettings();
+    setTimeout(() => {
+      const primeiro = this.listContainer.querySelector<HTMLElement>('.tv-settings-item');
+      if (primeiro) SpatialNav.focus(primeiro);
+    }, 50);
   }
 
   getElement(): HTMLElement {
@@ -101,6 +135,7 @@ export class SettingsScreen {
 
   leave() {
     this.element.classList.add('hidden');
+    this.grupo = null;
     this.liberado = false;
     this.mostrarCaixa(null);
   }
@@ -140,24 +175,54 @@ export class SettingsScreen {
       this.listContainer.appendChild(item);
     };
 
-    // CONTA SAIMO (fora do Kids)
-    if (!perfilAtivo().kids) {
-      addSection('Conta Saimo');
-      addOption('conta', 'Conta Saimo', resumoDaConta(), () => {
-        this.mostrarCaixa(caixaDaConta(() => {
-          this.mostrarCaixa(null);
-          this.renderSettings();
-          setTimeout(() => { const i = document.getElementById('setting-conta'); if (i) SpatialNav.focus(i); }, 50);
-        }));
+    const grupos: { id: string; nome: string; sobre: string; ocultoKids?: boolean }[] = [
+      { id: 'reproducao', nome: 'Reprodução', sobre: 'Ao abrir, atraso do ao vivo, áudio, abertura e próximo episódio' },
+      { id: 'legendas', nome: 'Legendas', sobre: 'Fonte, tamanho, cor, fundo e posição' },
+      { id: 'aparencia', nome: 'Aparência e acessibilidade', sobre: 'Tamanho do texto e do menu, negrito, contraste, foco, cores e brilho' },
+      { id: 'listas', nome: 'Listas e fontes', sobre: 'Minhas listas, addons e Debrid' },
+      { id: 'perfis', nome: 'Perfis e estatísticas', sobre: 'Trocar e criar perfis, seu tempo e episódios novos' },
+      { id: 'sistema', nome: 'Sistema', sobre: 'Limpezas, versão e dados do aparelho' },
+      { id: 'parental', nome: 'Controle parental', sobre: 'Conteúdo adulto e senha', ocultoKids: true },
+    ];
+    const g = this.grupo;
+    if (g === null) {
+      if (!perfilAtivo().kids) {
+        addOption('conta', 'Conta Saimo', resumoDaConta(), () => {
+          this.mostrarCaixa(caixaDaConta(() => {
+            this.mostrarCaixa(null);
+            this.renderSettings();
+            setTimeout(() => { const i = document.getElementById('setting-conta'); if (i) SpatialNav.focus(i); }, 50);
+          }));
+        });
+      }
+      grupos.filter((x) => !(x.ocultoKids && ehKids())).forEach((x, n) => {
+        const pos = (perfilAtivo().kids ? 0 : 1) + n;
+        addOption(`grupo-${x.id}`, x.nome, x.sobre, () => { this.abrirGrupo(x.id, pos); });
       });
+      // O clique de cada linha redesenha a lista: o grupo aberto troca a tela logo em seguida.
+      return;
     }
 
+    if (g === 'perfis') {
     // PERFIS
     addSection('Perfis');
     const n = perfis().length;
     addOption('perfis', 'Perfis', n === 1 ? 'Só um perfil. Criar, editar, Kids e avatares' : `${perfilAtivo().nome} · ${n} perfis`,
       () => State.emit('abrir-perfis', 'gerenciar'));
 
+    // ESTATÍSTICAS (do perfil em uso)
+    addSection('Suas estatísticas');
+    const est = estatisticas();
+    addOption('estat-tempo', 'Tempo assistido', est.tempoTotal < 60 ? 'Ainda nada' : duracaoLegivel(est.tempoTotal), () => {});
+    addOption('estat-filmes', 'Filmes concluídos', String(est.filmes), () => {});
+    addOption('estat-eps', 'Episódios concluídos', `${est.episodios}${est.series ? ` · ${est.series} séries` : ''}`, () => {});
+    if (est.maisVista) addOption('estat-top', 'Série mais vista', `${est.maisVista.titulo} (${est.maisVista.episodios})`, () => {});
+    addOption('novos-eps', 'Séries favoritas com episódio novo', resumoNovosEpisodios(), () => { dispensarNovosEpisodios(); });
+    addOption('estat-zerar', 'Zerar estatísticas', 'OK para zerar', () => { limparAssistidos(); });
+
+    }
+
+    if (g === 'listas') {
     // 1. LISTAS E FONTES
     addSection('Listas e Fontes');
     addOption('minhas', 'Minhas listas', 'Adicionar listas .m3u pelo link', () => State.setScreen('minhas'));
@@ -169,6 +234,9 @@ export class SettingsScreen {
       : `${ativos}/${total} ativo(s)${deb > 0 ? ` · ${deb} Debrid` : ''}`;
     addOption('addons', 'Addons & Debrid', resumoAddons, () => State.setScreen('addons'));
 
+    }
+
+    if (g === 'reproducao') {
     addSection('Reprodução');
 
     addOption(
@@ -226,6 +294,9 @@ export class SettingsScreen {
       }
     );
 
+    }
+
+    if (g === 'legendas') {
     // 2. LEGENDAS
     addSection('Legendas');
 
@@ -238,6 +309,23 @@ export class SettingsScreen {
       });
     });
 
+    }
+
+    if (g === 'aparencia') {
+      addOption('acessibilidade', 'Acessibilidade', (() => {
+        const t = temaAtual();
+        const partes = [TAMANHOS.find((x) => x.id === t.tamanho)!.nome];
+        if (t.negrito) partes.push('negrito');
+        if (t.contraste) partes.push('alto contraste');
+        if (t.focoForte) partes.push('foco reforçado');
+        return `${partes.join(' · ')} · com prévia antes de aplicar`;
+      })(), () => {
+        this.mostrarCaixa(caixaDeAcessibilidade(() => {
+          this.mostrarCaixa(null);
+          this.renderSettings();
+          setTimeout(() => { const i = document.getElementById('setting-acessibilidade'); if (i) SpatialNav.focus(i); }, 50);
+        }));
+      });
     // APARÊNCIA
     addSection('Aparência');
     const tema = temaAtual();
@@ -254,16 +342,20 @@ export class SettingsScreen {
       definirTema({ animacoes: seguinte(animacoes, tema.animacoes) });
     });
 
-    // ESTATÍSTICAS (do perfil em uso)
-    addSection('Suas estatísticas');
-    const est = estatisticas();
-    addOption('estat-tempo', 'Tempo assistido', est.tempoTotal < 60 ? 'Ainda nada' : duracaoLegivel(est.tempoTotal), () => {});
-    addOption('estat-filmes', 'Filmes concluídos', String(est.filmes), () => {});
-    addOption('estat-eps', 'Episódios concluídos', `${est.episodios}${est.series ? ` · ${est.series} séries` : ''}`, () => {});
-    if (est.maisVista) addOption('estat-top', 'Série mais vista', `${est.maisVista.titulo} (${est.maisVista.episodios})`, () => {});
-    addOption('novos-eps', 'Séries favoritas com episódio novo', resumoNovosEpisodios(), () => { dispensarNovosEpisodios(); });
-    addOption('estat-zerar', 'Zerar estatísticas', 'OK para zerar', () => { limparAssistidos(); });
+    // Brilho do app (não o da TV): 100 -> 75 -> 50 -> 25 -> 0 -> 100. Em 0 qualquer botão volta.
+    const textoBrilho = (v: number) => (v >= 100 ? '100% (normal) · OK diminui 25%' : `${v}% · OK muda · em 0% qualquer botão volta`);
+    addSection('Tela');
+    addOption('brilho', 'Brilho do app', textoBrilho(brilho()), () => {
+      const atual = brilho();
+      const novo = atual <= 0 ? 100 : Math.max(0, atual - 25);
+      definirBrilho(novo);
+      const valor = document.querySelector('#setting-brilho .tv-settings-item-value');
+      if (valor) valor.textContent = textoBrilho(novo);
+    });
 
+    }
+
+    if (g === 'sistema') {
     // 3. CONTROLE PARENTAL
     addSection('Dados');
 
@@ -286,22 +378,12 @@ export class SettingsScreen {
       ? 'LG Smart TV (webOS Native)'
       : 'Navegador Web / Simulador';
 
-    // Brilho do app (não o da TV): 100 -> 75 -> 50 -> 25 -> 0 -> 100. Em 0 qualquer botão volta.
-    const textoBrilho = (v: number) => (v >= 100 ? '100% (normal) · OK diminui 25%' : `${v}% · OK muda · em 0% qualquer botão volta`);
-    addSection('Tela');
-    addOption('brilho', 'Brilho do app', textoBrilho(brilho()), () => {
-      const atual = brilho();
-      const novo = atual <= 0 ? 100 : Math.max(0, atual - 25);
-      definirBrilho(novo);
-      const valor = document.querySelector('#setting-brilho .tv-settings-item-value');
-      if (valor) valor.textContent = textoBrilho(novo);
-    });
-
     addOption('sobre-plataforma', 'Sistema Operacional', platformLabel, () => {});
     addOption('sobre-versao', 'Versão', __VERSAO_APP__, () => {});
 
-    // CONTROLE PARENTAL: no fim, separado e discreto. No Kids não aparece.
-    if (!ehKids()) {
+    }
+
+    if (g === 'parental' && !ehKids()) {
       addSection('Controle parental');
       const titulo = this.listContainer.lastElementChild as HTMLElement | null;
       titulo?.classList.add('discreto');
@@ -323,5 +405,5 @@ export class SettingsScreen {
       });
       this.listContainer.querySelectorAll('#setting-parental, #setting-parental-senha').forEach((e) => e.classList.add('discreto'));
     }
-      }
+  }
 }

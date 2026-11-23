@@ -46,7 +46,7 @@ body, html {
 .tv-menu-clock { font-size: 36px; font-weight: 400; color: #fff; }
 
 /* Cabeçalho que segue o foco */
-.tv-screen-scroll { padding-top: 116px; overflow: hidden; }
+.tv-screen-scroll { padding-top: var(--m, 116px); overflow: hidden; }
 .tv-hero-banner { height: 300px; padding: 10px 112px 0; color: #fff; overflow: visible; }
 .tv-hero-bg { position: absolute; top: -116px; left: 0; width: 1920px; height: 1080px; object-fit: cover; opacity: .18; z-index: -1; mask-image: none; -webkit-mask-image: none; }
 .tv-hero-title { font-size: 60px; font-weight: 500; line-height: 76px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -80,7 +80,7 @@ body, html {
 .tv-btn { height: 84px; padding: 0 44px; border-radius: 16px; font-size: 30px; font-weight: 500; background: rgba(255,255,255,.14); color: #fff; border: 0 !important; display: inline-flex; align-items: center; }
 .tv-btn.primary { background: rgba(255,255,255,.14); color: #fff; }
 .tv-btn.nav-focused { background: #fff !important; color: #0b0e14 !important; }
-.tv-ficha-screen { padding-top: 116px; }
+.tv-ficha-screen { padding-top: var(--m, 116px); }
 .tv-ficha-title { font-size: 54px; font-weight: 500; }
 .tv-ficha-synopsis { font-size: 30px; line-height: 42px; color: #fff; }
 .tv-ficha-badge { border-radius: 10px; background: rgba(255,255,255,.1); font-size: 24px; color: #fff; }
@@ -365,3 +365,29 @@ html.tizen.tizen-mse-ativo, html.tizen.tizen-mse-ativo body, html.tizen.tizen-ms
 .tv-boasvindas .tv-conta.logada { align-items: stretch; text-align: left; }
 .tv-boasvindas .tv-conta-campo { width: 100%; }
 .tv-boasvindas .tv-conta-dica { display: none; }
+
+/* Cabeçalho parado no topo; as fileiras rolam por baixo dele (recortadas) */
+.tv-screen-scroll.com-hero { padding-top: calc(var(--m, 116px) + 314px); clip-path: inset(calc(var(--m, 116px) + 314px) 0 0 0); }
+.tv-screen > .tv-hero-banner { position: absolute; top: var(--m, 116px); left: 0; width: 100%; }
+
+/* O cabeçalho começa logo abaixo do menu (não colado embaixo, deixando um vão vazio) */
+.tv-hero-banner { justify-content: flex-start; }
+
+/* Botões do player: ícone + texto numa linha só, cabem 10 na tela */
+.tv-osd-btn { height: 72px !important; padding: 0 16px !important; font-size: 25px !important; gap: 8px; white-space: nowrap; }
+.tv-osd-btn .tv-icone { width: 30px; height: 30px; flex: 0 0 auto; }
+.tv-osd-buttons { gap: 8px; flex-wrap: nowrap; }
+
+/* Busca: abaixo do menu e com o teclado grande o bastante para ler do sofá */
+.tv-search-layout { margin-top: var(--m, 116px); height: calc(1080px / var(--k, 1) - var(--m, 116px)); gap: 40px; }
+.tv-search-left { width: 800px; }
+.tv-search-input-box { font-size: 32px; padding: 18px 26px; }
+.tv-virtual-keyboard .tv-key-btn { min-width: 72px !important; height: 72px !important; font-size: 30px !important; border-radius: 14px; flex: 1 0 auto; }
+.tv-virtual-keyboard .tv-key-btn .tv-icone { width: 34px; height: 34px; margin-right: 10px; flex: 0 0 34px; }
+.tv-virtual-keyboard .tv-key-btn { white-space: nowrap; }
+.tv-search-right .tv-rail { padding-left: 0; }
+
+/* Inicial do nome quando não há imagem */
+.tv-card-placeholder { align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 96px; font-weight: 500; color: #4FE3D0; background: rgba(255,255,255,.06); }
+.tv-card-wide-inner { position: relative; }
+.tv-card-wide-inner .tv-card-placeholder { position: absolute; inset: 0; border-radius: 22px; font-size: 80px; }

@@ -31,10 +31,11 @@ export class HomeScreen {
     this.element.id = 'screen-home';
 
     this.scrollContainer = document.createElement('div');
-    this.scrollContainer.className = 'tv-screen-scroll tv-scroll-v';
+    this.scrollContainer.className = 'tv-screen-scroll tv-scroll-v com-hero';
 
+    // O cabeçalho fica parado no topo; só as fileiras rolam por baixo dele (como na TV Box).
     this.heroBanner = new HeroBanner();
-    this.scrollContainer.appendChild(this.heroBanner.getElement());
+    this.element.appendChild(this.heroBanner.getElement());
 
     // Trilhos Locais Fixos
     this.continueRail = new Rail('Continuar assistindo', false);
@@ -137,6 +138,8 @@ export class HomeScreen {
       }
       if (destaques && destaques.length > 0) {
         this.loadDestaquesSync();
+        // As capas do "continuar assistindo" saem do catálogo: agora ele já está em memória.
+        this.renderContinueWatching();
       }
       if (!document.querySelector('.nav-focused')) {
         this.focusFirstItem();
@@ -157,9 +160,11 @@ export class HomeScreen {
     const cards: CardModel[] = progressList.map((p) => ({
       id: `cont_${encodeURIComponent(p.title)}`,
       title: p.title,
-      subtitle: p.episodeTitle || `${p.percent}% assistido`,
-      progressPercent: p.percent,
-      badge: `${p.percent}%`,
+      image: Api.capaDe(p.title) || undefined,
+      // O progresso vindo da conta pode não ter o percentual: nada de "null%".
+      subtitle: p.episodeTitle || (Number.isFinite(p.percent) && p.percent > 0 ? `${Math.round(p.percent)}% assistido` : 'Continuar assistindo'),
+      progressPercent: Number.isFinite(p.percent) ? p.percent : 0,
+      badge: `${Number.isFinite(p.percent) ? Math.round(p.percent) : 0}%`,
       badgeColor: '#00e3ff',
       onClick: () => {
         let vod = State.vodItems.find((v) => v.title === p.title);
@@ -178,7 +183,7 @@ export class HomeScreen {
       onFocus: () => {
         this.heroBanner.setDefault(
           p.title,
-          `Continuar assistindo · ${p.percent}% concluído`,
+          Number.isFinite(p.percent) && p.percent > 0 ? `Continuar assistindo · ${Math.round(p.percent)}% concluído` : 'Continuar assistindo',
           p.episodeTitle
             ? `${p.episodeTitle}. OK para retomar · Botão VERMELHO ou × para remover.`
             : 'OK para retomar · Botão VERMELHO ou × para remover da lista.'

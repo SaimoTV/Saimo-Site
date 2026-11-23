@@ -290,6 +290,9 @@ export class AddonsScreen {
 
   private renderQr(): void {
     const info = getCompanionPairingUrl();
+    // Sem servidor local o endereço seria inventado: melhor não mostrar o QR.
+    const cartao = this.qrBoxEl.closest<HTMLElement>('.tv-addons-qr-card');
+    if (!info.temServidorLocal) { if (cartao) cartao.style.display = 'none'; return; }
     const svg = buildQrSvg(info.url, 220);
     this.qrBoxEl.innerHTML = svg;
     this.qrUrlEl.textContent = info.url;

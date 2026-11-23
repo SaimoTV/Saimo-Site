@@ -44,8 +44,9 @@ export class HeroBanner {
     const metaParts: string[] = [];
     if (item.year) metaParts.push(item.year);
     if (item.genres && item.genres.length > 0) metaParts.push(item.genres.slice(0, 3).join(', '));
-    if (item.isSeries) metaParts.push('Série');
-    else metaParts.push('Filme');
+    // "Filme"/"Série" só se o gênero ainda não disse isso (evita "Filme · Filme").
+    const tipo = item.isSeries ? 'Série' : 'Filme';
+    if (!metaParts.some((m) => m.toLowerCase().includes(tipo.toLowerCase()))) metaParts.push(tipo);
 
     this.metaEl.textContent = metaParts.join(' · ');
     this.synopsisEl.textContent = item.overview || 'Clique para assistir ou ver detalhes completos.';

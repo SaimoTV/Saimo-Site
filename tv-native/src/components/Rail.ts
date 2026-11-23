@@ -24,6 +24,14 @@ export interface CardModel {
   extraData?: any;
 }
 
+/** Texto vindo de lista/catálogo vai para o HTML sem poder abrir tags. */
+function esc(t: unknown): string {
+  return String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+}
+
+/** Sem imagem (ou imagem que não carregou): a inicial do nome no lugar. */
+const AO_FALHAR = "this.style.display='none';var p=this.parentNode.querySelector('.tv-card-placeholder');if(p)p.style.display='flex'";
+
 export class Rail {
   private element: HTMLElement;
   private titleEl: HTMLElement;
@@ -69,11 +77,12 @@ export class Rail {
         innerHtml = `
           <div class="tv-card-wide-inner">
             ${card.badge ? `<span class="tv-selo">${card.badge}</span>` : ''}
-            ${card.image ? `<img class="tv-card-img ${card.image2 ? 'par' : ''}" src="${card.image}" onerror="this.style.display='none'" loading="lazy" alt="" />` : ''}
-            ${card.image2 ? `<span class="tv-x">x</span><img class="tv-card-img par" src="${card.image2}" onerror="this.style.display='none'" loading="lazy" alt="" />` : ''}
+            ${card.image ? `<img class="tv-card-img ${card.image2 ? 'par' : ''}" src="${esc(card.image)}" onerror="${AO_FALHAR}" loading="lazy" alt="" />` : ''}
+            ${card.image2 ? `<span class="tv-x">x</span><img class="tv-card-img par" src="${esc(card.image2)}" onerror="this.style.display='none'" loading="lazy" alt="" />` : ''}
+            <div class="tv-card-placeholder" style="display:${card.image ? 'none' : 'flex'}">${esc(card.title.trim().charAt(0).toUpperCase())}</div>
           </div>
-          <div class="tv-card-title">${card.title}</div>
-          ${card.subtitle ? `<div class="tv-card-subtitle">${card.subtitle}</div>` : ''}
+          <div class="tv-card-title">${esc(card.title)}</div>
+          ${card.subtitle ? `<div class="tv-card-subtitle">${esc(card.subtitle)}</div>` : ''}
           ${card.progressPercent !== undefined ? `
             <div class="tv-card-progress-bar">
               <div class="tv-card-progress-fill" style="width: ${card.progressPercent}%"></div>
@@ -82,7 +91,8 @@ export class Rail {
       } else {
         innerHtml = `
           <div class="tv-card-poster-wrap">
-            ${card.image ? `<img class="tv-card-img" src="${card.image}" onerror="this.style.display='none'" loading="lazy" alt="" />` : '<div class="tv-card-placeholder"></div>'}
+            ${card.image ? `<img class="tv-card-img" src="${esc(card.image)}" onerror="${AO_FALHAR}" loading="lazy" alt="" />` : ''}
+            <div class="tv-card-placeholder" style="display:${card.image ? 'none' : 'flex'}">${esc(card.title.trim().charAt(0).toUpperCase())}</div>
             ${card.badge ? `<span class="tv-card-badge" style="background:${card.badgeColor || '#00e3ff'}">${card.badge}</span>` : ''}
             ${card.onRemove ? `<span role="button" class="tv-card-remove" title="Remover de Continuar assistindo">×</span>` : ''}
             ${card.marcado ? `<span class="tv-card-marcado">✓ Assistido</span>` : ''}
@@ -91,8 +101,8 @@ export class Rail {
                 <div class="tv-card-progress-fill" style="width: ${card.progressPercent}%"></div>
               </div>` : ''}
           </div>
-          <div class="tv-card-title">${card.title}</div>
-          ${card.subtitle ? `<div class="tv-card-subtitle">${card.subtitle}</div>` : ''}
+          <div class="tv-card-title">${esc(card.title)}</div>
+          ${card.subtitle ? `<div class="tv-card-subtitle">${esc(card.subtitle)}</div>` : ''}
         `;
       }
 

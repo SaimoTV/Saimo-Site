@@ -4,6 +4,7 @@
  */
 
 import { SpatialNav } from '../core/SpatialNav';
+import { icone } from './Icones';
 
 export class VirtualKeyboard {
   private element: HTMLElement;
@@ -97,7 +98,7 @@ export class VirtualKeyboard {
     backBtn.className = 'tv-btn nav-focusable tv-key-btn';
     backBtn.setAttribute('data-nav', 'true');
     backBtn.id = 'vk-key-back';
-    backBtn.textContent = '⌫ APAGAR';
+    backBtn.innerHTML = `${icone('backspace')}APAGAR`;
     backBtn.style.flex = '1';
     backBtn.style.height = '48px';
     backBtn.style.justifyContent = 'center';

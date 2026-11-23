@@ -4,6 +4,8 @@
  * auto-skip de aberturas e encerramento com contagem regressiva para o próximo episódio.
  */
 
+import { painelFechouHa } from '../components/Escolha';
+import { MODOS_TELA, aplicarModoTela, guardarModoTela, limparModoTela, modoTelaAtual } from '../core/ModoTela';
 import { resolverDinamica } from '../core/Dinamica';
 import { State } from '../core/State';
 import { marcarAssistido, somarTempo } from '../../../src/services/assistidos';
@@ -110,6 +112,10 @@ export class PlayerScreen {
       onSelectSubtitle: () => this.selectSubtitle(),
       onOpenSources: () => this.openSources(),
       onSelectEpisode: (epIdx) => this.switchEpisode(epIdx),
+      onTela: () => this.selectTela(),
+      onVelocidade: () => this.selectVelocidade(),
+      onEpisodios: () => this.selectEpisodios(),
+      onProximo: () => this.proximoManual(),
     });
 
     this.sourceModal = new SourceModal();
@@ -212,6 +218,11 @@ export class PlayerScreen {
       : vod.title;
 
     this.osd.setInfo(title, `Fonte ${State.currentVariantIndex + 1} de ${Math.max(1, this.activeSources.length)}`);
+    SpatialNav.limpar();
+    this.velocidade = 1;
+    this.osd.setPlaying(true);
+    this.osd.setSerie(Boolean(vod.isSeries));
+    aplicarModoTela(document.getElementById('tv-video') as HTMLVideoElement | null);
     this.osd.show();
 
     this.tituloAtual = title;
@@ -281,7 +292,10 @@ export class PlayerScreen {
 
       // Retomada: verifica se havia progresso salvo
       const saved = Storage.getProgress(vod.title);
-      if (saved && saved.position > 30 && (!saved.duration || saved.position / saved.duration < 0.95)) {
+      // Série: só retoma se o que foi salvo é deste mesmo episódio (antes o episódio 2 abria no minuto do 1).
+      const mesmoEpisodio = !vod.isSeries ||
+        (saved?.season === State.currentSeasonIndex + 1 && saved?.episode === State.currentEpisodeIndex + 1);
+      if (saved && mesmoEpisodio && saved.position > 30 && (!saved.duration || saved.position / saved.duration < 0.95)) {
         console.info(`[PlayerScreen] Retomando reprodução em ${saved.position}s`);
         this.player.seek(saved.position);
       }
@@ -306,6 +320,9 @@ export class PlayerScreen {
     clearInterval(this.saveProgressTimer);
     this.saveCurrentProgress();
     this.player.stop();
+    const v = document.getElementById('tv-video') as HTMLVideoElement | null;
+    limparModoTela(v);
+    if (v) v.playbackRate = 1;
   }
 
   private buildActiveSources(baseUrls: string[], addonOpts: TvAddonStreamOption[]) {
@@ -406,6 +423,7 @@ export class PlayerScreen {
       // Verifica fim do episódio para séries
       if (
         State.currentVOD?.isSeries &&
+        this.temProximoEpisodio() &&
         this.duration > 0 &&
         this.currentTime >= this.duration - 20 &&
         !this.countdownTimer
@@ -464,12 +482,87 @@ export class PlayerScreen {
       this.player.resume();
       this.isPlaying = true;
     }
+    this.osd.setPlaying(this.isPlaying);
     this.osd.show();
   }
 
   selectAudio() {
-    this.player.setAudioTrack(1);
-    this.osd.show();
+    // Lista as faixas do vídeo (antes só trocava às cegas para a faixa 1).
+    const faixas = State.faixasAudio;
+    if (faixas.length < 2) {
+      this.osd.setInfo(this.tituloAtual, faixas.length === 1 ? 'Este vídeo tem uma faixa de áudio só' : 'Faixas de áudio indisponíveis neste vídeo');
+      this.osd.show();
+      return;
+    }
+    this.subtitleModal.abrir('Áudio', faixas.map((f, i) => ({
+      rotulo: f.name || f.language || `Faixa ${i + 1}`,
+      marcada: i === this.faixaAudio,
+      aoEscolher: () => { this.faixaAudio = i; this.player.setAudioTrack(f.index ?? i); },
+    })));
+  }
+
+  private faixaAudio = 0;
+  private velocidade = 1;
+
+  selectTela() {
+    const atual = modoTelaAtual();
+    this.subtitleModal.abrir('Tela', MODOS_TELA.map((m) => ({
+      rotulo: `${m.nome}  ·  ${m.sobre}`,
+      marcada: m.id === atual,
+      aoEscolher: () => {
+        guardarModoTela(m.id);
+        aplicarModoTela(document.getElementById('tv-video') as HTMLVideoElement | null, m.id);
+      },
+    })));
+  }
+
+  selectVelocidade() {
+    const opcoes = [0.5, 0.75, 1, 1.25, 1.5, 2];
+    this.subtitleModal.abrir('Velocidade', opcoes.map((v) => ({
+      rotulo: v === 1 ? 'Normal (1×)' : `${v}×`,
+      marcada: v === this.velocidade,
+      aoEscolher: () => {
+        this.velocidade = v;
+        const el = document.getElementById('tv-video') as HTMLVideoElement | null;
+        if (el) el.playbackRate = v;
+      },
+    })));
+  }
+
+  selectEpisodios() {
+    const vod = State.currentVOD;
+    const temporadas = vod?.seasons || [];
+    if (!vod?.isSeries || temporadas.length === 0) return;
+    const abrirEpisodios = (si: number) => {
+      const t = temporadas[si];
+      this.subtitleModal.abrir(`Temporada ${t.seasonNumber ?? si + 1}`, t.episodes.map((ep, i) => ({
+        rotulo: `E${ep.episodeNumber ?? i + 1}  ·  ${ep.title || `Episódio ${i + 1}`}`,
+        marcada: si === State.currentSeasonIndex && i === State.currentEpisodeIndex,
+        aoEscolher: () => { State.currentSeasonIndex = si; this.switchEpisode(i); },
+      })));
+    };
+    if (temporadas.length === 1) { abrirEpisodios(0); return; }
+    this.subtitleModal.abrir('Temporadas', temporadas.map((t, si) => ({
+      rotulo: `Temporada ${t.seasonNumber ?? si + 1}  ·  ${t.episodes.length} episódios`,
+      marcada: si === State.currentSeasonIndex,
+      aoEscolher: () => { setTimeout(() => abrirEpisodios(si), 0); },
+    })));
+  }
+
+  /** Botão Próximo: vai ao episódio seguinte (ou à primeira da próxima temporada). */
+  proximoManual() {
+    const temporadas = State.currentVOD?.seasons || [];
+    const t = temporadas[State.currentSeasonIndex];
+    if (!t) return;
+    if (State.currentEpisodeIndex + 1 < t.episodes.length) {
+      this.switchEpisode(State.currentEpisodeIndex + 1);
+    } else if (State.currentSeasonIndex + 1 < temporadas.length) {
+      State.currentSeasonIndex++;
+      this.switchEpisode(0);
+    } else {
+      this.osd.setInfo(this.tituloAtual, 'Este é o último episódio');
+      this.osd.show();
+    }
   }
 
   selectSubtitle() {
@@ -530,6 +623,9 @@ export class PlayerScreen {
   }
 
   switchEpisode(epIdx: number) {
+    // O tempo do episódio anterior não pode ser salvo como se fosse deste.
+    this.currentTime = 0;
+    this.duration = 0;
     State.currentEpisodeIndex = epIdx;
     State.currentVariantIndex = 0;
     this.enter();
@@ -561,8 +657,25 @@ export class PlayerScreen {
     SpatialNav.setTrap(null);
   }
 
+  /** Há episódio depois deste (na temporada ou na seguinte)? Sem isto o último episódio voltava ao primeiro. */
+  private temProximoEpisodio(): boolean {
+    const temporadas = State.currentVOD?.seasons || [];
+    const t = temporadas[State.currentSeasonIndex];
+    if (!t) return false;
+    return State.currentEpisodeIndex + 1 < t.episodes.length || State.currentSeasonIndex + 1 < temporadas.length;
+  }
+
   private playNextEpisode() {
-    State.currentEpisodeIndex++;
+    const temporadas = State.currentVOD?.seasons || [];
+    const t = temporadas[State.currentSeasonIndex];
+    if (t && State.currentEpisodeIndex + 1 >= t.episodes.length && State.currentSeasonIndex + 1 < temporadas.length) {
+      State.currentSeasonIndex++;
+      State.currentEpisodeIndex = 0;
+    } else {
+      State.currentEpisodeIndex++;
+    }
+    this.currentTime = 0;
+    this.duration = 0;
     State.currentVariantIndex = 0;
     this.enter();
   }
@@ -583,44 +696,90 @@ export class PlayerScreen {
 
   private handleKeyDown(e: KeyboardEvent) {
     if (State.currentScreen !== 'player') return;
+    // O OK que acabou de escolher uma opção num painel já foi tratado: não pausa o vídeo.
+    if ((e.keyCode === 13 || e.key === 'Enter') && painelFechouHa() < 350) {
+      e.preventDefault();
+      return;
+    }
 
-    if (this.sourceModal.isOpen() || !this.nextEpisodeOverlay.classList.contains('hidden')) {
+    if (
+      this.sourceModal.isOpen() ||
+      this.subtitleModal.aberta() ||
+      !this.nextEpisodeOverlay.classList.contains('hidden')
+    ) {
       if (e.keyCode === 10009 || e.keyCode === 461 || e.keyCode === 8 || e.keyCode === 27) {
         e.preventDefault();
+        e.stopImmediatePropagation();
         this.sourceModal.close();
+        this.subtitleModal.fechar();
         this.hideNextEpisodePrompt();
       }
       return;
     }
 
     const key = e.keyCode;
+    const isLeft = key === 37 || e.key === 'ArrowLeft' || e.key === 'Left';
+    const isUp = key === 38 || e.key === 'ArrowUp' || e.key === 'Up';
+    const isRight = key === 39 || e.key === 'ArrowRight' || e.key === 'Right';
+    const isDown = key === 40 || e.key === 'ArrowDown' || e.key === 'Down';
+    const isEnter = key === 13 || e.key === 'Enter';
+    const isBack = key === 10009 || key === 461 || key === 8 || key === 27 || e.key === 'Escape' || e.key === 'Backspace';
 
-    if (key === 37) {
-      // LEFT -> Rewind -10s
+    const osdVisible = this.osd.isVisible();
+    const onSeekbar = osdVisible && this.osd.isSeekbarFocused();
+    const onButtons = osdVisible && this.osd.isButtonFocused();
+
+    if (isDown) {
       e.preventDefault();
-      this.seekDelta(-10);
-    } else if (key === 39) {
-      // RIGHT -> Fast-Forward +10s
-      e.preventDefault();
-      this.seekDelta(10);
-    } else if (key === 38) {
-      // UP -> Mostra OSD e foca primeiro botão
-      e.preventDefault();
+      e.stopPropagation();
       this.osd.show();
-      const firstBtn = this.osd.getElement().querySelector<HTMLElement>('.tv-btn');
-      if (firstBtn) SpatialNav.focus(firstBtn);
-    } else if (key === 40) {
-      // DOWN -> Esconde OSD
+      if (!osdVisible || (!onSeekbar && !onButtons)) {
+        // Primeiro toque para baixo: foca na barra de progresso
+        this.osd.focusSeekbar();
+      } else if (onSeekbar) {
+        // Já na barra de progresso: desce para as opções de baixo
+        this.osd.focusFirstButton();
+      }
+    } else if (isUp) {
       e.preventDefault();
-      this.osd.hide();
-    } else if (key === 13) {
-      // OK -> Se OSD não estiver visível, alterna play/pause
-      if (!this.osd.isVisible()) {
-        e.preventDefault();
+      e.stopPropagation();
+      this.osd.show();
+      if (!osdVisible || (!onSeekbar && !onButtons) || onButtons) {
+        // Das opções de baixo (ou sem foco): sobe para a barra de progresso
+        this.osd.focusSeekbar();
+      }
+    } else if (isLeft || isRight) {
+      e.preventDefault();
+      e.stopPropagation();
+      this.osd.show();
+      if (onButtons) {
+        // Foco nas opções de baixo: navega apenas entre os botões, NUNCA avança ou volta o vídeo
+        const buttons = this.osd.getButtons();
+        const current = SpatialNav.getCurrent();
+        const idx = current ? buttons.indexOf(current) : -1;
+        if (idx >= 0) {
+          const nextIdx = isLeft ? Math.max(0, idx - 1) : Math.min(buttons.length - 1, idx + 1);
+          SpatialNav.focus(buttons[nextIdx], false);
+        } else if (buttons.length > 0) {
+          SpatialNav.focus(buttons[0], false);
+        }
+      } else {
+        // Foco na barra de progresso (ou sem foco nas opções): foca na barra e avança/volta o vídeo
+        this.osd.focusSeekbar();
+        this.seekDelta(isLeft ? -10 : 10);
+      }
+    } else if (isEnter) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (onButtons) {
+        this.osd.show();
+        SpatialNav.getCurrent()?.click();
+      } else {
+        this.osd.show();
+        this.osd.focusSeekbar();
         this.togglePlay();
       }
-    } else if (key === 10009 || key === 461 || key === 8 || key === 27) {
-      // BACK -> Retorna para Ficha
+    } else if (isBack) {
       e.preventDefault();
       State.setScreen('ficha');
     }

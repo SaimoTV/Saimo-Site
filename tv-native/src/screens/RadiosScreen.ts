@@ -24,8 +24,8 @@ export class RadiosScreen {
     this.element.id = 'screen-radios';
 
     this.grade = document.createElement('div');
-    this.grade.className = 'tv-screen-scroll tv-scroll-v';
-    this.grade.appendChild(this.hero.getElement());
+    this.grade.className = 'tv-screen-scroll tv-scroll-v com-hero';
+    this.element.appendChild(this.hero.getElement());
     this.fileiras = document.createElement('div');
     this.grade.appendChild(this.fileiras);
 

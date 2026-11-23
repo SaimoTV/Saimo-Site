@@ -13,6 +13,7 @@ import { iniciarBrilho } from '../../src/plataforma/brilho';
 import { definirCaminhoAvatar, deveEscolherAoAbrir } from '../../src/perfis/perfis';
 import './styles/tv.css';
 import './styles/tv-box.css';
+import './styles/acessibilidade.css';
 // TVs que não entendem `gap` nos flex (LG webOS 4.x): margens no lugar (só com .sem-gap no <html>).
 import './styles/sem-gap.css';
 import { Platform } from './core/Platform';
@@ -40,6 +41,7 @@ import { AddonsScreen } from './screens/AddonsScreen';
 import { DoacaoScreen } from './screens/DoacaoScreen';
 import { NovelinhaScreen } from './screens/NovelinhaScreen';
 import { iniciarTema } from '../../src/plataforma/tema';
+import { iniciarConnectTv } from './core/ConnectTv';
 import { PerfisScreen } from './screens/PerfisScreen';
 import { iniciarConta } from '../../src/conta/conta';
 import { adaptadorDaTv } from './core/ContaTv';
@@ -76,6 +78,10 @@ class SaimoTVApp {
       onError: (err) => {
         console.warn('[SaimoTV] Erro no player:', err);
         State.emit('player-erro', err);
+      },
+      // O botão Áudio lista estas faixas.
+      onTracksReady: (audio) => {
+        State.faixasAudio = audio || [];
       },
     });
 
@@ -125,6 +131,8 @@ class SaimoTVApp {
     window.addEventListener('keydown', (e) => this.handleGlobalKeyDown(e), true);
 
     iniciarTema();
+    // Saimo Connect: o celular manda abrir o Saimo na TV e a TV se liga a ele.
+    iniciarConnectTv();
     this.boot();
   }
 

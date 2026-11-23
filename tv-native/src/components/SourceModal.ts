@@ -5,6 +5,7 @@
 
 import { ChannelVariant } from '../core/Api';
 import { SpatialNav } from '../core/SpatialNav';
+import { marcarFechamentoDePainel } from './Escolha';
 
 export interface SourceModalOption {
   url?: string;
@@ -115,6 +116,7 @@ export class SourceModal {
   }
 
   close() {
+    if (this.isOpen()) marcarFechamentoDePainel();
     this.element.classList.add('hidden');
     SpatialNav.setTrap(null);
     if (document.querySelector('.tv-painel-canais:not(.hidden)')) {

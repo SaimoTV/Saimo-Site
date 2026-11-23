@@ -91,6 +91,8 @@ export class SpatialNav {
   static handleKeyDown(e: KeyboardEvent): boolean {
     // Painel com teclas próprias aberto: só o menu do topo continua aqui.
     if (this.pausado && !this.noMenu()) return false;
+    // Na tela do player de filmes/séries (sem modal ativo), o próprio PlayerScreen controla o foco (barra vs botões).
+    if (!this.trapContainer && document.querySelector('#screen-player:not(.hidden)')) return false;
     const key = e.keyCode;
 
     // Digitando num campo: "Concluído"/OK do teclado da TV (13, 65376) fecha o teclado e desce
@@ -120,11 +122,13 @@ export class SpatialNav {
       }
     } else if (key === 13) {
       // ENTER / OK
-      if (this.currentElement) {
+      const atual = this.currentElement;
+      if (atual) {
         e.preventDefault();
         e.stopPropagation();
-        this.currentElement.click();
-        this.currentElement.dispatchEvent(new CustomEvent('nav-select'));
+        // O clique pode trocar de tela e limpar o foco: usa a referência guardada.
+        atual.click();
+        atual.dispatchEvent(new CustomEvent('nav-select'));
         return true;
       }
     }
@@ -218,7 +222,12 @@ export class SpatialNav {
       );
       for (let i = 0; i < screenList.length; i++) {
         const el = screenList[i];
-        if (el.offsetParent !== null && el.style.display !== 'none' && el.style.visibility !== 'hidden') {
+        if (
+          el.offsetParent !== null &&
+          !el.closest('.hidden') &&
+          el.style.display !== 'none' &&
+          el.style.visibility !== 'hidden'
+        ) {
           result.push(el);
         }
       }
@@ -267,24 +276,37 @@ export class SpatialNav {
     }
   }
 
+  /** A escala do conteúdo (Acessibilidade > Tamanho): o rect é visual, a rolagem é em px da tela. */
+  private static escala(): number {
+    const k = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--k'));
+    return k > 0 ? k : 1;
+  }
+
   private static scrollToElement(el: HTMLElement) {
+    const k = this.escala();
     // 1. Rolagem horizontal no trilho pai (Instantânea a 60 FPS na GPU da TV)
     const rail = el.closest<HTMLElement>('.tv-rail-items, .tv-scroll-h');
     if (rail) {
       const railRect = rail.getBoundingClientRect();
       const elRect = el.getBoundingClientRect();
       const targetScroll =
-        rail.scrollLeft + (elRect.left - railRect.left) - (railRect.width / 2 - elRect.width / 2);
+        rail.scrollLeft + ((elRect.left - railRect.left) - (railRect.width / 2 - elRect.width / 2)) / k;
       rail.scrollLeft = targetScroll;
     }
 
     // 2. Rolagem vertical na tela principal
     const screen = el.closest<HTMLElement>('.tv-screen-scroll, .tv-scroll-v');
-    if (screen) {
+    if (screen && screen.classList.contains('com-hero')) {
+      // Com cabeçalho parado no topo: a fileira do item focado sobe até logo abaixo dele.
+      const linha = el.closest<HTMLElement>('.tv-rail, .tv-radio-linha, .tv-eventos-linha') ?? el;
+      const hero = screen.parentElement?.querySelector<HTMLElement>('.tv-hero-banner');
+      const topoUtil = hero ? hero.getBoundingClientRect().bottom : 116 + 314;
+      screen.scrollTop = Math.max(0, screen.scrollTop + (linha.getBoundingClientRect().top - topoUtil) / k);
+    } else if (screen) {
       const screenRect = screen.getBoundingClientRect();
       const elRect = el.getBoundingClientRect();
       const targetScrollY =
-        screen.scrollTop + (elRect.top - screenRect.top) - (screenRect.height / 2 - elRect.height / 2);
+        screen.scrollTop + ((elRect.top - screenRect.top) - (screenRect.height / 2 - elRect.height / 2)) / k;
       screen.scrollTop = targetScrollY;
     }
   }

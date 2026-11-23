@@ -123,11 +123,28 @@ export class Api {
   private static TMDB_BASE = 'https://api.themoviedb.org/3';
 
   private static channelsCache: Channel[] = [];
+  private static channelsFetchedAt = 0;
   private static epgCache: Map<string, EpgProgram[]> = new Map();
   private static vodCache: VODItem[] = [];
   private static destaquesCache: DestaqueFila[] = [];
   private static basesCache: string[] = [];
   private static fichasMap: Map<string, { tmdbId?: number; poster?: string; genres: string[] }> = new Map();
+
+  /** A capa de um título já conhecido (fichas e catálogo em memória), ou '' se ainda não há. */
+  static capaDe(titulo: string): string {
+    const f = this.fichasMap.get(titulo)?.poster;
+    if (f) return f;
+    const norm = (t: string) => t.toLowerCase().replace(/\s*\(\d{4}\)\s*$/, '').trim();
+    const alvo = norm(titulo);
+    const achado = this.vodCache.find((v) => v.title === titulo || norm(v.title) === alvo);
+    if (achado?.poster) return achado.poster;
+    // Os destaques (fileiras da Início) já trazem capa e carregam antes do catálogo inteiro.
+    for (const fila of this.destaquesCache) {
+      const d = fila.itens.find((v) => v.poster && (v.title === titulo || norm(v.title) === alvo));
+      if (d) return d.poster;
+    }
+    return '';
+  }
 
   /** Sem endereço, os pedidos falham na hora (".invalid" nunca resolve) e as telas ficam vazias. */
   private static readonly SEM_ENDERECO = 'https://sem-lista.invalid/';
@@ -164,7 +181,8 @@ export class Api {
   }
 
   static async fetchChannels(forceRefresh = false): Promise<Channel[]> {
-    if (!forceRefresh && this.channelsCache.length > 0) {
+    const netFresh = this.channelsFetchedAt > 0 && Date.now() - this.channelsFetchedAt < 5 * 60 * 1000;
+    if (!forceRefresh && netFresh && this.channelsCache.length > 0) {
       return this.channelsCache;
     }
 
@@ -179,12 +197,13 @@ export class Api {
       const minhas = await MinhasListas.canais().catch(() => []);
       minhas.forEach((c, i) => { c.number = i + 1; });
       this.channelsCache = minhas;
+      this.channelsFetchedAt = Date.now();
       return this.channelsCache;
     }
 
     try {
-      const url = `${this.getBaseUrl('canais')}catalogo.txt`;
-      const res = await fetch(url, { cache: 'default' });
+      const url = `${this.getBaseUrl('canais')}catalogo.txt?t=${Date.now()}`;
+      const res = await fetch(url, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const text = await res.text();
       const parsed = this.parseChannels(text);
@@ -194,6 +213,7 @@ export class Api {
         let n = parsed.length;
         minhas.forEach((c) => { c.number = ++n; });
         this.channelsCache = parsed.concat(minhas);
+        this.channelsFetchedAt = Date.now();
       }
       return this.channelsCache;
     } catch (e) {

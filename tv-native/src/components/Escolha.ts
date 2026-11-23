@@ -12,6 +12,15 @@ export interface OpcaoEscolha {
   aoEscolher: () => void;
 }
 
+let fechouEm = 0;
+/** Instante em que um painel de escolha fechou: o OK que escolheu não pode virar "pausar" no player. */
+export function painelFechouHa(): number {
+  return Date.now() - fechouEm;
+}
+export function marcarFechamentoDePainel() {
+  fechouEm = Date.now();
+}
+
 export class Escolha {
   private element: HTMLElement;
   private lista: HTMLElement;
@@ -68,6 +77,7 @@ export class Escolha {
   }
 
   fechar() {
+    if (this.aberta()) marcarFechamentoDePainel();
     this.element.classList.add('hidden');
     SpatialNav.setTrap(null);
     if (this.devolverFoco && document.body.contains(this.devolverFoco)) SpatialNav.focus(this.devolverFoco);
