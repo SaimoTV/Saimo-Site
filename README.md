@@ -166,3 +166,7 @@ Custo e remoções (3.3.3): o QR para de perguntar quando o código vence ("Gera
 - **On Demand com cache**: o que veio da última vez aparece na hora (memória e, as fileiras, `saimo-ondemand-cache-v1`); a busca por novidade roda por trás e só troca o que mudou.
 - **Pular abertura** (app antigo das TVs, tv-native): passou a vir desligado.
 - **Números ao vivo** no topo do site: `https://saimo-numeros.pages.dev/numeros.json` (arquivo estático, sem custo; ver SaimoConta/scripts/publicar_numeros.sh).
+
+## Licença
+
+Código aberto sob a licença MIT (arquivo `LICENSE`). Bibliotecas de terceiros seguem as licenças delas.
