@@ -214,7 +214,195 @@ function canaisConfirmados(
   return achados;
 }
 
-async function liga(item: Liga, grades: Map<string[], Programa[]>): Promise<unknown[]> {
+interface RedeFlixCanal {
+  name?: string;
+  embed?: string;
+}
+
+interface RedeFlixJogo {
+  id?: number | string;
+  match?: string;
+  league?: string;
+  league_logo?: string;
+  home?: string;
+  away?: string;
+  home_logo?: string;
+  away_logo?: string;
+  kickoff?: string;
+  date?: string;
+  status?: string;
+  status_text?: string;
+  score?: { home?: number | string | null; away?: number | string | null } | null;
+  minute?: number | string | null;
+  channels?: RedeFlixCanal[];
+}
+
+interface EventoSaida {
+  players: string[];
+  time_start: string;
+  time_end: string;
+  teams: { home: { name: string; image: string }; away: { name: string; image: string } };
+  league: { name: string; image: string };
+  estado: string;
+  placar: string;
+  tempo: string;
+  _inicio?: number;
+  _casa?: TermosTime;
+  _fora?: TermosTime;
+}
+
+const SLUGS_REDEFLIX: Record<string, string[]> = {
+  cazetv: ['cazetv', 'cazetv-1', 'cazetv-2', 'cazetv-3', 'cazetv-4'],
+  'espn-1': ['espn'],
+  espn1: ['espn'],
+  espn: ['espn'],
+  'espn-2': ['espn-2'],
+  'espn-3': ['espn-3'],
+  'espn-4': ['espn-4'],
+  'espn-5': ['espn-5'],
+  'espn-6': ['espn-6'],
+  'canal-goat': ['canal-goat-jogo-1', 'canal-goat'],
+  redetv: ['redetv', 'rede-tv'],
+  'redetv+': ['redetv', 'rede-tv'],
+  'premiere-1': ['premiere-clubes', 'premiere'],
+  premiere: ['premiere-clubes', 'premiere'],
+  'premiere-clubes': ['premiere-clubes', 'premiere'],
+  'premiere-2': ['premiere-2'],
+  'premiere-3': ['premiere-3'],
+  'premiere-4': ['premiere-4'],
+  'premiere-5': ['premiere-5'],
+  'premiere-6': ['premiere-6'],
+  'premiere-7': ['premiere-7'],
+  'premiere-8': ['premiere-8'],
+  'globo-sp': ['globo-sp', 'globo'],
+  globo: ['globo-sp', 'globo'],
+  'globo-rj': ['globo-rj'],
+  'record-sp': ['record-sp', 'record'],
+  record: ['record-sp', 'record'],
+  'record-rj': ['record-rj'],
+  'sbt-sp': ['sbt-sp', 'sbt'],
+  sbt: ['sbt-sp', 'sbt'],
+  'sbt-rj': ['sbt-rj'],
+  'band-sp': ['band-sp', 'band'],
+  band: ['band-sp', 'band'],
+  'band-rj': ['band-rj'],
+  'band-sports': ['band-sports-hd', 'band-sports'],
+  xsports: ['x-sports', 'xsports'],
+  'x-sports': ['x-sports', 'xsports'],
+  sportv: ['sportv'],
+  'sportv-2': ['sportv-2'],
+  'sportv-3': ['sportv-3'],
+  sportynet: ['sportynet', 'sportynet-1'],
+  nsports: ['n-sports'],
+  'n-sports': ['n-sports'],
+  tnt: ['tnt'],
+  space: ['space'],
+  combate: ['combate'],
+  paramount: ['paramount-plus-1', 'paramount-jogo-1', 'paramount-jogo-2', 'paramount-jogo-3', 'paramount-4'],
+  'paramount+': ['paramount-plus-1', 'paramount-jogo-1', 'paramount-jogo-2', 'paramount-jogo-3', 'paramount-4'],
+  disney: ['disney-plus-1', 'disney-01', 'disney-02', 'disney-03'],
+  'disney+': ['disney-plus-1', 'disney-01', 'disney-02', 'disney-03'],
+  'amazon-prime': ['amazon-prime-video-01', 'amazon-prime-video-02'],
+  'prime-video': ['amazon-prime-video-01', 'amazon-prime-video-02'],
+  max: ['max', 'max-01', 'max-02', 'max-03'],
+  'hbo-max': ['max', 'max-01', 'max-02', 'max-03'],
+};
+
+function slugsCanalRedeFlix(ch: RedeFlixCanal): string[] {
+  const candidatos: string[] = [];
+  const embedSlug = (ch.embed ?? '').split('/').filter(Boolean).pop()?.toLowerCase() ?? '';
+  const nomeSlug = sem(ch.name ?? '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  for (const chave of [embedSlug, nomeSlug]) {
+    if (!chave) continue;
+    for (const s of SLUGS_REDEFLIX[chave] ?? [chave]) {
+      if (!candidatos.includes(s)) candidatos.push(s);
+    }
+  }
+  return candidatos;
+}
+
+async function jogosRedeFlix(agora: number): Promise<EventoSaida[]> {
+  let raw: { games?: RedeFlixJogo[] } | null = null;
+  for (const url of [
+    'http://redeflixapi.click/list-games-ids.json',
+    'https://redeflixapi.click/list-games-ids.json',
+    'https://canais-saimo.pages.dev/eventos-redeflix.json',
+  ]) {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 5000);
+      const r = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          Accept: 'application/json',
+        },
+        signal: ctrl.signal,
+      }).finally(() => clearTimeout(t));
+      if (!r.ok) continue;
+      const j = (await r.json()) as { games?: RedeFlixJogo[] };
+      if (Array.isArray(j?.games)) {
+        raw = j;
+        break;
+      }
+    } catch { /* tenta espelho */ }
+  }
+  if (!raw?.games?.length) return [];
+
+  const saida: EventoSaida[] = [];
+  for (const g of raw.games) {
+    if (!g.date || !g.kickoff || !g.home || !g.away) continue;
+    const hora = g.kickoff.length === 5 ? `${g.kickoff}:00` : g.kickoff;
+    const inicio = Date.parse(`${g.date}T${hora}-03:00`);
+    if (isNaN(inicio)) continue;
+
+    const stRaw = (g.status ?? '').toLowerCase();
+    const stTxt = (g.status_text ?? '').toUpperCase();
+    let estado: 'pre' | 'in' | 'post' = 'pre';
+    if (stRaw === 'live' || stRaw === 'in' || stTxt.includes('AO VIVO') || stTxt.includes('INTERVALO')) {
+      estado = 'in';
+    } else if (stRaw === 'finished' || stRaw === 'post' || stTxt.includes('ENCERRADO')) {
+      estado = 'post';
+    }
+
+    const duracaoMs = 150 * 60_000;
+    const fimMs = estado === 'in'
+      ? Math.max(inicio + duracaoMs, agora + 30 * 60_000)
+      : inicio + (estado === 'post' ? 120 * 60_000 : duracaoMs);
+
+    const sc = g.score;
+    const temPlacar = estado !== 'pre' && sc && sc.home != null && sc.away != null;
+    const placar = temPlacar ? `${sc!.home} x ${sc!.away}` : '';
+    const min = g.minute != null && String(g.minute).trim() !== '' ? `${String(g.minute).replace(/[^\d+]/g, '')}'` : '';
+    const tempo = estado === 'in' ? (min || (stTxt && stTxt !== 'AGENDADO' ? stTxt : 'AO VIVO')) : '';
+
+    const slugs: string[] = [];
+    for (const ch of g.channels ?? []) {
+      for (const s of slugsCanalRedeFlix(ch)) {
+        if (!slugs.includes(s)) slugs.push(s);
+      }
+    }
+
+    saida.push({
+      players: slugs.map(s => `https://saimo-tv/canal/${s}`),
+      time_start: brt(inicio),
+      time_end: brt(fimMs),
+      teams: {
+        home: { name: g.home, image: g.home_logo ?? '' },
+        away: { name: g.away, image: g.away_logo ?? '' },
+      },
+      league: { name: g.league ?? '', image: g.league_logo ?? '' },
+      estado,
+      placar,
+      tempo,
+      _inicio: inicio,
+      _casa: palavrasDoTime([g.home]),
+      _fora: palavrasDoTime([g.away]),
+    });
+  }
+  return saida;
+}
+
+async function liga(item: Liga, grades: Map<string[], Programa[]>): Promise<EventoSaida[]> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 7000);
   try {
@@ -223,7 +411,7 @@ async function liga(item: Liga, grades: Map<string[], Programa[]>): Promise<unkn
     const d: any = await r.json();
     const nomeLiga = d?.leagues?.[0]?.name ?? '';
     const logoLiga = d?.leagues?.[0]?.logos?.[0]?.href ?? '';
-    const saida: unknown[] = [];
+    const saida: EventoSaida[] = [];
     for (const ev of d?.events ?? []) {
       const comps: Comp[] = ev?.competitions?.[0]?.competitors ?? [];
       const casa = comps.find(c => c.homeAway === 'home');
@@ -250,6 +438,9 @@ async function liga(item: Liga, grades: Map<string[], Programa[]>): Promise<unkn
         estado,
         placar: estado === 'pre' ? '' : `${casa.score ?? 0} x ${fora.score ?? 0}`,
         tempo: estado === 'in' ? st?.shortDetail ?? '' : '',
+        _inicio: inicio,
+        _casa: pCasa,
+        _fora: pFora,
       });
     }
     return saida;
@@ -258,6 +449,18 @@ async function liga(item: Liga, grades: Map<string[], Programa[]>): Promise<unkn
   } finally {
     clearTimeout(t);
   }
+}
+
+function mesmoJogo(a: EventoSaida, b: EventoSaida): boolean {
+  if (!a._inicio || !b._inicio || Math.abs(a._inicio - b._inicio) > 4 * 3600_000) return false;
+  if (!a._casa || !a._fora || !b._casa || !b._fora) return false;
+  const h = sem(a.teams.home.name).replace(/[^a-z0-9]+/g, ' ').trim();
+  const f = sem(a.teams.away.name).replace(/[^a-z0-9]+/g, ' ').trim();
+  const h2 = sem(b.teams.home.name).replace(/[^a-z0-9]+/g, ' ').trim();
+  const f2 = sem(b.teams.away.name).replace(/[^a-z0-9]+/g, ' ').trim();
+  const direto = (casouTime(h, b._casa) && casouTime(f, b._fora)) || (casouTime(h2, a._casa) && casouTime(f2, a._fora));
+  const invertido = (casouTime(h, b._fora) && casouTime(f, b._casa)) || (casouTime(h2, a._fora) && casouTime(f2, a._casa));
+  return direto || invertido;
 }
 
 export const onRequestGet: PagesFunction = async (ctx) => {
@@ -280,7 +483,7 @@ export const onRequestGet: PagesFunction = async (ctx) => {
 
 async function montarAgenda(): Promise<Response> {
   const agora = Date.now();
-  const doc = await gradeCentral(agora);
+  const [doc, rfJogos] = await Promise.all([gradeCentral(agora), jogosRedeFlix(agora)]);
   const grades = new Map<string[], Programa[]>();
   const mapear = (lista?: [number, number, string, string?][]) =>
     (lista ?? [])
@@ -290,13 +493,39 @@ async function montarAgenda(): Promise<Response> {
     for (const [codigo, slugs] of GRADES_M) grades.set(slugs, mapear(doc.m[codigo]));
     for (const [chave, slugs] of GRADES_G) grades.set(slugs, mapear(doc.g[chave]));
   }
-  const jogos = (await Promise.all(LIGAS.map(l => liga(l, grades)))).flat() as { time_start: string }[];
-  jogos.sort((a, b) => a.time_start.localeCompare(b.time_start));
-  return new Response(JSON.stringify(jogos), {
+  const espnJogos = (await Promise.all(LIGAS.map(l => liga(l, grades)))).flat();
+
+  const final: EventoSaida[] = rfJogos.map((j) => {
+    const par = espnJogos.find(e => mesmoJogo(j, e));
+    const players = [...j.players];
+    if (par) {
+      for (const p of par.players) if (!players.includes(p)) players.push(p);
+    }
+    return {
+      ...j,
+      players,
+      teams: {
+        home: { name: j.teams.home.name, image: j.teams.home.image || par?.teams.home.image || '' },
+        away: { name: j.teams.away.name, image: j.teams.away.image || par?.teams.away.image || '' },
+      },
+      league: { name: j.league.name || par?.league.name || '', image: j.league.image || par?.league.image || '' },
+      estado: j.estado === 'in' || !par ? j.estado : par.estado,
+      placar: j.placar || par?.placar || '',
+      tempo: j.tempo || par?.tempo || '',
+    };
+  });
+
+  for (const e of espnJogos) {
+    if (!final.some(j => mesmoJogo(j, e))) final.push(e);
+  }
+
+  const limpos = final.map(({ _inicio, _casa, _fora, ...rest }) => rest);
+  limpos.sort((a, b) => a.time_start.localeCompare(b.time_start));
+  return new Response(JSON.stringify(limpos), {
     headers: {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
-      'Cache-Control': 'public, max-age=120',
+      'Cache-Control': 'public, max-age=60',
     },
   });
 }
