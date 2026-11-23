@@ -198,6 +198,17 @@ export function isDebridPendingUrl(url: string): boolean {
   return Boolean(url && url.indexOf('addon-debrid://') === 0);
 }
 
+/**
+ * Fonte de addon com cara de conteúdo adulto (nome, título, descrição ou nome do
+ * arquivo). Addons de torrent devolvem arquivos falsos com o nome de filmes
+ * recentes, às vezes pornografia: essas fontes não aparecem.
+ */
+const ADULTO = /(\bxxx\b|\bporn|pornô|\bhentai\b|onlyfans|brazzers|bangbros|naughty ?america|reality ?kings|\bblacked\b|\btushy\b|xvideos|xhamster|pornhub|\berotic|\berótic|sexo expl[ií]cito|\bnsfw\b|\b18\+)/i;
+export function fonteAdulta(s: { name?: string; title?: string; description?: string; url?: string; behaviorHints?: unknown }): boolean {
+  const dicas = (s.behaviorHints && typeof s.behaviorHints === 'object') ? JSON.stringify(s.behaviorHints) : '';
+  return ADULTO.test([s.name, s.title, s.description, s.url, dicas].filter(Boolean).join(' '));
+}
+
 export function mapAddonStreamsToMovieSources(entries: AddonStreamEntry[]): MovieSource[] {
   const hasDebrid = hasEnabledDebrid();
   const pageIsHttps = typeof window !== 'undefined' && window.location && window.location.protocol === 'https:';
@@ -207,6 +218,7 @@ export function mapAddonStreamsToMovieSources(entries: AddonStreamEntry[]): Movi
     const entry = entries[i];
     const s = entry.stream;
     if (!s) continue;
+    if (fonteAdulta(s)) continue;
 
     const url = s.url && s.url.trim() ? s.url.trim() : s.infoHash ? makeDebridPendingUrl(s.infoHash, s.fileIdx) : '';
     if (!url) continue;
