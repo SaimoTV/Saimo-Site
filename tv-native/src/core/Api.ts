@@ -132,7 +132,9 @@ export class Api {
   private static channelsFetchedAt = 0;
   private static epgCache: Map<string, EpgProgram[]> = new Map();
   private static vodCache: VODItem[] = [];
+  private static vodFetchedAt = 0;
   private static destaquesCache: DestaqueFila[] = [];
+  private static destaquesFetchedAt = 0;
   private static basesCache: string[] = [];
   private static fichasMap: Map<string, { tmdbId?: number; poster?: string; genres: string[] }> = new Map();
 
@@ -514,7 +516,8 @@ export class Api {
       }
     }
 
-    if (!forceRefresh && this.destaquesCache.length > 0) return this.destaquesCache;
+    const destaquesFresh = this.destaquesFetchedAt > 0 && Date.now() - this.destaquesFetchedAt < 5 * 60 * 1000;
+    if (!forceRefresh && destaquesFresh && this.destaquesCache.length > 0) return this.destaquesCache;
 
     const cached = Storage.getCachedDestaques();
     if (cached && cached.length > 0 && this.destaquesCache.length === 0) {
@@ -522,8 +525,8 @@ export class Api {
     }
 
     try {
-      const url = `${this.getBaseUrl('filmes')}destaques.txt`;
-      const res = await fetch(url, { cache: 'default' });
+      const url = `${this.getBaseUrl('filmes')}destaques.txt?t=${Math.floor(Date.now() / 300000)}`;
+      const res = await fetch(url, { cache: 'no-store' });
       if (!res.ok) return this.destaquesCache;
       const text = await res.text();
 
@@ -569,6 +572,7 @@ export class Api {
 
       if (filas.length > 0) {
         this.destaquesCache = filas;
+        this.destaquesFetchedAt = Date.now();
         Storage.setCachedDestaques(filas);
       }
       return this.destaquesCache;
@@ -714,14 +718,16 @@ export class Api {
       }
       return [];
     }
-    if (this.vodCache.length > 0) return this.vodCache;
+    const vodFresh = this.vodFetchedAt > 0 && Date.now() - this.vodFetchedAt < 5 * 60 * 1000;
+    if (vodFresh && this.vodCache.length > 0) return this.vodCache;
     try {
-      const url = `${this.getBaseUrl('filmes')}fichas.txt`;
-      const res = await fetch(url, { cache: 'default' });
-      if (!res.ok) return [];
+      const url = `${this.getBaseUrl('filmes')}fichas.txt?t=${Math.floor(Date.now() / 300000)}`;
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) return this.vodCache;
       const text = await res.text();
       const items: VODItem[] = [];
       const lines = text.split('\n');
+      const nextFichas = new Map<string, { tmdbId?: number; poster?: string; genres: string[] }>();
 
       for (const line of lines) {
         if (!line || line[0] === '#' || line.startsWith('capa:')) continue;
@@ -737,7 +743,7 @@ export class Api {
         const genres = p[4].split(',').map((g) => g.trim());
 
         // Extrai a letra do título
-        const primeiraLetra = title.charAt(0).toUpperCase();
+        const primeiraLetra = title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0).toUpperCase();
         const letra = /[A-Z]/.test(primeiraLetra) ? primeiraLetra : '#';
 
         const item: VODItem = {
@@ -751,12 +757,16 @@ export class Api {
         };
 
         items.push(item);
-        this.fichasMap.set(title, { tmdbId, poster, genres });
+        nextFichas.set(title, { tmdbId, poster, genres });
       }
-      this.vodCache = items;
-      return items;
+      if (items.length > 0) {
+        this.vodCache = items;
+        this.fichasMap = nextFichas;
+        this.vodFetchedAt = Date.now();
+      }
+      return this.vodCache;
     } catch (e) {
-      return [];
+      return this.vodCache;
     }
   }
 
@@ -847,11 +857,18 @@ export class Api {
       const indexText = await indexRes.text();
 
       let pedaco = 0;
+      const normSerie = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s*\(\d{4}\)\s*$/, '').trim();
+      const alvoNorm = normSerie(item.title);
+      let tituloNoIndice = item.title;
       for (const line of indexText.split('\n')) {
         const parts = line.split('\t');
-        if (parts.length >= 3 && parts[0].trim() === item.title) {
-          pedaco = parseInt(parts[2].trim(), 10) || 0;
-          break;
+        if (parts.length >= 3) {
+          const cand = parts[0].trim();
+          if (cand === item.title || normSerie(cand) === alvoNorm) {
+            pedaco = parseInt(parts[2].trim(), 10) || 0;
+            tituloNoIndice = cand;
+            break;
+          }
         }
       }
 
@@ -868,7 +885,7 @@ export class Api {
         if (line.startsWith('@')) {
           if (dentroDaSerie) break;
           const identity = line.substring(1).split('\t')[0].trim();
-          if (identity === item.title) {
+          if (identity === tituloNoIndice || identity === item.title || normSerie(identity) === alvoNorm) {
             dentroDaSerie = true;
           }
           continue;

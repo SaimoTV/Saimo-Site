@@ -17,6 +17,33 @@ const lerRecentes = (): string[] => {
   try { const l = JSON.parse(localStorage.getItem(RECENTES) || '[]'); return Array.isArray(l) ? l : []; } catch (e) { return []; }
 };
 
+function normBusca(s: string): string {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function palavrasPerto(a: string, b: string): boolean {
+  if (a === b || a.includes(b)) return true;
+  if (b.length < 4 || Math.abs(a.length - b.length) > 1) return false;
+  let diffs = 0, i = 0, j = 0;
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) { i++; j++; continue; }
+    if (++diffs > 1) return false;
+    if (a.length > b.length) i++;
+    else if (b.length > a.length) j++;
+    else { i++; j++; }
+  }
+  return diffs + (a.length - i) + (b.length - j) <= 1;
+}
+
+function casarComTolerancia(tituloNorm: string, queryNorm: string): boolean {
+  if (!queryNorm) return false;
+  if (tituloNorm.includes(queryNorm)) return true;
+  const qWords = queryNorm.split(' ').filter(Boolean);
+  if (qWords.length === 0) return false;
+  const tWords = tituloNorm.split(' ').filter(Boolean);
+  return qWords.every((qw) => tWords.some((tw) => palavrasPerto(tw, qw)));
+}
+
 export class SearchScreen {
   private element: HTMLElement;
   private inputDisplay: HTMLElement;
@@ -92,9 +119,10 @@ export class SearchScreen {
       }
     }
 
-    if (State.vodItems.length === 0) {
-      Api.fetchFichas().then((v) => { State.vodItems = v; }).catch(() => {});
-    }
+    Api.fetchFichas().then((v) => {
+      State.vodItems = v;
+      if (this.currentQuery.trim()) this.performSearch();
+    }).catch(() => {});
 
     this.mostrarRecentes();
     this.keyboard.focusFirst();
@@ -238,17 +266,46 @@ export class SearchScreen {
       this.channelsRail.getElement().style.display = 'none';
     }
 
-    // Busca Filmes e Séries usando getSearchPool() com interrupção rápida aos 25 itens
+    // Busca Filmes e Séries usando getSearchPool() com normalização de acentos e tolerância a erro de digitação
     const pool = Api.getSearchPool();
+    const qNorm = normBusca(q);
     const matchedVOD: VODItem[] = [];
+    const fuzzyVOD: VODItem[] = [];
+    const matchedTmdbIds = new Set<string>();
+    const seenIds = new Set<string>();
+
     for (let i = 0; i < pool.length; i++) {
       const v = pool[i];
+      const tNorm = normBusca(v.title);
       if (
+        tNorm.includes(qNorm) ||
         v.title.toLowerCase().includes(q) ||
-        v.genres?.some((g) => g.toLowerCase().includes(q))
+        v.genres?.some((g) => normBusca(g).includes(qNorm))
       ) {
         matchedVOD.push(v);
+        seenIds.add(v.id);
+        if (v.tmdbId) matchedTmdbIds.add(`${v.isSeries ? 's' : 'f'}:${v.tmdbId}`);
         if (matchedVOD.length >= 25) break;
+      } else if (fuzzyVOD.length < 25 && casarComTolerancia(tNorm, qNorm)) {
+        fuzzyVOD.push(v);
+        if (v.tmdbId) matchedTmdbIds.add(`${v.isSeries ? 's' : 'f'}:${v.tmdbId}`);
+      }
+    }
+
+    for (let i = 0; i < fuzzyVOD.length && matchedVOD.length < 25; i++) {
+      if (!seenIds.has(fuzzyVOD[i].id)) {
+        seenIds.add(fuzzyVOD[i].id);
+        matchedVOD.push(fuzzyVOD[i]);
+      }
+    }
+
+    if (matchedTmdbIds.size > 0 && matchedVOD.length < 25) {
+      for (let i = 0; i < pool.length && matchedVOD.length < 25; i++) {
+        const v = pool[i];
+        if (v.tmdbId && matchedTmdbIds.has(`${v.isSeries ? 's' : 'f'}:${v.tmdbId}`) && !seenIds.has(v.id)) {
+          seenIds.add(v.id);
+          matchedVOD.push(v);
+        }
       }
     }
 

@@ -85,15 +85,18 @@ let indiceBusca: string | null = null;
 const colecoes = new Map<ColecaoVod, Promise<SerieColecao[]>>();
 /** De qual endereço vem tudo o que está em memória aqui. */
 let baseDaMemoria = '';
+let memoriaLidaEm = 0;
 
 /**
- * Esquece o que foi lido de outro endereço. Trocar ou apagar o link de filmes
- * em Ajustes não pode deixar a tela com títulos da lista anterior.
+ * Esquece o que foi lido de outro endereço ou há mais de 5 minutos. Trocar ou
+ * apagar o link de filmes em Ajustes, ou publicar o catálogo, atualiza sem travar em cache velho.
  */
 function sincronizar(): string {
   const base = linkFilmes();
-  if (base !== baseDaMemoria) {
+  const agora = Date.now();
+  if (base !== baseDaMemoria || (memoriaLidaEm > 0 && agora - memoriaLidaEm > 5 * 60 * 1000)) {
     baseDaMemoria = base;
+    memoriaLidaEm = agora;
     bases = [];
     arquivos.clear();
     indiceBusca = null;
@@ -102,6 +105,7 @@ function sincronizar(): string {
     generosEmMemoria = null;
     categoriasEmMemoria = null;
   }
+  if (!memoriaLidaEm) memoriaLidaEm = agora;
   return base;
 }
 
@@ -110,11 +114,7 @@ function gaveta(letra: string): string {
 }
 
 /**
- * Conteúdo do arquivo, memorizado.
- *
- * O catálogo muda de vez em quando e nunca no meio de uma navegação, então o que
- * já foi lido serve para o resto da visita: poupa a rede e faz voltar à mesma
- * letra abrir na hora.
+ * Conteúdo do arquivo, memorizado por até 5 minutos.
  */
 function arquivo(nome: string): Promise<string | null> {
   // Sem endereço de filmes não se pede nada.
@@ -123,7 +123,8 @@ function arquivo(nome: string): Promise<string | null> {
   const existente = arquivos.get(nome);
   if (existente) return existente;
 
-  const promessa = fetch(BASE + nome)
+  const sep = nome.includes('?') ? '&' : '?';
+  const promessa = fetch(`${BASE}${nome}${sep}v=${Math.floor(Date.now() / 300_000)}`)
     .then((r) => (r.ok ? r.text() : null))
     .catch(() => null)
     .then((texto) => {
@@ -277,11 +278,31 @@ function normalizar(texto: string): string {
     .trim();
 }
 
+function palavrasPerto(a: string, b: string): boolean {
+  if (a === b || a.includes(b)) return true;
+  if (b.length < 4 || Math.abs(a.length - b.length) > 1) return false;
+  let diffs = 0, i = 0, j = 0;
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) { i++; j++; continue; }
+    if (++diffs > 1) return false;
+    if (a.length > b.length) i++;
+    else if (b.length > a.length) j++;
+    else { i++; j++; }
+  }
+  return diffs + (a.length - i) + (b.length - j) <= 1;
+}
+
+function casarComTolerancia(tituloNorm: string, queryNorm: string): boolean {
+  if (!queryNorm) return false;
+  if (tituloNorm.includes(queryNorm)) return true;
+  const qWords = queryNorm.split(' ').filter(Boolean);
+  if (qWords.length === 0) return false;
+  const tWords = tituloNorm.split(' ').filter(Boolean);
+  return qWords.every((qw) => tWords.some((tw) => palavrasPerto(tw, qw)));
+}
+
 /**
- * Procura em todo o acervo.
- *
- * O índice traz só nome, tipo e letra — menos de um megabyte para trinta mil
- * títulos — então dá para procurar no acervo inteiro sem baixar o acervo.
+ * Procura em todo o acervo (com tolerância a acentos e 1 letra de erro por palavra).
  */
 async function buscarBruto(termo: string): Promise<Achado[]> {
   const alvo = normalizar(termo);
@@ -292,19 +313,29 @@ async function buscarBruto(termo: string): Promise<Achado[]> {
   indiceBusca = texto;
 
   const out: Achado[] = [];
+  const aproximados: Achado[] = [];
   for (const linha of texto.split('\n')) {
     const campos = linha.split('\t');
     if (campos.length < 3) continue;
     const ano = campos[3] ?? '';
-    if (!normalizar(`${campos[0]} ${ano}`).includes(alvo)) continue;
-    out.push({
+    const normLinha = normalizar(`${campos[0]} ${ano}`);
+    const item: Achado = {
       titulo: campos[0],
       serie: campos[1] === 's',
       letra: campos[2],
       ano,
       nomeCompleto: ano.trim() ? `${campos[0]} (${ano})` : campos[0],
-    });
+    };
+    if (normLinha.includes(alvo)) {
+      out.push(item);
+      if (out.length >= 200) break;
+    } else if (aproximados.length < 50 && casarComTolerancia(normLinha, alvo)) {
+      aproximados.push(item);
+    }
+  }
+  for (const item of aproximados) {
     if (out.length >= 200) break;
+    out.push(item);
   }
   return out;
 }
