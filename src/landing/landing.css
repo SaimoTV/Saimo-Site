@@ -647,3 +647,19 @@ body:has(.landing) nav.navegacao-mobile, body:has(.legal) nav.navegacao-mobile {
   .ao-vivo strong { font-size: 1.25rem; }
 }
 @media (prefers-reduced-motion: reduce) { .ao-vivo-selo i { animation: none; } }
+
+/* Código aberto e comunidade: no topo e numa seção própria. */
+.heroi-comunidade { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+.comunidade-cartao {
+  display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: 16px; text-decoration: none; color: #fff;
+  background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.18); transition: transform 0.15s, background 0.15s;
+}
+.comunidade-cartao:hover, .comunidade-cartao:focus-visible { transform: translateY(-2px); background: rgba(255, 255, 255, 0.13); }
+.comunidade-cartao strong { display: block; font-size: 16px; }
+.comunidade-cartao small { display: block; margin-top: 2px; font-size: 13px; color: var(--suave, rgba(255, 255, 255, 0.7)); }
+.comunidade-cartao.discord { background: linear-gradient(135deg, rgba(88, 101, 242, 0.55), rgba(88, 101, 242, 0.25)); border-color: rgba(129, 140, 248, 0.7); }
+.comunidade-cartao.discord:hover { background: linear-gradient(135deg, rgba(88, 101, 242, 0.75), rgba(88, 101, 242, 0.4)); }
+.comunidade-grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; max-width: 900px; margin: 34px auto 0; }
+.comunidade-cartao.grande { padding: 24px 26px; }
+.comunidade-cartao.grande strong { font-size: 19px; }
+.comunidade-texto { max-width: 760px; color: var(--suave, rgba(255,255,255,0.75)); font-size: 17px; line-height: 1.6; }

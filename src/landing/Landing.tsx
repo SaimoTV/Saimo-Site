@@ -148,7 +148,40 @@ function NumerosAoVivo() {
 /* ───────────────────────────── ícones ───────────────────────────── */
 
 type IconeProps = { nome: string; tamanho?: number };
+const GITHUB = 'https://github.com/SaimoTV';
+const DISCORD = 'https://discord.gg/BrWbQQhfh7';
+
+/* ───────────────────────────── código aberto e comunidade ───────────────────────────── */
+
+function Comunidade() {
+  return (
+    <section className="secao comunidade" id="comunidade">
+      <div className="miolo">
+        <span className="eyebrow rv"><i /> Feito em conjunto</span>
+        <h2 className="titulo-grande rv d1">Código aberto.<br /><span className="grad">Comunidade de verdade.</span></h2>
+        <p className="comunidade-texto rv d2">
+          O código de todos os apps do Saimo (TV Box, celular, Mac, Windows, Linux, Roku, Samsung, LG e este site)
+          fica aberto no GitHub: qualquer um pode ver o que o app faz, conferir que nada é coletado sem você saber e
+          sugerir melhorias. Dúvidas, ideias e problemas: a comunidade no Discord responde rápido.
+        </p>
+      <div className="comunidade-grade rv d3">
+        <a className="comunidade-cartao grande" href={GITHUB} target="_blank" rel="noreferrer noopener">
+          <Icone nome="codigo" tamanho={34} />
+          <span><strong>Ver o código no GitHub</strong><small>github.com/SaimoTV · abra uma issue ou mande sua melhoria</small></span>
+        </a>
+        <a className="comunidade-cartao grande discord" href={DISCORD} target="_blank" rel="noreferrer noopener">
+          <Icone nome="chat" tamanho={34} />
+          <span><strong>Entrar na comunidade do Discord</strong><small>Ajuda, novidades em primeira mão e conversa com quem usa</small></span>
+        </a>
+      </div>
+      </div>
+    </section>
+  );
+}
+
 const TRACOS: Record<string, string> = {
+  codigo: 'M8 8l-4 4 4 4M16 8l4 4-4 4M14 4l-4 16',
+  chat: 'M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.4A8 8 0 1 1 21 12zM8 11h.01M12 11h.01M16 11h.01',
   tv: 'M3 6.5A2.5 2.5 0 0 1 5.5 4h13A2.5 2.5 0 0 1 21 6.5v8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 14.5v-8ZM8 21h8M12 17v4',
   film: 'M4 5h16v14H4zM8 5v14M16 5v14M4 9h4M4 15h4M16 9h4M16 15h4',
   series: 'M3 7h18M7 3l3 4M14 3l3 4M5 7h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z',
@@ -272,7 +305,18 @@ function Heroi() {
             <a className="botao botao-principal" href="#baixar"><Icone nome="baixar" tamanho={18} /> Baixar grátis</a>
             <a className="botao botao-vidro" href="#tudo"><Icone nome="play" tamanho={16} /> Ver tudo o que ele faz</a>
           </div>
+          <div className="heroi-comunidade rv d3">
+            <a className="comunidade-cartao" href={GITHUB} target="_blank" rel="noreferrer noopener">
+              <Icone nome="codigo" tamanho={26} />
+              <span><strong>Código aberto</strong><small>Todo o código dos apps no GitHub</small></span>
+            </a>
+            <a className="comunidade-cartao discord" href={DISCORD} target="_blank" rel="noreferrer noopener">
+              <Icone nome="chat" tamanho={26} />
+              <span><strong>Comunidade no Discord</strong><small>Tire dúvidas, sugira e ajude · entrar</small></span>
+            </a>
+          </div>
           <ul className="selos rv d4">
+            <li><Icone nome="check" tamanho={15} /> Código aberto</li>
             <li><Icone nome="check" tamanho={15} /> Sem anúncios</li>
             <li><Icone nome="check" tamanho={15} /> Sem cadastro</li>
             <li><Icone nome="check" tamanho={15} /> Dados só no seu aparelho</li>
@@ -1439,6 +1483,7 @@ export function Landing() {
         <Connect />
         <Privacidade />
         <Baixar />
+        <Comunidade />
         <Perguntas />
       </main>
       <Rodape />

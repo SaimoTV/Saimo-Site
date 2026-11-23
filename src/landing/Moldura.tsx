@@ -44,6 +44,7 @@ export function Cabecalho({ ancoras = false }: { ancoras?: boolean }) {
               <a href="#cada-app" onClick={fechar}>Cada app</a>
               <a href="#connect" onClick={fechar}>Saimo Connect</a>
               <a href="#aparelhos" onClick={fechar}>Aparelhos</a>
+              <a href="#comunidade" onClick={fechar}>Comunidade</a>
             </>
           ) : (
             <>
