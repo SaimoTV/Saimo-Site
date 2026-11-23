@@ -14,6 +14,7 @@ export type ScreenType =
   | 'home'
   | 'ondemand'
   | 'ficha'
+  | 'ator'
   | 'player'
   | 'guide'
   | 'events'
@@ -51,6 +52,8 @@ export class State {
 
   static vodItems: VODItem[] = [];
   static currentVOD: VODItem | null = null;
+  /** Pessoa aberta na tela do ator (elenco da ficha). */
+  static currentAtor: { id: number; nome: string; foto?: string } | null = null;
   /** Faixas de áudio do vídeo em reprodução (preenchidas pelo player). */
   static faixasAudio: { index: number; name: string; language: string }[] = [];
   static currentSeasonIndex = 0;
@@ -82,7 +85,7 @@ export class State {
     });
   }
 
-  static setScreen(screen: ScreenType, params?: { vod?: VODItem; channel?: Channel }) {
+  static setScreen(screen: ScreenType, params?: { vod?: VODItem; channel?: Channel; ator?: { id: number; nome: string; foto?: string } }) {
     // A primeira chamada sempre passa: é ela que abre a tela inicial.
     if (this.iniciado && this.currentScreen === screen && !params) return;
     this.iniciado = true;
@@ -91,6 +94,7 @@ export class State {
     this.currentScreen = screen;
 
     if (params?.vod) this.currentVOD = params.vod;
+    if (params?.ator) this.currentAtor = params.ator;
     if (params?.channel) {
       this.currentChannel = params.channel;
       this.canalEscolhido = true;

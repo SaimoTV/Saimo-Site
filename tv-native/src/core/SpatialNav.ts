@@ -285,7 +285,7 @@ export class SpatialNav {
   private static scrollToElement(el: HTMLElement) {
     const k = this.escala();
     // 1. Rolagem horizontal no trilho pai (Instantânea a 60 FPS na GPU da TV)
-    const rail = el.closest<HTMLElement>('.tv-rail-items, .tv-scroll-h');
+    const rail = el.closest<HTMLElement>('.tv-rail-items, .tv-scroll-h, .tv-category-chips');
     if (rail) {
       const railRect = rail.getBoundingClientRect();
       const elRect = el.getBoundingClientRect();
@@ -295,7 +295,7 @@ export class SpatialNav {
     }
 
     // 2. Rolagem vertical na tela principal
-    const screen = el.closest<HTMLElement>('.tv-screen-scroll, .tv-scroll-v');
+    const screen = el.closest<HTMLElement>('.tv-screen-scroll, .tv-scroll-v, .tv-escolha-lista');
     if (screen && screen.classList.contains('com-hero')) {
       // Com cabeçalho parado no topo: a fileira do item focado sobe até logo abaixo dele.
       const linha = el.closest<HTMLElement>('.tv-rail, .tv-radio-linha, .tv-eventos-linha') ?? el;

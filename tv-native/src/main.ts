@@ -29,6 +29,7 @@ import { LiveScreen } from './screens/LiveScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { OnDemandScreen } from './screens/OnDemandScreen';
 import { FichaScreen } from './screens/FichaScreen';
+import { AtorScreen } from './screens/AtorScreen';
 import { PlayerScreen } from './screens/PlayerScreen';
 import { GuideScreen } from './screens/GuideScreen';
 import { EventsScreen } from './screens/EventsScreen';
@@ -95,6 +96,7 @@ class SaimoTVApp {
     this.screens.set('home', new HomeScreen());
     this.screens.set('ondemand', new OnDemandScreen());
     this.screens.set('ficha', new FichaScreen());
+    this.screens.set('ator', new AtorScreen());
     this.screens.set('player', new PlayerScreen(player));
     this.screens.set('guide', new GuideScreen());
     this.screens.set('events', new EventsScreen());
@@ -195,6 +197,8 @@ class SaimoTVApp {
         State.emit('perfis-voltar');
       } else if (current === 'ficha') {
         State.setScreen(State.previousScreen === 'player' ? 'home' : State.previousScreen);
+      } else if (current === 'ator') {
+        State.setScreen('ficha');
       } else if (current === 'player') {
         State.setScreen('ficha');
       } else if (current === 'novelinha') {

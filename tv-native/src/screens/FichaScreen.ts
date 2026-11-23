@@ -257,7 +257,9 @@ export class FichaScreen {
           title: c.name,
           subtitle: c.character,
           image: c.photo,
-          onClick: () => {},
+          onClick: () => {
+            if (c.id) State.setScreen('ator', { ator: { id: c.id, nome: c.name, foto: c.photo } });
+          },
         }))
       );
     }
@@ -372,6 +374,12 @@ export class FichaScreen {
 
       this.seasonsContainer.appendChild(tab);
     });
+
+    // Com muitas temporadas a fileira rola: a escolhida fica à vista e o título diz qual é.
+    const escolhida = this.seasonsContainer.querySelector<HTMLElement>(`#season-tab-${this.currentSeasonIdx}`);
+    if (escolhida) this.seasonsContainer.scrollLeft = Math.max(0, escolhida.offsetLeft - 600);
+    const tituloEps = this.episodesRail.getElement().querySelector('.tv-rail-title');
+    if (tituloEps) tituloEps.textContent = `Episódios · Temporada ${item.seasons[this.currentSeasonIdx].seasonNumber} de ${item.seasons.length}`;
 
     const currentSeason = item.seasons[this.currentSeasonIdx];
     const episodeCards: CardModel[] = (currentSeason?.episodes || []).map((ep, epIdx) => ({

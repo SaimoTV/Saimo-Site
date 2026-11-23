@@ -533,7 +533,9 @@ export class PlayerScreen {
     const vod = State.currentVOD;
     const temporadas = vod?.seasons || [];
     if (!vod?.isSeries || temporadas.length === 0) return;
-    const abrirEpisodios = (si: number) => {
+    const abrirEpisodios = async (si: number) => {
+      // Nomes reais dos episódios (TMDB), se ainda não vieram para esta temporada.
+      await Api.fetchTMDBSeason(vod, si).catch(() => false);
       const t = temporadas[si];
       this.subtitleModal.abrir(`Temporada ${t.seasonNumber ?? si + 1}`, t.episodes.map((ep, i) => ({
         rotulo: `E${ep.episodeNumber ?? i + 1}  ·  ${ep.title || `Episódio ${i + 1}`}`,

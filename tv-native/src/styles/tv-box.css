@@ -406,3 +406,26 @@ html.tizen.tizen-mse-ativo, html.tizen.tizen-mse-ativo body, html.tizen.tizen-ms
 .tv-rail-eps .tv-card { width: 400px; }
 .tv-rail-eps .tv-card > .tv-card-title { font-size: 26px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
 .tv-rail-eps .tv-card > .tv-card-subtitle { font-size: 22px; }
+
+/* Temporadas: uma fileira que rola para o lado (mais de 8 não cabem) */
+.tv-ficha-content .tv-category-chips { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; flex-shrink: 0; padding: 6px 4px; }
+.tv-ficha-content .tv-category-chips::-webkit-scrollbar { display: none; }
+.tv-ficha-content .tv-category-chips .tv-btn { flex: 0 0 auto; white-space: nowrap; }
+.tv-ficha-content .tv-category-chips .tv-btn.primary { box-shadow: inset 0 -5px 0 #4fe3d0; }
+.tv-temporada-aviso { font-size: 24px; color: rgba(255,255,255,.75); margin: 18px 0 0; }
+/* Lista de escolha (episódios, áudio, legendas) rola dentro da caixa */
+.tv-escolha-lista { max-height: 620px; overflow-y: auto; scrollbar-width: none; }
+.tv-escolha-lista::-webkit-scrollbar { display: none; }
+.tv-escolha-lista .tv-btn { flex-shrink: 0; }
+/* Tela do ator */
+.tv-ator-screen { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; background: #070709; z-index: 150; overflow: hidden; padding-top: var(--m, 116px); box-sizing: border-box; }
+.tv-ator-content { height: 100%; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; padding: 20px 80px 120px; box-sizing: border-box; }
+.tv-ator-content::-webkit-scrollbar { display: none; }
+.tv-ator-top { display: flex; gap: 50px; align-items: flex-start; }
+.tv-ator-foto { width: 260px; height: 260px; border-radius: 50%; overflow: hidden; background: rgba(255,255,255,.1); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 100px; color: #fff; }
+.tv-ator-foto img { width: 100%; height: 100%; object-fit: cover; }
+.tv-ator-info { flex: 1; max-width: 1250px; }
+.tv-ator-nome { font-size: 54px; font-weight: 500; color: #fff; }
+.tv-ator-dados { font-size: 24px; color: #4fe3d0; margin-top: 10px; }
+.tv-ator-bio { font-size: 26px; line-height: 38px; color: rgba(255,255,255,.85); margin-top: 16px; max-height: 190px; overflow: hidden; }
+.tv-ator-estado { font-size: 28px; color: rgba(255,255,255,.75); margin: 40px 0; }

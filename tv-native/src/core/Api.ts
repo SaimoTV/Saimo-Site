@@ -77,7 +77,7 @@ export interface VODItem {
   duration?: string;
   backdrop?: string;
   trailer?: string;
-  cast?: { name: string; character: string; photo?: string }[];
+  cast?: { id?: number; name: string; character: string; photo?: string }[];
   /** Dados extras do TMDB para a ficha. */
   extras?: { rotulo: string; valor: string }[];
   tagline?: string;
@@ -1002,12 +1002,49 @@ export class Api {
 
       if (data.credits?.cast && Array.isArray(data.credits.cast)) {
         item.cast = data.credits.cast.slice(0, 15).map((c: any) => ({
+          id: c.id,
           name: c.name,
           character: c.character,
           photo: c.profile_path ? `https://image.tmdb.org/t/p/w185${c.profile_path}` : undefined,
         }));
       }
     } catch (e) {}
+  }
+
+  /** Perfil de uma pessoa e tudo em que ela atuou (TMDB). */
+  static async fetchTMDBPessoa(id: number): Promise<{
+    nome: string; foto?: string; biografia: string; dados: string[];
+    creditos: { tmdbId: number; titulo: string; serie: boolean; papel: string }[];
+  } | null> {
+    try {
+      const url = `${this.TMDB_BASE}/person/${id}?api_key=${this.TMDB_KEY}&language=pt-BR&append_to_response=combined_credits`;
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const d = await res.json();
+      const dataBr = (iso?: string) => {
+        const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+        return m ? `${m[3]}/${m[2]}/${m[1]}` : '';
+      };
+      const dados: string[] = [];
+      const depto: Record<string, string> = { Acting: 'Atuação', Directing: 'Direção', Writing: 'Roteiro', Production: 'Produção' };
+      if (d.known_for_department) dados.push(depto[d.known_for_department] || d.known_for_department);
+      if (d.birthday) {
+        const nasc = parseInt(String(d.birthday).slice(0, 4), 10);
+        const morr = d.deathday ? parseInt(String(d.deathday).slice(0, 4), 10) : 0;
+        dados.push(morr ? `${nasc} – ${morr}` : `${dataBr(d.birthday)} · ${new Date().getFullYear() - nasc} anos`);
+      }
+      if (d.place_of_birth) dados.push(d.place_of_birth);
+      const cast: any[] = (d.combined_credits?.cast || []).slice().sort((a: any, b: any) => (b.popularity || 0) - (a.popularity || 0));
+      return {
+        nome: d.name || '',
+        foto: d.profile_path ? `https://image.tmdb.org/t/p/w342${d.profile_path}` : undefined,
+        biografia: d.biography || '',
+        dados,
+        creditos: cast.map((c) => ({
+          tmdbId: c.id, titulo: c.title || c.name || '', serie: c.media_type === 'tv', papel: c.character || '',
+        })),
+      };
+    } catch { return null; }
   }
 
   /** Imagens, títulos e sinopses reais dos episódios de uma temporada (TMDB). */
