@@ -944,6 +944,40 @@ export class Api {
     }
   }
 
+  private static idsPorTitulo: Map<string, number> = new Map();
+
+  /** Id do TMDB de um título que o catálogo não traz; 0 quando não acha com segurança. */
+  private static async buscarTmdbPorTitulo(item: VODItem): Promise<number> {
+    const norm = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const limpo = String(item.title || '')
+      .replace(/\[[^\]]*\]|\([^)]*\)/g, ' ')
+      .replace(/\b(4k|uhd|fhd|hd|sd|dublado|legendado|dual|leg|dub)\b/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!limpo) return 0;
+    const ano = String(item.year || '').match(/\d{4}/)?.[0] || '';
+    const tipo = item.isSeries ? 'tv' : 'movie';
+    const chave = `${tipo}|${norm(limpo)}|${ano}`;
+    const guardado = this.idsPorTitulo.get(chave);
+    if (guardado !== undefined) return guardado;
+    let id = 0;
+    try {
+      const anoParam = ano ? `&${item.isSeries ? 'first_air_date_year' : 'year'}=${ano}` : '';
+      const url = `${this.TMDB_BASE}/search/${tipo}?api_key=${this.TMDB_KEY}&language=pt-BR&include_adult=false&query=${encodeURIComponent(limpo)}${anoParam}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const dados = await res.json();
+        const alvo = norm(limpo);
+        for (const r of dados.results || []) {
+          const nomes = [r.title, r.name, r.original_title, r.original_name].filter(Boolean).map((n: string) => norm(n));
+          if (nomes.some((n: string) => n === alvo || (n.length > 3 && (n.indexOf(alvo) === 0 || alvo.indexOf(n) === 0)))) { id = r.id; break; }
+        }
+      }
+    } catch { /* sem rede: tenta de novo na próxima vez */ return 0; }
+    this.idsPorTitulo.set(chave, id);
+    return id;
+  }
+
   // ===== ENRIQUECIMENTO TMDB (SINOPSE, BACKDROP, ELENCO) =====
   static async fetchTMDBDetails(item: VODItem): Promise<void> {
     const ficha = this.fichasMap.get(item.title);
@@ -954,6 +988,14 @@ export class Api {
       if (bridge) {
         item.tmdbId = bridge.tmdbId;
       }
+    }
+
+    // Título de lista própria, que o catálogo não conhece: procura pelo nome.
+    // Sem o id não há temporadas com imagem nem elenco, e os episódios
+    // ficavam todos com a capa.
+    if (!item.tmdbId) {
+      const achado = await this.buscarTmdbPorTitulo(item).catch(() => 0);
+      if (achado) item.tmdbId = achado;
     }
 
     if (!item.tmdbId) return;

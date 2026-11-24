@@ -13,7 +13,7 @@
 .sem-gap .tv-drawer-channel-item > * + * { margin-left: 16px; }
 .sem-gap .tv-player-osd > * + * { margin-top: 16px; }
 .sem-gap .tv-osd-progress-line > * + * { margin-left: 20px; }
-.sem-gap .tv-osd-buttons > * + * { margin-left: 16px; }
+.sem-gap .tv-osd-buttons > * + * { margin-left: 8px; }
 .sem-gap .tv-btn > * + * { margin-left: 8px; }
 .sem-gap .tv-card > * + * { margin-top: 8px; }
 .sem-gap .tv-card-wide-inner > * + * { margin-left: 16px; }
@@ -29,7 +29,7 @@
 .sem-gap .tv-guide-programmes > * + * { margin-top: 12px; }
 .sem-gap .tv-guide-prog-item > * + * { margin-top: 6px; }
 .sem-gap .tv-match-team > * + * { margin-left: 16px; }
-.sem-gap .tv-search-layout > * + * { margin-left: 50px; }
+.sem-gap .tv-search-layout > * + * { margin-left: 40px; }
 .sem-gap .tv-search-left > * + * { margin-top: 24px; }
 .sem-gap .tv-search-input-box > * + * { margin-left: 16px; }
 .sem-gap .tv-search-right > * + * { margin-top: 20px; }
@@ -45,3 +45,7 @@
 .sem-gap .tv-filtro > * + * { margin-left: 6px; }
 .sem-gap .tv-escolha-lista > * + * { margin-top: 10px; }
 .sem-gap .tv-conta > * + * { margin-left: 70px; }
+.sem-gap .tv-boasvindas .tv-conta > * + * { margin-left: 36px; }
+.sem-gap .tv-ficha-extras > * { margin-right: 36px; margin-bottom: 8px; }
+.sem-gap .tv-ficha-content .tv-category-chips > * + * { margin-left: 12px; }
+.sem-gap .tv-ator-top > * + * { margin-left: 50px; }

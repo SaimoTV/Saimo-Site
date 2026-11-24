@@ -58,22 +58,23 @@ export class Platform {
   }
 
   private static registerTizenKeys() {
-    try {
-      const tizen = (window as any).tizen;
-      if (tizen && tizen.tvinputdevice) {
-        const keysToRegister = [
-          'MediaPlayPause', 'MediaPlay', 'MediaPause', 'MediaStop',
-          'MediaFastForward', 'MediaRewind',
-          'ColorF0Red', 'ColorF1Green', 'ColorF2Yellow', 'ColorF3Blue',
-          'ChannelUp', 'ChannelDown', 'Info',
-          '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
-        ];
-        tizen.tvinputdevice.registerKeyBatch(keysToRegister);
-        console.info('[SaimoTV] Teclas registradas no Tizen com sucesso.');
-      }
-    } catch (e) {
-      console.warn('[SaimoTV] Aviso ao registrar teclas Tizen:', e);
+    const tizen = (window as any).tizen;
+    if (!tizen || !tizen.tvinputdevice) return;
+    // Uma a uma: se a TV não conhece um nome, só ele é ignorado (o lote inteiro
+    // falhava e levava junto as teclas coloridas e os números).
+    const teclas = [
+      'MediaPlayPause', 'MediaPlay', 'MediaPause', 'MediaStop',
+      'MediaFastForward', 'MediaRewind', 'MediaTrackPrevious', 'MediaTrackNext',
+      'ColorF0Red', 'ColorF1Green', 'ColorF2Yellow', 'ColorF3Blue',
+      'ChannelUp', 'ChannelDown', 'ChannelList', 'PreviousChannel',
+      'Info', 'Guide', 'Extra', 'Menu',
+      '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
+    ];
+    let ok = 0;
+    for (let i = 0; i < teclas.length; i++) {
+      try { tizen.tvinputdevice.registerKey(teclas[i]); ok++; } catch (e) { /* nome desconhecido nesta TV */ }
     }
+    console.info(`[SaimoTV] Teclas registradas no Tizen: ${ok} de ${teclas.length}.`);
   }
 
   static isBackKey(keyCode: number): boolean {

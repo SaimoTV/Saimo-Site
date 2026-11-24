@@ -408,7 +408,7 @@ html.tizen.tizen-mse-ativo, html.tizen.tizen-mse-ativo body, html.tizen.tizen-ms
 .tv-rail-eps .tv-card > .tv-card-subtitle { font-size: 22px; }
 
 /* Temporadas: uma fileira que rola para o lado (mais de 8 não cabem) */
-.tv-ficha-content .tv-category-chips { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; flex-shrink: 0; padding: 6px 4px; }
+.tv-ficha-content .tv-category-chips { gap: 12px; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; flex-shrink: 0; padding: 6px 4px; }
 .tv-ficha-content .tv-category-chips::-webkit-scrollbar { display: none; }
 .tv-ficha-content .tv-category-chips .tv-btn { flex: 0 0 auto; white-space: nowrap; }
 .tv-ficha-content .tv-category-chips .tv-btn.primary { box-shadow: inset 0 -5px 0 #4fe3d0; }

@@ -85,7 +85,6 @@ export class FichaScreen {
     this.seasonsContainer = document.createElement('div');
     this.seasonsContainer.className = 'tv-category-chips';
     this.seasonsContainer.style.display = 'none';
-    this.seasonsContainer.style.gap = '12px';
     this.seasonsContainer.style.margin = '20px 0 10px';
     content.appendChild(this.seasonsContainer);
 
@@ -243,9 +242,10 @@ export class FichaScreen {
         await Addons.resolveSeriesEpisodes(item);
       }
       if (this.currentItem !== item) return;
-      await Api.fetchTMDBSeason(item, this.currentSeasonIdx);
-      if (this.currentItem !== item) return;
+      // Temporadas e episódios aparecem já; as imagens e sinopses do TMDB
+      // chegam depois e só refazem a lista (a TV não espera a rede para mostrar).
       this.renderSeasonsAndEpisodes(item);
+      this.buscarImagensDaTemporada(item, this.currentSeasonIdx);
     }
 
     // 3. Renderiza Elenco
@@ -344,6 +344,16 @@ export class FichaScreen {
     }, 10);
   }
 
+  /** Pede ao TMDB as imagens da temporada e refaz a lista mantendo o foco. */
+  private buscarImagensDaTemporada(item: VODItem, sIdx: number) {
+    void Api.fetchTMDBSeason(item, sIdx).then((novo) => {
+      if (!novo || this.currentItem !== item || this.currentSeasonIdx !== sIdx) return;
+      const f = SpatialNav.getCurrent()?.id;
+      this.renderSeasonsAndEpisodes(item);
+      if (f) { const el = document.getElementById(f); if (el) SpatialNav.focus(el); }
+    }).catch(() => { /* sem imagens do TMDB: ficam os números */ });
+  }
+
   private renderSeasonsAndEpisodes(item: VODItem) {
     if (!item.seasons || item.seasons.length === 0) return;
 
@@ -364,12 +374,7 @@ export class FichaScreen {
         // As abas são refeitas: o foco volta para a aba escolhida.
         SpatialNav.focus(this.seasonsContainer.querySelector<HTMLElement>(`#season-tab-${sIdx}`));
         // As imagens e sinopses desta temporada chegam do TMDB e a lista é refeita.
-        void Api.fetchTMDBSeason(item, sIdx).then((novo) => {
-          if (!novo || this.currentItem !== item || this.currentSeasonIdx !== sIdx) return;
-          const f = SpatialNav.getCurrent()?.id;
-          this.renderSeasonsAndEpisodes(item);
-          if (f) { const el = document.getElementById(f); if (el) SpatialNav.focus(el); }
-        });
+        this.buscarImagensDaTemporada(item, sIdx);
       });
 
       this.seasonsContainer.appendChild(tab);
@@ -386,7 +391,8 @@ export class FichaScreen {
       id: `ep_${currentSeason.seasonNumber}_${ep.episodeNumber}`,
       title: `${ep.episodeNumber}. ${ep.title}`,
       subtitle: [ep.duracao, ep.data].filter(Boolean).join(' · ') || ep.overview || `Temporada ${currentSeason.seasonNumber}`,
-      image: ep.thumb || item.backdrop || item.poster,
+      // Sem imagem do episódio, o cartão mostra o número, não a capa repetida.
+      image: ep.thumb,
       marcado: ehAssistido(item.title, currentSeason.seasonNumber, ep.episodeNumber),
       onMarcar: () => {
         if (ehAssistido(item.title, currentSeason.seasonNumber, ep.episodeNumber)) desmarcarAssistido(item.title, currentSeason.seasonNumber, ep.episodeNumber);
@@ -412,7 +418,8 @@ export class FichaScreen {
    * do episódio direto para o menu do topo.
    */
   private ligarNavegacao() {
-    const visivel = (el: HTMLElement) => el.style.display !== 'none' && el.offsetParent !== null;
+    // Só o display decide: medir o layout falha na TV quando a tela ainda está sendo montada.
+    const visivel = (el: HTMLElement) => el.style.display !== 'none';
     const faixas: HTMLElement[][] = [];
     const botoes = [...this.actionsContainer.querySelectorAll<HTMLElement>('[data-nav="true"]')];
     if (botoes.length) faixas.push(botoes);

@@ -77,8 +77,8 @@ export class Rail {
         innerHtml = `
           <div class="tv-card-wide-inner">
             ${card.badge ? `<span class="tv-selo">${card.badge}</span>` : ''}
-            ${card.image ? `<img class="tv-card-img ${card.image2 ? 'par' : ''}" src="${esc(card.image)}" onerror="${AO_FALHAR}" loading="lazy" alt="" />` : ''}
-            ${card.image2 ? `<span class="tv-x">x</span><img class="tv-card-img par" src="${esc(card.image2)}" onerror="this.style.display='none'" loading="lazy" alt="" />` : ''}
+            ${card.image ? `<img class="tv-card-img ${card.image2 ? 'par' : ''}" src="${esc(card.image)}" onerror="${AO_FALHAR}" loading="${idx < 14 ? 'eager' : 'lazy'}" decoding="async" alt="" />` : ''}
+            ${card.image2 ? `<span class="tv-x">x</span><img class="tv-card-img par" src="${esc(card.image2)}" onerror="this.style.display='none'" loading="${idx < 14 ? 'eager' : 'lazy'}" decoding="async" alt="" />` : ''}
             <div class="tv-card-placeholder" style="display:${card.image ? 'none' : 'flex'}">${esc(card.title.trim().charAt(0).toUpperCase())}</div>
           </div>
           <div class="tv-card-title">${esc(card.title)}</div>
@@ -91,7 +91,7 @@ export class Rail {
       } else {
         innerHtml = `
           <div class="tv-card-poster-wrap">
-            ${card.image ? `<img class="tv-card-img" src="${esc(card.image)}" onerror="${AO_FALHAR}" loading="lazy" alt="" />` : ''}
+            ${card.image ? `<img class="tv-card-img" src="${esc(card.image)}" onerror="${AO_FALHAR}" loading="${idx < 14 ? 'eager' : 'lazy'}" decoding="async" alt="" />` : ''}
             <div class="tv-card-placeholder" style="display:${card.image ? 'none' : 'flex'}">${esc(card.title.trim().charAt(0).toUpperCase())}</div>
             ${card.badge ? `<span class="tv-card-badge" style="background:${card.badgeColor || '#00e3ff'}">${card.badge}</span>` : ''}
             ${card.onRemove ? `<span role="button" class="tv-card-remove" title="Remover de Continuar assistindo">×</span>` : ''}
